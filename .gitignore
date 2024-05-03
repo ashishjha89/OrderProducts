@@ -1,0 +1,20 @@
+# ignoring all target directories
+instrumented/
+reports/
+build/
+classes/
+target/
+run/
+dist/
+# ignore IntelliJ config files
+*.iws
+*.ipr
+*.iml
+# ignore zipkin
+zipkin-server-*.jar
+
+# Mac stuff
+.DS_Store
+
+### IntelliJ IDEA ###
+.idea
