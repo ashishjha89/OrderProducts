@@ -11,18 +11,15 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/order")
-@RequiredArgsConstructor
 @Slf4j
-public class OrderController {
-
-    private final OrderService orderService;
+@SuppressWarnings("unused")
+public record OrderController(OrderService orderService) {
 
     @ApiResponses(
             value = {
