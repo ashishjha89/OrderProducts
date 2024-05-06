@@ -1,36 +1,45 @@
 package com.example.productservice.service;
 
+import com.example.productservice.common.InternalServerException;
 import com.example.productservice.dto.ProductRequest;
 import com.example.productservice.dto.ProductResponse;
+import com.example.productservice.dto.SavedProduct;
 import com.example.productservice.model.Product;
 import com.example.productservice.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
-public class ProductService {
+public record ProductService(ProductRepository productRepository) {
 
-    private final ProductRepository productRepository;
-
-    public void createProduct(ProductRequest productRequest) {
+    public SavedProduct createProduct(@NonNull ProductRequest productRequest) throws InternalServerException {
         final var product = Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
                 .price(productRequest.getPrice())
                 .build();
-
-        productRepository.save(product);
-        log.info("Product {} is saved", product.getId());
+        try {
+            final var savedItem = productRepository.save(product);
+            log.info("Product {} is saved", product.getId());
+            return new SavedProduct(savedItem.getId());
+        } catch (DataAccessException e) {
+            log.error("Error when saving product:" + e.getMessage());
+            throw new InternalServerException();
+        }
     }
 
-    public List<ProductResponse> getAllProducts() {
-        final var products = productRepository.findAll();
-        return products.stream().map(this::mapToProductResponse).toList();
+    public List<ProductResponse> getAllProducts() throws InternalServerException {
+        try {
+            return productRepository.findAll().stream().map(this::mapToProductResponse).toList();
+        } catch (DataAccessException e) {
+            log.error("Error when getting all products:" + e.getMessage());
+            throw new InternalServerException();
+        }
     }
 
     private ProductResponse mapToProductResponse(Product product) {

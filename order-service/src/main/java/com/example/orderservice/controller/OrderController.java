@@ -50,10 +50,14 @@ public record OrderController(OrderService orderService) {
     @ResponseStatus(HttpStatus.CREATED)
     @SuppressWarnings("unused")
     public SavedOrder placeOrder(@RequestBody OrderRequest orderRequest) throws BadRequestException, InternalServerException {
+        log.info("POST:/api/order");
         if (orderRequest == null
                 || orderRequest.getOrderLineItemsList() == null
                 || orderRequest.getOrderLineItemsList().isEmpty()
-        ) throw new BadRequestException();
+        ) {
+            log.error("BadRequestException because POST:/api/order is called with either OrderRequest or its fields is null/empty");
+            throw new BadRequestException();
+        }
 
         return orderService.placeOrder(orderRequest);
     }

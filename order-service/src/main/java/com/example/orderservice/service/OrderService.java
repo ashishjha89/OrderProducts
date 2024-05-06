@@ -8,10 +8,12 @@ import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.OrderRepository;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public record OrderService(
         OrderRepository orderRepository,
         OrderNumberGenerator orderNumberGenerator
@@ -26,8 +28,10 @@ public record OrderService(
 
         try {
             final var savedOrder = orderRepository.save(order);
+            log.info("Order is saved Id:" + savedOrder.getId() + " orderNumber:" + savedOrder.getOrderNumber());
             return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
         } catch (DataAccessException e) {
+            log.error("Error when saving Order:" + e.getMessage());
             throw new InternalServerException();
         }
     }
