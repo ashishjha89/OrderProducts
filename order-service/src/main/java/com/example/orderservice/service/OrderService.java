@@ -7,6 +7,7 @@ import com.example.orderservice.dto.SavedOrder;
 import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.OrderRepository;
+import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@Transactional
 public record OrderService(
         OrderRepository orderRepository,
         OrderNumberGenerator orderNumberGenerator
