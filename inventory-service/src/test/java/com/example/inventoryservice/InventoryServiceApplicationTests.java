@@ -66,7 +66,6 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("/api/inventory/skuCode1 returns {isInStock:true} when Inventory with skuCode1 is available")
     void isInStock_WhenInventoryIsPresent() throws Exception {
         // Make Api call
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/skuCode1"))
@@ -82,7 +81,6 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("/api/inventory/skuCodeRandom returns {isInStock:false} when Inventory with skuCode1 is NOT available")
     void isInStock_WhenInventoryIsAbsent() throws Exception {
         // Make Api call
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/skuCodeRandom"))
@@ -98,9 +96,8 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("/api/inventory/ returns BadRequestException when empty string/space is passed as skuCode")
     void isInStockThrowsBadRequestException_WhenEmptySkuCodeIsPassed() throws Exception {
-        // Make Api call
+        // Make Api call and expect BadRequest
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/ "))
                 .andExpect(status().isBadRequest())
                 .andReturn();

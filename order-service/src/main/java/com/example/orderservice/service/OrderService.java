@@ -8,6 +8,7 @@ import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.OrderRepository;
 import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -16,10 +17,12 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 @Transactional
-public record OrderService(
-        OrderRepository orderRepository,
-        OrderNumberGenerator orderNumberGenerator
-) {
+@AllArgsConstructor
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+
+    private final OrderNumberGenerator orderNumberGenerator;
 
     public SavedOrder placeOrder(@NonNull OrderRequest orderRequest) throws InternalServerException {
         final var orderLineItemsList = orderRequest.getOrderLineItemsList().stream().map(this::mapToDto).toList();

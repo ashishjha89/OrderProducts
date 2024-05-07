@@ -1,9 +1,12 @@
 package com.example.orderservice;
 
+import com.example.orderservice.common.ErrorBody;
+import com.example.orderservice.common.ErrorComponent;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -49,6 +53,11 @@ class OrderServiceApplicationTests {
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
     }
 
+    @AfterEach
+    void cleanup() {
+        orderRepository.deleteAll();
+    }
+
     @Test
     void placeOrderTest() throws Exception {
         // Initialise
@@ -67,5 +76,48 @@ class OrderServiceApplicationTests {
         assertEquals(1, orderRepository.findAll().size());
     }
 
+    @Test
+    void placeOrder_WhenEmptyOrderLineItemsIsPassed() throws Exception {
+        // Initialise
+        final var orderRequest = new OrderRequest(List.of());
+        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+
+        // Make Api call and expect BadRequest
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestStr))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        // Process response
+        final var jsonStr = result.getResponse().getContentAsString();
+        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+
+        // Assert
+        assertEquals(ErrorComponent.BAD_REQUEST, errorBody.errorCode());
+        assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+    }
+
+    @Test
+    void placeOrder_WhenOrderLineItemsIsMissing() throws Exception {
+        // Initialise
+        final var orderRequest = new OrderRequest();
+        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+
+        // Make Api call and expect BadRequest
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestStr))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        // Process response
+        final var jsonStr = result.getResponse().getContentAsString();
+        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+
+        // Assert
+        assertEquals(ErrorComponent.BAD_REQUEST, errorBody.errorCode());
+        assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+    }
 
 }
