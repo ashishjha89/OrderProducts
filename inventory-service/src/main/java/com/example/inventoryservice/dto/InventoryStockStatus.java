@@ -1,2 +1,4 @@
-package com.example.inventoryservice.dto;public class InventoryStockStatus {
+package com.example.inventoryservice.dto;
+
+public record InventoryStockStatus(boolean isInStock) {
 }

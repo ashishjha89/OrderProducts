@@ -1,9 +1,9 @@
-package com.example.orderservice.controller;
+package com.example.inventoryservice.controller;
 
-import com.example.orderservice.common.BadRequestException;
-import com.example.orderservice.common.ErrorBody;
-import com.example.orderservice.common.ErrorComponent;
-import com.example.orderservice.common.InternalServerException;
+import com.example.inventoryservice.common.BadRequestException;
+import com.example.inventoryservice.common.ErrorBody;
+import com.example.inventoryservice.common.ErrorComponent;
+import com.example.inventoryservice.common.InternalServerException;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -59,13 +59,17 @@ class ProductServiceApplicationTests {
     @Test
     @DisplayName("POST call to /api/product will insert Product to Db")
     void postApiCallShouldInsertProductToDatabase() throws Exception {
+        // Initialise
         var productRequest = getProductRequest();
         var productRequestStr = objectMapper.writeValueAsString(productRequest);
 
+        // Make Api call
         mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productRequestStr))
                 .andExpect(status().isCreated());
+
+        // Assert item is inserted
         assertEquals(1, productRepository.findAll().size());
     }
 
@@ -84,9 +88,9 @@ class ProductServiceApplicationTests {
                 .andReturn();
 
         // Process response
-        var jsonStr = result.getResponse().getContentAsString();
-        var responses = objectMapper.readValue(jsonStr, ProductResponse[].class);
-        Optional<ProductResponse> productOpt = Arrays.stream(responses)
+        final var jsonStr = result.getResponse().getContentAsString();
+        final var responses = objectMapper.readValue(jsonStr, ProductResponse[].class);
+       Optional<ProductResponse> productOpt = Arrays.stream(responses)
                 .filter(productRes -> productRes.getName().equals(uniqueName))
                 .findAny();
 

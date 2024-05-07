@@ -1,4 +1,4 @@
-package com.example.orderservice.common;
+package com.example.inventoryservice.common;
 
 public record ErrorBody(String errorCode, String errorMessage) {
 }

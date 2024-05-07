@@ -51,16 +51,19 @@ class OrderServiceApplicationTests {
 
     @Test
     void placeOrderTest() throws Exception {
+        // Initialise
         final var orderRequest = new OrderRequest(
                 List.of(new OrderLineItemsDto("skuCode", BigDecimal.valueOf(1200), 10))
         );
         final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
+        // Make Api call
         mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(orderRequestStr))
                 .andExpect(status().isCreated());
 
+        // Assert item is inserted
         assertEquals(1, orderRepository.findAll().size());
     }
 
