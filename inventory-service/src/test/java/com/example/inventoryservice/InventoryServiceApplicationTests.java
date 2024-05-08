@@ -1,14 +1,11 @@
 package com.example.inventoryservice;
 
-import com.example.inventoryservice.common.ErrorBody;
-import com.example.inventoryservice.common.ErrorComponent;
 import com.example.inventoryservice.dto.InventoryStockStatus;
 import com.example.inventoryservice.model.Inventory;
 import com.example.inventoryservice.repository.InventoryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -22,6 +19,9 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,7 +44,9 @@ class InventoryServiceApplicationTests {
     private ObjectMapper objectMapper;
 
     private final Inventory inventory1 = Inventory.builder().quantity(10).skuCode("skuCode1").build();
-    private final Inventory inventory2 = Inventory.builder().quantity(10).skuCode("skuCode2").build();
+    private final Inventory inventory2 = Inventory.builder().quantity(20).skuCode("skuCode2").build();
+    private final Inventory inventory3 = Inventory.builder().quantity(0).skuCode("skuCode3").build();
+    private final Inventory inventory4 = Inventory.builder().quantity(40).skuCode("skuCode4").build();
 
     @DynamicPropertySource
     static void configureTestProperties(DynamicPropertyRegistry registry) {
@@ -58,6 +60,8 @@ class InventoryServiceApplicationTests {
     void setupInventory() {
         inventoryRepository.save(inventory1);
         inventoryRepository.save(inventory2);
+        inventoryRepository.save(inventory3);
+        inventoryRepository.save(inventory4);
     }
 
     @AfterEach
@@ -96,19 +100,28 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
-    void isInStockThrowsBadRequestException_WhenEmptySkuCodeIsPassed() throws Exception {
-        // Make Api call and expect BadRequest
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/ "))
-                .andExpect(status().isBadRequest())
+    void stocksStatusTest() throws Exception {
+        final var expectedStockStatus = List.of(
+                new InventoryStockStatus("skuCode1", true),
+                new InventoryStockStatus("skuCode2", true),
+                new InventoryStockStatus("skuCode3", false), // Note: skuCode3 has quantity=0
+                new InventoryStockStatus("random", false)
+        );
+
+        // Make Api call
+        MvcResult result = mockMvc.perform(
+                        MockMvcRequestBuilders
+                                .get("/api/inventory?skuCode=skuCode1&skuCode=skuCode2&skuCode=skuCode3&skuCode=random")
+                )
+                .andExpect(status().isOk())
                 .andReturn();
 
         // Process response
         final var jsonStr = result.getResponse().getContentAsString();
-        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+        final var stocksStatus = Arrays.stream(objectMapper.readValue(jsonStr, InventoryStockStatus[].class)).toList();
 
         // Assert
-        assertEquals(ErrorComponent.BAD_REQUEST, errorBody.errorCode());
-        assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+        assertEquals(expectedStockStatus, stocksStatus);
     }
 
 }

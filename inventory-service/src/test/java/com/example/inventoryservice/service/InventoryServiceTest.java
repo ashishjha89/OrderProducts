@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,8 +30,7 @@ public class InventoryServiceTest {
                 .thenReturn(Optional.of(new Inventory(1L, "skuCode", 10)));
 
         // Call method to test
-        assertEquals(new InventoryStockStatus(true), inventoryService.isInStock("skuCode"));
-
+        assertEquals(new InventoryStockStatus("skuCode", true), inventoryService.isInStock("skuCode"));
     }
 
     @Test
@@ -41,8 +41,7 @@ public class InventoryServiceTest {
                 .thenReturn(Optional.empty());
 
         // Call method to test
-        assertEquals(new InventoryStockStatus(false), inventoryService.isInStock("skuCode"));
-
+        assertEquals(new InventoryStockStatus("skuCode", false), inventoryService.isInStock("skuCode"));
     }
 
     @Test
@@ -54,6 +53,50 @@ public class InventoryServiceTest {
 
         // Call method to test
         assertThrows(InternalServerException.class, () -> inventoryService.isInStock("skuCode"));
+    }
 
+    @Test
+    @DisplayName("stocksStatus() should return List<InventoryStockStatus> for passed skuCodes, such that InventoryStockStatus.isInStock=true if inventory is in DB and quantity>0")
+    public void stocksStatusTest() throws InternalServerException {
+        // Initialise
+        final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
+        final var matchingInventories = List.of(
+                new Inventory(1L, "skuCode1", 10),
+                new Inventory(2L, "skuCode2", 0),
+                new Inventory(3L, "skuCode4", 15)
+        );
+        when(inventoryRepository.findBySkuCodeIn(skuCodeList)).thenReturn(matchingInventories);
+        final var expectedStatus = List.of(
+                new InventoryStockStatus("skuCode1", true),
+                new InventoryStockStatus("skuCode2", false),
+                new InventoryStockStatus("skuCode3", false),
+                new InventoryStockStatus("skuCode4", true)
+        );
+
+        // Call method to test
+        assertEquals(expectedStatus, inventoryService.stocksStatus(skuCodeList));
+    }
+
+    @Test
+    @DisplayName("stocksStatus() should throw InternalServerException when repo returns null inventories for skuCodes")
+    public void stocksStatus_WhenInventoryIsReceivedAsNullFromRepo() {
+        // Initialise
+        final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
+        when(inventoryRepository.findBySkuCodeIn(skuCodeList)).thenReturn(null);
+
+        // Call method to test
+        assertThrows(InternalServerException.class, () -> inventoryService.stocksStatus(skuCodeList));
+    }
+
+    @Test
+    @DisplayName("stocksStatus() should throw InternalServerException when Repo throws DataAccessException")
+    public void stocksStatus_WhenRepoThrowsError() {
+        // Initialise
+        final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
+        when(inventoryRepository.findBySkuCodeIn(skuCodeList))
+                .thenThrow(new DataAccessResourceFailureException("Child class of DataAccessException"));
+
+        // Call method to test
+        assertThrows(InternalServerException.class, () -> inventoryService.stocksStatus(skuCodeList));
     }
 }

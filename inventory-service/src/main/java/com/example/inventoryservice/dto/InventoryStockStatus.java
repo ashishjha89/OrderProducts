@@ -1,4 +1,4 @@
 package com.example.inventoryservice.dto;
 
-public record InventoryStockStatus(boolean isInStock) {
+public record InventoryStockStatus(String skuCode, boolean isInStock) {
 }
