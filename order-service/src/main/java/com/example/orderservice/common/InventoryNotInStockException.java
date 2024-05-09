@@ -1,2 +1,4 @@
-package com.example.orderservice.common;public class InventoryNotInStockException {
+package com.example.orderservice.common;
+
+public class InventoryNotInStockException extends Exception {
 }

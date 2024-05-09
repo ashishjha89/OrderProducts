@@ -2,6 +2,7 @@ package com.example.orderservice.controller;
 
 import com.example.orderservice.common.BadRequestException;
 import com.example.orderservice.common.InternalServerException;
+import com.example.orderservice.common.InventoryNotInStockException;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.dto.SavedOrder;
@@ -26,7 +27,7 @@ public class OrderControllerTest {
 
     @Test
     @DisplayName("placeOrder() calls OrderService.placeOrder() and retrieves `SavedOrder` from it")
-    public void placeOrderTest() throws InternalServerException, BadRequestException {
+    public void placeOrderTest() throws InternalServerException, BadRequestException, InventoryNotInStockException {
         // Initialise
         final var orderRequest = new OrderRequest(
                 List.of(new OrderLineItemsDto("skuCode", BigDecimal.valueOf(1200), 10))
@@ -59,7 +60,7 @@ public class OrderControllerTest {
 
     @Test
     @DisplayName("placeOrder() forwards InternalServerException from OrderService.placeOrder")
-    public void placeOrderInternalServerExceptionTest() throws InternalServerException {
+    public void placeOrderInternalServerExceptionTest() throws InternalServerException, InventoryNotInStockException {
         final var orderRequest = new OrderRequest(
                 List.of(new OrderLineItemsDto("skuCode", BigDecimal.valueOf(1200), 10))
         );

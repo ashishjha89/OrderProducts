@@ -1,9 +1,6 @@
 package com.example.orderservice.controller;
 
-import com.example.orderservice.common.BadRequestException;
-import com.example.orderservice.common.ErrorBody;
-import com.example.orderservice.common.ErrorComponent;
-import com.example.orderservice.common.InternalServerException;
+import com.example.orderservice.common.*;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.dto.SavedOrder;
 import com.example.orderservice.service.OrderService;
@@ -49,7 +46,7 @@ public record OrderController(OrderService orderService) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @SuppressWarnings("unused")
-    public SavedOrder placeOrder(@RequestBody OrderRequest orderRequest) throws BadRequestException, InternalServerException {
+    public SavedOrder placeOrder(@RequestBody OrderRequest orderRequest) throws BadRequestException, InternalServerException, InventoryNotInStockException {
         log.info("POST:/api/order");
         if (orderRequest == null
                 || orderRequest.getOrderLineItemsList() == null

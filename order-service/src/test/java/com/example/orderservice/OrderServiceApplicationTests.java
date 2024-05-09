@@ -2,8 +2,10 @@ package com.example.orderservice;
 
 import com.example.orderservice.common.ErrorBody;
 import com.example.orderservice.common.ErrorComponent;
+import com.example.orderservice.dto.InventoryStockStatus;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
+import com.example.orderservice.repository.InventoryStatusRepository;
 import com.example.orderservice.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -26,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -45,6 +49,9 @@ class OrderServiceApplicationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockBean
+    private InventoryStatusRepository inventoryStatusRepository;
+
     @DynamicPropertySource
     static void configureTestProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
@@ -58,11 +65,14 @@ class OrderServiceApplicationTests {
         orderRepository.deleteAll();
     }
 
+    // In this test, we mock call to inventory-service (by mocking InventoryStatusRepository)
+    // In unit-test of InventoryStatusRepository, the logic for http-request & response is tested
     @Test
     void placeOrderTest() throws Exception {
         // Initialise
+        when(inventoryStatusRepository.retrieveStocksStatus(List.of("random_sku"))).thenReturn(List.of(new InventoryStockStatus("random_sku", true)));
         final var orderRequest = new OrderRequest(
-                List.of(new OrderLineItemsDto("skuCode", BigDecimal.valueOf(1200), 10))
+                List.of(new OrderLineItemsDto("random_sku", BigDecimal.valueOf(1200), 10))
         );
         final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
@@ -75,6 +85,26 @@ class OrderServiceApplicationTests {
         // Assert item is inserted
         assertEquals(1, orderRepository.findAll().size());
     }
+
+   /*
+   // In this test, we make call to inventory-service -> however, then this test depends on response from inventory-service
+    @Test
+    void placeOrderTest() throws Exception {
+        // Initialise
+        final var orderRequest = new OrderRequest(
+                List.of(new OrderLineItemsDto("iphone_12", BigDecimal.valueOf(1200), 10))
+        );
+        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+
+        // Make Api call
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestStr))
+                .andExpect(status().isCreated());
+
+        // Assert item is inserted
+        assertEquals(1, orderRepository.findAll().size());
+    }*/
 
     @Test
     void placeOrder_WhenEmptyOrderLineItemsIsPassed() throws Exception {
