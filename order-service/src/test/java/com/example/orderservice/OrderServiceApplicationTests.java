@@ -86,26 +86,6 @@ class OrderServiceApplicationTests {
         assertEquals(1, orderRepository.findAll().size());
     }
 
-   /*
-   // In this test, we make call to inventory-service -> however, then this test depends on response from inventory-service
-    @Test
-    void placeOrderTest() throws Exception {
-        // Initialise
-        final var orderRequest = new OrderRequest(
-                List.of(new OrderLineItemsDto("iphone_12", BigDecimal.valueOf(1200), 10))
-        );
-        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
-
-        // Make Api call
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestStr))
-                .andExpect(status().isCreated());
-
-        // Assert item is inserted
-        assertEquals(1, orderRepository.findAll().size());
-    }*/
-
     @Test
     void placeOrder_WhenEmptyOrderLineItemsIsPassed() throws Exception {
         // Initialise
