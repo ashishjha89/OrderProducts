@@ -2,18 +2,17 @@ package com.example.orderservice;
 
 import com.example.orderservice.common.ErrorBody;
 import com.example.orderservice.common.ErrorComponent;
-import com.example.orderservice.dto.InventoryStockStatus;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
-import com.example.orderservice.repository.InventoryStatusRepository;
 import com.example.orderservice.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cloud.contract.stubrunner.spring.AutoConfigureStubRunner;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -29,12 +28,15 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
+@AutoConfigureStubRunner(
+        stubsMode = LOCAL,
+        ids = "com.example:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
 class OrderServiceApplicationTests {
 
     @Container
@@ -49,9 +51,6 @@ class OrderServiceApplicationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
-    private InventoryStatusRepository inventoryStatusRepository;
-
     @DynamicPropertySource
     static void configureTestProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
@@ -65,14 +64,15 @@ class OrderServiceApplicationTests {
         orderRepository.deleteAll();
     }
 
-    // In this test, we mock call to inventory-service (by mocking InventoryStatusRepository)
-    // In unit-test of InventoryStatusRepository, the logic for http-request & response is tested
     @Test
-    void placeOrderTest() throws Exception {
+    @DisplayName("POST:/api/order should add OrderRequest (request-body) if its lineItems are available in inventory")
+    void postOrder_ShouldAddItem_IfAllLineItemsAreAvailable() throws Exception {
         // Initialise
-        when(inventoryStatusRepository.retrieveStocksStatus(List.of("random_sku"))).thenReturn(List.of(new InventoryStockStatus("random_sku", true)));
         final var orderRequest = new OrderRequest(
-                List.of(new OrderLineItemsDto("random_sku", BigDecimal.valueOf(1200), 10))
+                List.of(
+                        new OrderLineItemsDto("iphone_12", BigDecimal.valueOf(900), 5),
+                        new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(1200), 10)
+                )
         );
         final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
@@ -87,7 +87,38 @@ class OrderServiceApplicationTests {
     }
 
     @Test
-    void placeOrder_WhenEmptyOrderLineItemsIsPassed() throws Exception {
+    @DisplayName("POST:/api/order should respond with INVENTORY_NOT_IN_STOCK when request-body (OrderRequest) have some lineItems not available in inventory")
+    void postOrder_ShouldNotAddOrder_IfSomeLineItemIsNotAvailable() throws Exception {
+        // Initialise
+        final var orderRequest = new OrderRequest(
+                List.of(
+                        new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(1200), 10),
+                        new OrderLineItemsDto("iphone_14", BigDecimal.valueOf(1600), 7)
+                )
+        );
+        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+
+        // Make Api call
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestStr))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
+
+        // Process response
+        final var jsonStr = result.getResponse().getContentAsString();
+        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+
+        // Assert
+        assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK, errorBody.errorCode());
+        assertEquals(ErrorComponent.inventoryNotInStockMsg, errorBody.errorMessage());
+        // Assert item is not inserted
+        assertEquals(0, orderRepository.findAll().size());
+    }
+
+    @Test
+    @DisplayName("POST:/api/order should return BAD_REQUEST when request-body (OrderRequest) has empty LineItems")
+    void postOrder_ShouldThrowBadRequest_WhenEmptyOrderLineItemsIsPassed() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest(List.of());
         final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
@@ -109,7 +140,8 @@ class OrderServiceApplicationTests {
     }
 
     @Test
-    void placeOrder_WhenOrderLineItemsIsMissing() throws Exception {
+    @DisplayName("POST:/api/order should return BAD_REQUEST when request-body (OrderRequest) has missing LineItems")
+    void postOrder_ShouldThrowBadRequest_WhenOrderLineItemsIsMissing() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest();
         final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
