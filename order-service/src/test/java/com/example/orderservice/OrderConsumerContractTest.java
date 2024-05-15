@@ -1,11 +1,14 @@
 package com.example.orderservice;
 
+import com.example.orderservice.common.ErrorBody;
+import com.example.orderservice.common.ErrorComponent;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.repository.InventoryStatusRepository;
 import com.example.orderservice.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -27,7 +31,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -67,7 +70,8 @@ public class OrderConsumerContractTest {
 
     // In this test, we make call to inventory-service through consumer contract
     @Test
-    void placeOrderWithConsumerContractTest() throws Exception {
+    @DisplayName("POST:/api/order should add OrderRequest if its lineItems are available in inventory")
+    void placeOrder_ShouldAddItem_IfAllSkuCodesAreAvailable_WithConsumerContractTest() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest(
                 List.of(
@@ -85,5 +89,36 @@ public class OrderConsumerContractTest {
 
         // Assert item is inserted
         assertEquals(1, orderRepository.findAll().size());
+    }
+
+    // In this test, we make call to inventory-service through consumer contract
+    @Test
+    @DisplayName("POST:/api/order should NOT add OrderRequest if some of its lineItems are not available in inventory")
+    void placeOrder_ShouldNotAdd_IfSomeSkuCodeIsNotAvailable_WithConsumerContractTest() throws Exception {
+        // Initialise
+        final var orderRequest = new OrderRequest(
+                List.of(
+                        new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(1200), 10),
+                        new OrderLineItemsDto("iphone_14", BigDecimal.valueOf(1600), 7)
+                )
+        );
+        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+
+        // Make Api call
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(orderRequestStr))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
+
+        // Process response
+        final var jsonStr = result.getResponse().getContentAsString();
+        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+
+        // Assert
+        assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK, errorBody.errorCode());
+        assertEquals(ErrorComponent.inventoryNotInStockMsg, errorBody.errorMessage());
+        // Assert item is not inserted
+        assertEquals(0, orderRepository.findAll().size());
     }
 }

@@ -1,9 +1,6 @@
 package com.example.orderservice.controller;
 
-import com.example.orderservice.common.BadRequestException;
-import com.example.orderservice.common.ErrorBody;
-import com.example.orderservice.common.ErrorComponent;
-import com.example.orderservice.common.InternalServerException;
+import com.example.orderservice.common.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +27,15 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ErrorBody> badRequestException() {
         return new ResponseEntity<>(
                 ErrorComponent.badRequestError,
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    @ExceptionHandler(InventoryNotInStockException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<ErrorBody> inventoryNotInStockException() {
+        return new ResponseEntity<>(
+                ErrorComponent.inventoryNotInStockError,
                 HttpStatus.BAD_REQUEST
         );
     }
