@@ -33,7 +33,7 @@ public class OrderService {
 
     @NonNull
     public SavedOrder placeOrder(@NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
-        if (!areAllOrderLineItemsInStock(orderRequest)) throw new InventoryNotInStockException();
+        if (!areAllLineItemsInStock(orderRequest)) throw new InventoryNotInStockException();
 
         final var order = Order.builder()
                 .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
@@ -49,7 +49,7 @@ public class OrderService {
         }
     }
 
-    private boolean areAllOrderLineItemsInStock(@NonNull OrderRequest orderRequest) throws InternalServerException {
+    private boolean areAllLineItemsInStock(@NonNull OrderRequest orderRequest) throws InternalServerException {
         final var skuCodesInOrder = orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
         final var stocksStatus = inventoryStatusRepository.retrieveStocksStatus(skuCodesInOrder);
         if (!isStockStatusAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {

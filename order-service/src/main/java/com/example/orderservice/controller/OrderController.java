@@ -52,7 +52,7 @@ public record OrderController(OrderService orderService) {
                 || orderRequest.getOrderLineItemsList() == null
                 || orderRequest.getOrderLineItemsList().isEmpty()
         ) {
-            log.error("BadRequestException because POST:/api/order is called with either OrderRequest or its fields is null/empty");
+            log.error("BadRequestException because POST:/api/order is called with invalid OrderRequest orderRequest:" + orderRequest);
             throw new BadRequestException();
         }
 

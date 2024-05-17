@@ -60,7 +60,7 @@ public record ProductController(ProductService productService) {
                 || productRequest.getDescription() == null || productRequest.getDescription().isBlank()
                 || productRequest.getPrice() == null
         ) {
-            log.error("BadRequestException because POST:/api/product is called with either ProductRequest or its fields is null/blank");
+            log.error("BadRequestException because POST:/api/product is called with invalid ProductRequest productRequest:" + productRequest);
             throw new BadRequestException();
         }
 

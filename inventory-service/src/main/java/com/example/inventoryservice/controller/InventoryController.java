@@ -47,7 +47,7 @@ public record InventoryController(InventoryService inventoryService) {
             }
     )
     public InventoryStockStatus isInStock(@PathVariable("sku-code") String skuCode) throws InternalServerException {
-        log.info("GET:/api/inventory");
+        log.info("GET:/api/inventory/" + skuCode);
         return inventoryService.isInStock(skuCode);
     }
 

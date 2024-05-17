@@ -65,7 +65,7 @@ class OrderServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("POST:/api/order should add OrderRequest (request-body) if its lineItems are available in inventory")
+    @DisplayName("POST:/api/order should save OrderRequest in request-body, if its lineItems are available in inventory")
     void postOrder_ShouldAddItem_IfAllLineItemsAreAvailable() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest(
@@ -87,7 +87,7 @@ class OrderServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("POST:/api/order should respond with INVENTORY_NOT_IN_STOCK when request-body (OrderRequest) have some lineItems not available in inventory")
+    @DisplayName("POST:/api/order should respond with INVENTORY_NOT_IN_STOCK when request-body in OrderRequest have some lineItems not available in inventory")
     void postOrder_ShouldNotAddOrder_IfSomeLineItemIsNotAvailable() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest(
@@ -117,7 +117,7 @@ class OrderServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("POST:/api/order should return BAD_REQUEST when request-body (OrderRequest) has empty LineItems")
+    @DisplayName("POST:/api/order should return BAD_REQUEST when request-body in OrderRequest has empty LineItems")
     void postOrder_ShouldThrowBadRequest_WhenEmptyOrderLineItemsIsPassed() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest(List.of());
@@ -140,7 +140,7 @@ class OrderServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("POST:/api/order should return BAD_REQUEST when request-body (OrderRequest) has missing LineItems")
+    @DisplayName("POST:/api/order should return BAD_REQUEST when OrderRequest in request-body has missing LineItems")
     void postOrder_ShouldThrowBadRequest_WhenOrderLineItemsIsMissing() throws Exception {
         // Initialise
         final var orderRequest = new OrderRequest();
