@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OrderServiceApplicationTests {
 
     @Container
-    static final MySQLContainer mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:5.7.34"));
+    static final MySQLContainer mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
 
     @Autowired
     private OrderRepository orderRepository;
