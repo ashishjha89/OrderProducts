@@ -6,7 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
@@ -20,23 +23,22 @@ public class InventoryStatusRepositoryTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static MockWebServer mockBackEnd;
-
-    @BeforeAll
-    static void setUp() throws IOException {
-        mockBackEnd = new MockWebServer();
-        mockBackEnd.start(InventoryStatusRepository.PORT);
-    }
-
-    @AfterAll
-    static void tearDown() throws IOException {
-        mockBackEnd.shutdown();
-    }
+    private static MockWebServer mockWebServer;
 
     @BeforeEach
-    void initialize() {
-        String baseUrl = String.format("http://localhost:%s", mockBackEnd.getPort());
-        inventoryStatusRepository = new InventoryStatusRepository(WebClient.create(baseUrl));
+    void initialize() throws IOException {
+        mockWebServer = new MockWebServer();
+        mockWebServer.start();
+
+        inventoryStatusRepository = new InventoryStatusRepository(
+                WebClient.builder(),
+                mockWebServer.url("/").toString()
+        );
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        mockWebServer.shutdown();
     }
 
     @Test
@@ -47,7 +49,7 @@ public class InventoryStatusRepositoryTest {
                 new InventoryStockStatus("sku1", true),
                 new InventoryStockStatus("sku2", false)
         );
-        mockBackEnd.enqueue(new MockResponse()
+        mockWebServer.enqueue(new MockResponse()
                 .setBody(objectMapper.writeValueAsString(mockStatuses))
                 .addHeader("Content-Type", "application/json"));
 

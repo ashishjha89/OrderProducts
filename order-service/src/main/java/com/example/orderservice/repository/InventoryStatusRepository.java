@@ -16,24 +16,22 @@ import java.util.List;
 @AllArgsConstructor
 public class InventoryStatusRepository {
 
-    static final String HOST_NAME = "http://localhost";
-
-    static final int PORT = 8082;
-
-    private static final String INVENTORY_API_URI = HOST_NAME + ":" + PORT + "/api/inventory";
-
+    private static final String INVENTORY_API_PATH = "/api/inventory";
     static final String SKU_CODE_QUERY_PARAM = "skuCode";
 
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
+
+    private final String inventoryApiBaseUrl;
 
     @NonNull
     public List<InventoryStockStatus> retrieveStocksStatus(List<String> skuCodes) throws InternalServerException {
         try {
-            final var stockStatus = webClient.get()
-                    .uri(INVENTORY_API_URI, uriBuilder -> uriBuilder.queryParam(SKU_CODE_QUERY_PARAM, skuCodes).build())
+            final var stockStatus = webClientBuilder.baseUrl(inventoryApiBaseUrl).build().get()
+                    .uri(uriBuilder -> uriBuilder.path(INVENTORY_API_PATH).queryParam(SKU_CODE_QUERY_PARAM, skuCodes).build())
                     .retrieve()
                     .bodyToMono(InventoryStockStatus[].class)
                     .block();
+
             if (stockStatus == null) {
                 log.error("Null value of stockStatus returned from inventory-service");
                 throw new InternalServerException();
