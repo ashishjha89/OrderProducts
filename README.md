@@ -1,3 +1,6 @@
+### Eureka dashboard
+http://localhost:8080/eureka/web
+
 ### Clean install all services
 ```
 ./clean_install_services.sh
@@ -5,39 +8,30 @@
 
 ### Run all services
 ```
-./run_all_services.sh
-```
-
-### Run all services and required infrastructure
-It will start MySql & MongoDB as well
-```
-./infrastructure_init_and_run_services.sh
+./run_services.sh
 ```
 
 ### Stop all services
 ```
-./stop_all_services.sh
+./stop_services.sh
 ```
 
-### Eureka dashboard
-http://localhost:8080/eureka/web
-
-### Pre-requisites
-Start MySql:
+### Setup infrastructure and run services
+It will start Docker-Desktop, MySql, MongoDB and then start all services
 ```
-mysql.server start
-```
-Start mongodb:
-```
-brew services start mongodb-community
+./start_infrastructure_and_services.sh
 ```
 
-### Cleanup
-Stop MySql:
+### Shutdown infrastructure and services
+It will stop Docker-Desktop, MySql, MongoDB and then stop all services
 ```
-mysql.server stop
+./shutdown_infrastructure_and_services.sh
 ```
-Stop mongodb:
-```
-brew services stop mongodb-community
-```
+
+### Technologies/concepts used
+- Integration tests
+  - TestContainers
+  - Consumer Driven Contracts (spring-cloud-contract)
+- Databases
+  - MySql
+  - MongoDB

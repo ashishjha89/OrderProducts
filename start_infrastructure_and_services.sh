@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Start Docker-Desktop app
+echo "Launching Docker Desktop app..."
+open -a Docker
+
 # Function to check if MySQL is running
 check_mysql() {
   # Check if MySQL is running by querying its process
