@@ -17,7 +17,8 @@ import java.util.List;
 public class InventoryStatusRepository {
 
     private static final String INVENTORY_API_PATH = "/api/inventory";
-    static final String SKU_CODE_QUERY_PARAM = "skuCode";
+
+    private static final String SKU_CODE_QUERY_PARAM = "skuCode";
 
     private final WebClient.Builder webClientBuilder;
 

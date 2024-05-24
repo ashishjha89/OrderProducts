@@ -8,7 +8,7 @@ public class ErrorComponent {
 
     public static final String INVENTORY_NOT_IN_STOCK = "INVENTORY_NOT_IN_STOCK";
 
-    public static final String somethingWentWrongMsg = "Sorry, something went wrong.";
+    public static final String somethingWentWrongMsg = "Sorry, something went wrong. Try again after some time";
 
     public static final String badRequestMsg = "This is an incorrect request-body";
 

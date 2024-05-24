@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.CompletableFuture;
+
 @RestController
 @RequestMapping("/api/order")
 @Slf4j
@@ -35,6 +37,13 @@ public record OrderController(OrderService orderService) {
                             }
                     ),
                     @ApiResponse(
+                            responseCode = "400",
+                            description = "errorCode:" + ErrorComponent.INVENTORY_NOT_IN_STOCK + " errorMessage:" + ErrorComponent.inventoryNotInStockMsg,
+                            content = {
+                                    @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                            }
+                    ),
+                    @ApiResponse(
                             responseCode = "500",
                             description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
@@ -46,7 +55,9 @@ public record OrderController(OrderService orderService) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @SuppressWarnings("unused")
-    public SavedOrder placeOrder(@RequestBody OrderRequest orderRequest) throws BadRequestException, InternalServerException, InventoryNotInStockException {
+    public CompletableFuture<SavedOrder> placeOrder(
+            @RequestBody OrderRequest orderRequest
+    ) throws BadRequestException, InternalServerException, InventoryNotInStockException {
         log.info("POST:/api/order");
         if (orderRequest == null
                 || orderRequest.getOrderLineItemsList() == null

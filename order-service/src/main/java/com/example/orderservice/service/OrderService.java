@@ -10,6 +10,9 @@ import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.InventoryStatusRepository;
 import com.example.orderservice.repository.OrderRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -18,6 +21,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -32,23 +36,21 @@ public class OrderService {
     private final OrderNumberGenerator orderNumberGenerator;
 
     @NonNull
-    public SavedOrder placeOrder(@NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
-        if (!areAllLineItemsInStock(orderRequest)) throw new InventoryNotInStockException();
-
+    public CompletableFuture<SavedOrder> placeOrder(@NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
+        if (!areAllLineItemsInStock(orderRequest)) {
+            log.info("InventoryNotInStock orderRequest:" + orderRequest);
+            throw new InventoryNotInStockException();
+        }
         final var order = Order.builder()
                 .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
                 .orderLineItemsList(orderRequest.getOrderLineItemsList().stream().map(this::mapToDto).toList())
                 .build();
-        try {
-            final var savedOrder = orderRepository.save(order);
-            log.info("Order is saved Id:" + savedOrder.getId() + " orderNumber:" + savedOrder.getOrderNumber());
-            return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
-        } catch (DataAccessException e) {
-            log.error("Error when saving Order:" + e.getMessage());
-            throw new InternalServerException();
-        }
+        return CompletableFuture.supplyAsync(() -> saveOrder(order));
     }
 
+    @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackStockStatus")
+    @TimeLimiter(name = "inventory")
+    @Retry(name = "inventory")
     private boolean areAllLineItemsInStock(@NonNull OrderRequest orderRequest) throws InternalServerException {
         final var skuCodesInOrder = orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
         final var stocksStatus = inventoryStatusRepository.retrieveStocksStatus(skuCodesInOrder);
@@ -57,6 +59,29 @@ public class OrderService {
             throw new InternalServerException();
         }
         return stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
+    }
+
+    @SuppressWarnings("unused")
+    private CompletableFuture<SavedOrder> fallbackStockStatus(
+            @NonNull OrderRequest orderRequest,
+            RuntimeException runtimeException
+    ) throws InternalServerException, InventoryNotInStockException {
+        log.error("Exception thrown by CircuitBreaker " + runtimeException.getMessage());
+        if (runtimeException.getCause() instanceof InventoryNotInStockException)
+            throw new InventoryNotInStockException();
+        else
+            throw new InternalServerException();
+    }
+
+    private SavedOrder saveOrder(Order order) throws InternalServerException {
+        try {
+            final var savedOrder = orderRepository.save(order);
+            log.info("Order is saved Id:" + savedOrder.getId() + " orderNumber:" + savedOrder.getOrderNumber());
+            return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
+        } catch (DataAccessException e) {
+            log.error("Error when saving Order:" + e.getMessage());
+            throw new InternalServerException();
+        }
     }
 
     private boolean isStockStatusAvailableForAllSkuCodes(List<String> skuCodeList, List<InventoryStockStatus> stockStatusList) {

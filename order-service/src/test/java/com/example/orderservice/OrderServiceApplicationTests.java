@@ -6,6 +6,7 @@ import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -51,6 +55,9 @@ class OrderServiceApplicationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private CircuitBreakerRegistry circuitBreakerRegistry;
+
     @DynamicPropertySource
     static void configureTestProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
@@ -62,6 +69,7 @@ class OrderServiceApplicationTests {
     @AfterEach
     void cleanup() {
         orderRepository.deleteAll();
+        circuitBreakerRegistry.circuitBreaker("inventory").transitionToClosedState();
     }
 
     @Test
@@ -77,10 +85,12 @@ class OrderServiceApplicationTests {
         final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
         // Make Api call
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(orderRequestStr))
-                .andExpect(status().isCreated());
+                .andExpect(request().asyncStarted())
+                .andReturn();
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isCreated()).andDo(print());
 
         // Assert item is inserted
         assertEquals(1, orderRepository.findAll().size());
@@ -102,7 +112,7 @@ class OrderServiceApplicationTests {
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(orderRequestStr))
-                .andExpect(status().is4xxClientError())
+                .andExpect(status().isBadRequest())
                 .andReturn();
 
         // Process response

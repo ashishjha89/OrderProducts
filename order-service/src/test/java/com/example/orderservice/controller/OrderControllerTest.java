@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,16 +29,16 @@ public class OrderControllerTest {
 
     @Test
     @DisplayName("placeOrder() calls OrderService.placeOrder() and retrieves `SavedOrder` from it")
-    public void placeOrderTest() throws InternalServerException, BadRequestException, InventoryNotInStockException {
+    public void placeOrderTest() throws InternalServerException, BadRequestException, InventoryNotInStockException, ExecutionException, InterruptedException {
         // Initialise
         final var orderRequest = new OrderRequest(
                 List.of(new OrderLineItemsDto("skuCode", BigDecimal.valueOf(1200), 10))
         );
         final var savedOrder = new SavedOrder("orderId", "orderNumber");
-        when(orderService.placeOrder(orderRequest)).thenReturn(savedOrder);
+        when(orderService.placeOrder(orderRequest)).thenReturn(CompletableFuture.completedFuture(savedOrder));
 
         // Call method to test
-        final var savedOrderFromService = orderController.placeOrder(orderRequest);
+        final var savedOrderFromService = orderController.placeOrder(orderRequest).get();
 
         // Assert value
         assertEquals(savedOrderFromService, savedOrder);

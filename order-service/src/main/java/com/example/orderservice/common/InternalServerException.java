@@ -1,4 +1,4 @@
 package com.example.orderservice.common;
 
-public class InternalServerException extends Exception {
+public class InternalServerException extends RuntimeException {
 }

@@ -16,6 +16,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,7 +53,7 @@ public class OrderServiceTest {
 
     @Test
     @DisplayName("placeOrder receives `OrderRequest` and converts it to `Order` and saves it to repo if all lineItems are available")
-    public void placeOrder_SavesOrderToRepo_WhenStockIsAvailable() throws InternalServerException, InventoryNotInStockException {
+    public void placeOrder_SavesOrderToRepo_WhenStockIsAvailable() throws InternalServerException, InventoryNotInStockException, ExecutionException, InterruptedException {
         // Mock availability of stock
         when(inventoryStatusRepository.retrieveStocksStatus(List.of("skuCode1", "skuCode2")))
                 .thenReturn(List.of(
@@ -69,7 +70,7 @@ public class OrderServiceTest {
         when(orderRepository.save(orderThatWillBePassedToRepoToSave)).thenReturn(orderReturnedFromRepo);
 
         // Call method to test
-        final var savedOrder = orderService.placeOrder(orderRequest);
+        final var savedOrder = orderService.placeOrder(orderRequest).get();
 
         // Assert value
         verify(orderRepository).save(orderThatWillBePassedToRepoToSave);

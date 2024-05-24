@@ -1,4 +1,4 @@
 package com.example.orderservice.common;
 
-public class InventoryNotInStockException extends Exception {
+public class InventoryNotInStockException extends RuntimeException {
 }
