@@ -26,7 +26,7 @@ public class ControllerExceptionHandler {
     }
 
     @ExceptionHandler(BadRequestException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ErrorBody> badRequestException() {
         return new ResponseEntity<>(
                 ErrorComponent.badRequestError,
