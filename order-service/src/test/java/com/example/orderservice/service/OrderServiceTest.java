@@ -16,10 +16,10 @@ import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class OrderServiceTest {
@@ -52,14 +52,15 @@ public class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("placeOrder receives `OrderRequest` and converts it to `Order` and saves it to repo if all lineItems are available")
+    @DisplayName("`placeOrder()` converts OrderRequest to Order and saves it to repo if all lineItems are available")
     public void placeOrder_SavesOrderToRepo_WhenStockIsAvailable() throws InternalServerException, InventoryNotInStockException, ExecutionException, InterruptedException {
         // Mock availability of stock
-        when(inventoryStatusRepository.retrieveStocksStatus(List.of("skuCode1", "skuCode2")))
-                .thenReturn(List.of(
-                        new InventoryStockStatus("skuCode1", true),
-                        new InventoryStockStatus("skuCode2", true)
-                ));
+        when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                .thenReturn(
+                        CompletableFuture.completedFuture(List.of(
+                                new InventoryStockStatus("skuCode1", true),
+                                new InventoryStockStatus("skuCode2", true)
+                        )));
 
         // Initialise Order that will be returned by Repo (after saving)
         final var orderReturnedFromRepo = Order.builder()
@@ -79,61 +80,71 @@ public class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("placeOrder doesn't save order to repo if none of the stocks are found and throws InventoryNotInStockException")
+    @DisplayName("`placeOrder()` throws InventoryNotInStockException if none of the stocks are found")
     public void placeOrder_ThrowsInventoryNotInStockException_WhenNoneStockWasPresent() throws InternalServerException {
         // Mock availability of stock
-        when(inventoryStatusRepository.retrieveStocksStatus(List.of("skuCode1", "skuCode2")))
-                .thenReturn(List.of(
-                        new InventoryStockStatus("skuCode1", false), // Not available
-                        new InventoryStockStatus("skuCode2", false) // Not available
-                ));
+        when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                .thenReturn(
+                        CompletableFuture.completedFuture(List.of(
+                                new InventoryStockStatus("skuCode1", false), // Not available
+                                new InventoryStockStatus("skuCode2", false) // Not available
+                        )));
         // Assert
-        assertThrows(InventoryNotInStockException.class, () -> orderService.placeOrder(orderRequest));
+        assertInventoryNotInStockExceptionIsThrown();
     }
 
     @Test
-    @DisplayName("placeOrder doesn't save order to repo if some of the stock was not found and throws InventoryNotInStockException")
+    @DisplayName("`placeOrder()` throws InventoryNotInStockException if some of the stock was not available")
     public void placeOrder_ThrowsInventoryNotInStockException_WhenSomeStockIsNotAvailable() throws InternalServerException {
         // Mock availability of stock
-        when(inventoryStatusRepository.retrieveStocksStatus(List.of("skuCode1", "skuCode2")))
-                .thenReturn(List.of(
-                        new InventoryStockStatus("skuCode1", false), // Not available
-                        new InventoryStockStatus("skuCode2", true)  // Available
-                ));
+        when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                .thenReturn(
+                        CompletableFuture.completedFuture(List.of(
+                                new InventoryStockStatus("skuCode1", false), // Not available
+                                new InventoryStockStatus("skuCode2", true)  // Available
+                        )));
         // Assert
-        assertThrows(InventoryNotInStockException.class, () -> orderService.placeOrder(orderRequest));
+        assertInventoryNotInStockExceptionIsThrown();
     }
 
     @Test
-    @DisplayName("placeOrder doesn't save order to repo if some of the stock was not found and throws InternalServerException")
+    @DisplayName("`placeOrder()` throws InternalServerException if some of the stock's entry was not found")
     public void placeOrder_ThrowsInventoryNotInStockException_WhenStatusForSomeStockIsMissing() throws InternalServerException {
         // Mock availability of stock
-        when(inventoryStatusRepository.retrieveStocksStatus(List.of("skuCode1", "skuCode2")))
-                .thenReturn(List.of(
-                        new InventoryStockStatus("skuCode2", true) // Note entry for skuCode1 is missing
-                ));
+        when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                .thenReturn(
+                        CompletableFuture.completedFuture(List.of(
+                                new InventoryStockStatus("skuCode2", true) // Note entry for skuCode1 is missing
+                        )));
         // Assert
-        assertThrows(InternalServerException.class, () -> orderService.placeOrder(orderRequest));
+        assertInternalServerExceptionIsThrown();
     }
 
     @Test
-    @DisplayName("placeOrder forwards InternalServerException from InventoryStatusRepository")
+    @DisplayName("`placeOrder()` forwards InternalServerException from InventoryStatusRepository")
     public void placeOrder_ForwardsInternalServerException_FromInventoryStatusRepository() throws InternalServerException {
         // Mock throwing of exception (one of the child of DataAccessException) from repo
-        when(inventoryStatusRepository.retrieveStocksStatus(List.of("skuCode1", "skuCode2")))
-                .thenThrow(new InternalServerException());
+        when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                .thenReturn(CompletableFuture.failedFuture(new InternalServerException()));
         // Assert
-        assertThrows(InternalServerException.class, () -> orderService.placeOrder(orderRequest));
+        assertInternalServerExceptionIsThrown();
     }
 
     @Test
-    @DisplayName("placeOrder throws InternalServerException when Repo throws DataAccessException")
+    @DisplayName("`placeOrder()` throws InternalServerException when Repo throws DataAccessException")
     public void placeOrder_ThrowsInternalServerException_WhenDBThrowsError() {
+        // Mock availability of stock
+        when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                .thenReturn(
+                        CompletableFuture.completedFuture(List.of(
+                                new InventoryStockStatus("skuCode1", true),
+                                new InventoryStockStatus("skuCode2", true)
+                        )));
         // Mock throwing of exception (one of the child of DataAccessException) from repo
         when(orderRepository.save(orderThatWillBePassedToRepoToSave))
                 .thenThrow(new DataAccessResourceFailureException("Child class of DataAccessException"));
         // Assert
-        assertThrows(InternalServerException.class, () -> orderService.placeOrder(orderRequest));
+        assertInternalServerExceptionIsThrown();
     }
 
     private List<OrderLineItems> getOrderLineItemsListFromDtoList(List<OrderLineItemsDto> lineItemsDtoList) {
@@ -144,5 +155,25 @@ public class OrderServiceTest {
                         .quantity(orderLineItemsDto.getQuantity())
                         .build()
         ).toList();
+    }
+
+    private void assertInventoryNotInStockExceptionIsThrown() {
+        ExecutionException executionException = assertThrows(
+                ExecutionException.class,
+                () -> orderService.placeOrder(orderRequest).get()
+        );
+        Throwable cause = executionException.getCause();
+        assertNotNull(cause);
+        assertEquals(InventoryNotInStockException.class, cause.getClass());
+    }
+
+    private void assertInternalServerExceptionIsThrown() {
+        ExecutionException executionException = assertThrows(
+                ExecutionException.class,
+                () -> orderService.placeOrder(orderRequest).get()
+        );
+        Throwable cause = executionException.getCause();
+        assertNotNull(cause);
+        assertEquals(InternalServerException.class, cause.getClass());
     }
 }

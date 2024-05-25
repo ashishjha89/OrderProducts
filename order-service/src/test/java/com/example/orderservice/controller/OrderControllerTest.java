@@ -28,7 +28,7 @@ public class OrderControllerTest {
     private final OrderController orderController = new OrderController(orderService);
 
     @Test
-    @DisplayName("placeOrder() calls OrderService.placeOrder() and retrieves `SavedOrder` from it")
+    @DisplayName("`placeOrder()` calls `OrderService.placeOrder()` and retrieves `SavedOrder` from it")
     public void placeOrderTest() throws InternalServerException, BadRequestException, InventoryNotInStockException, ExecutionException, InterruptedException {
         // Initialise
         final var orderRequest = new OrderRequest(
@@ -45,7 +45,7 @@ public class OrderControllerTest {
     }
 
     @Test
-    @DisplayName("placeOrder() throws BadRequestException when null or empty request is passed")
+    @DisplayName("`placeOrder()` throws BadRequestException when null or empty request is passed")
     public void placeOrderBadRequestExceptionTest() {
         assertThrows(
                 BadRequestException.class,
@@ -61,7 +61,7 @@ public class OrderControllerTest {
     }
 
     @Test
-    @DisplayName("placeOrder() forwards InternalServerException from OrderService.placeOrder")
+    @DisplayName("`placeOrder()` forwards InternalServerException from `OrderService.placeOrder()`")
     public void placeOrderInternalServerExceptionTest() throws InternalServerException, InventoryNotInStockException {
         final var orderRequest = new OrderRequest(
                 List.of(new OrderLineItemsDto("skuCode", BigDecimal.valueOf(1200), 10))

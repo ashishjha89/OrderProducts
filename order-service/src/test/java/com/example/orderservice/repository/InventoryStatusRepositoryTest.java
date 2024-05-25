@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -42,8 +43,8 @@ public class InventoryStatusRepositoryTest {
     }
 
     @Test
-    @DisplayName("retrieveStocksStatus() fetches InventoryStockStatus[] from inventory-service for passed sku-codes")
-    public void retrieveStocksStatusTest() throws InternalServerException, JsonProcessingException {
+    @DisplayName("`getInventoryAvailabilityFuture()` fetches list of `InventoryStockStatus` from inventory-service")
+    public void getInventoryAvailabilityFutureTest() throws InternalServerException, JsonProcessingException, ExecutionException, InterruptedException {
         // Initialise
         final var mockStatuses = List.of(
                 new InventoryStockStatus("sku1", true),
@@ -54,11 +55,10 @@ public class InventoryStatusRepositoryTest {
                 .addHeader("Content-Type", "application/json"));
 
         // Call method
-        final var responseStatuses = inventoryStatusRepository.retrieveStocksStatus(List.of("sku1", "sku2"));
+        final var responseStatuses = inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("sku1", "sku2")).get();
 
         // Assert value
         assertEquals(mockStatuses, responseStatuses);
-
     }
 
 }

@@ -29,10 +29,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
+@SuppressWarnings("unused")
 class InventoryServiceApplicationTests {
 
     @Container
-    static final MySQLContainer mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
+    static final MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
 
     @Autowired
     private InventoryRepository inventoryRepository;

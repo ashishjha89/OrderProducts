@@ -37,28 +37,33 @@ public class OrderService {
 
     @NonNull
     public CompletableFuture<SavedOrder> placeOrder(@NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
-        if (!areAllLineItemsInStock(orderRequest)) {
-            log.info("InventoryNotInStock orderRequest:" + orderRequest);
-            throw new InventoryNotInStockException();
-        }
         final var order = Order.builder()
                 .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
                 .orderLineItemsList(orderRequest.getOrderLineItemsList().stream().map(this::mapToDto).toList())
                 .build();
-        return CompletableFuture.supplyAsync(() -> saveOrder(order));
+        return isAnyLineItemMissing(orderRequest).thenCompose(isAnyLineItemMissing -> {
+            if (isAnyLineItemMissing) {
+                log.info("InventoryNotInStock orderRequest:" + orderRequest);
+                throw new InventoryNotInStockException();
+            }
+            return CompletableFuture.supplyAsync(() -> saveOrder(order));
+        });
     }
 
     @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackStockStatus")
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
-    private boolean areAllLineItemsInStock(@NonNull OrderRequest orderRequest) throws InternalServerException {
+    private CompletableFuture<Boolean> isAnyLineItemMissing(@NonNull OrderRequest orderRequest) throws InternalServerException {
         final var skuCodesInOrder = orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
-        final var stocksStatus = inventoryStatusRepository.retrieveStocksStatus(skuCodesInOrder);
-        if (!isStockStatusAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
-            log.error("StockStatus not returned for all LineItems in Order");
-            throw new InternalServerException();
-        }
-        return stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
+        final var stocksStatusFuture = inventoryStatusRepository.getInventoryAvailabilityFuture(skuCodesInOrder);
+        return stocksStatusFuture.handle((stocksStatus, exception) -> {
+            if (exception instanceof InternalServerException) throw new InternalServerException();
+            if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
+                log.error("StockStatus not returned for all LineItems in Order");
+                throw new InternalServerException();
+            }
+            return !stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
+        });
     }
 
     @SuppressWarnings("unused")
@@ -84,7 +89,7 @@ public class OrderService {
         }
     }
 
-    private boolean isStockStatusAvailableForAllSkuCodes(List<String> skuCodeList, List<InventoryStockStatus> stockStatusList) {
+    private boolean isStockAvailableForAllSkuCodes(List<String> skuCodeList, List<InventoryStockStatus> stockStatusList) {
         return skuCodeList.stream().allMatch(skuCode -> isStockStatusAvailable(skuCode, stockStatusList));
     }
 

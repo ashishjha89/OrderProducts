@@ -41,10 +41,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureStubRunner(
         stubsMode = LOCAL,
         ids = "com.example:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
+@SuppressWarnings("unused")
 class OrderServiceApplicationTests {
 
     @Container
-    static final MySQLContainer mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
+    static final MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
 
     @Autowired
     private OrderRepository orderRepository;
@@ -112,8 +113,9 @@ class OrderServiceApplicationTests {
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(orderRequestStr))
-                .andExpect(status().isBadRequest())
+                .andExpect(request().asyncStarted())
                 .andReturn();
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isBadRequest()).andDo(print());
 
         // Process response
         final var jsonStr = result.getResponse().getContentAsString();

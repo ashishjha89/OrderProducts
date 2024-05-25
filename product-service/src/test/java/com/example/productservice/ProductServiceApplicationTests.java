@@ -33,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
+@SuppressWarnings("unused")
 class ProductServiceApplicationTests {
 
     @Container
