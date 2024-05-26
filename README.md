@@ -1,6 +1,9 @@
 ### Eureka dashboard
 http://localhost:8080/eureka/web
 
+### Zipkin dashboard
+http://localhost:9411/zipkin/
+
 ### Clean install all services
 ```
 ./clean_install_services.sh
