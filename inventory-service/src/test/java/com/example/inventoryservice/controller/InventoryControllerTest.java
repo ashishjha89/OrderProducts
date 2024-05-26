@@ -20,7 +20,7 @@ public class InventoryControllerTest {
     private final InventoryController inventoryController = new InventoryController(inventoryService);
 
     @Test
-    @DisplayName("isInStock() calls InventoryService.isInStock() and retrieves `InventoryStockStatus` from it")
+    @DisplayName("`isInStock()` retrieves `InventoryStockStatus` from `InventoryService.isInStock()`")
     public void isInStockTest() throws InternalServerException {
         // Initialise
         when(inventoryService.isInStock("skuCode")).thenReturn(new InventoryStockStatus("skuCode", true));
@@ -30,7 +30,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    @DisplayName("isInStock() forwards InternalServerException from InventoryService")
+    @DisplayName("`isInStock()` forwards InternalServerException from InventoryService")
     public void isInStockInternalServerExceptionTest() throws InternalServerException {
         // Initialise
         when(inventoryService.isInStock("skuCode")).thenThrow(new InternalServerException());
@@ -43,7 +43,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    @DisplayName("stocksStatus() calls InventoryService.stocksStatus() and retrieves `List<InventoryStockStatus>` from it")
+    @DisplayName("`stocksStatus()` retrieves `List<InventoryStockStatus>` from `InventoryService.stocksStatus()`")
     public void stocksStatusTest() throws InternalServerException {
         // Initialise
         final var skuCodeList = List.of("skuCode1", "skuCode2");
@@ -58,7 +58,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    @DisplayName("stocksStatus() throws BadRequestException when null or empty List<skuCode> is passed")
+    @DisplayName("`stocksStatus()` throws BadRequestException when null or empty List<skuCode> is passed")
     public void stocksStatusInternalServerExceptionTest() throws InternalServerException {
         // Initialise
         final var skuCodeList = List.of("skuCode1", "skuCode2");

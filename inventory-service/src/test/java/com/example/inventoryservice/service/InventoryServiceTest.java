@@ -23,7 +23,7 @@ public class InventoryServiceTest {
     private final InventoryService inventoryService = new InventoryService(inventoryRepository);
 
     @Test
-    @DisplayName("isInStock() return InventoryStockStatus(true) if Inventory is found")
+    @DisplayName("`isInStock()` should return InventoryStockStatus(true) if Inventory is found")
     public void isInStock_WhenInventoryIsFound() throws InternalServerException {
         // Initialise
         when(inventoryRepository.findBySkuCode("skuCode"))
@@ -34,7 +34,7 @@ public class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("isInStock() return InventoryStockStatus(false) if Inventory is NOT found")
+    @DisplayName("`isInStock()` return InventoryStockStatus(false) if Inventory is NOT found")
     public void isInStock_WhenInventoryIsNotFound() throws InternalServerException {
         // Initialise
         when(inventoryRepository.findBySkuCode("skuCode"))
@@ -45,7 +45,7 @@ public class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("isInStock throws InternalServerException when Repo throws DataAccessException")
+    @DisplayName("`isInStock()` throws InternalServerException when Repo throws DataAccessException")
     public void isInStock_WhenRepoThrowsError() {
         // Initialise
         when(inventoryRepository.findBySkuCode("skuCode"))
@@ -56,7 +56,7 @@ public class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("stocksStatus() should return List<InventoryStockStatus> for passed skuCodes, such that InventoryStockStatus.isInStock=true if inventory is in DB and quantity>0")
+    @DisplayName("`stocksStatus()` should return `List<InventoryStockStatus>` for passed skuCodes, such that InventoryStockStatus.isInStock=true if inventory is in DB and quantity>0")
     public void stocksStatusTest() throws InternalServerException {
         // Initialise
         final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
@@ -78,7 +78,7 @@ public class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("stocksStatus() should throw InternalServerException when repo returns null inventories for skuCodes")
+    @DisplayName("`stocksStatus()` should throw InternalServerException when repo returns null inventories")
     public void stocksStatus_WhenInventoryIsReceivedAsNullFromRepo() {
         // Initialise
         final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
@@ -89,7 +89,7 @@ public class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("stocksStatus() should throw InternalServerException when Repo throws DataAccessException")
+    @DisplayName("`stocksStatus()` should throw InternalServerException when Repo throws DataAccessException")
     public void stocksStatus_WhenRepoThrowsError() {
         // Initialise
         final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");

@@ -66,7 +66,6 @@ public record OrderController(OrderService orderService) {
             log.error("BadRequestException because POST:/api/order is called with invalid OrderRequest orderRequest:" + orderRequest);
             throw new BadRequestException();
         }
-
         return orderService.placeOrder(orderRequest);
     }
 }

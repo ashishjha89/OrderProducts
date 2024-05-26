@@ -6,6 +6,7 @@ import com.example.inventoryservice.repository.InventoryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -71,6 +72,7 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
+    @DisplayName("GET:/api/inventory should return isInStock=true if skuCode is not available")
     void isInStock_WhenInventoryIsPresent() throws Exception {
         // Make Api call
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/skuCode1"))
@@ -86,6 +88,7 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
+    @DisplayName("GET:/api/inventory should return isInStock=false if skuCode is not available")
     void isInStock_WhenInventoryIsAbsent() throws Exception {
         // Make Api call
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/skuCodeRandom"))
@@ -101,6 +104,7 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
+    @DisplayName("GET:/api/inventory should return List<InventoryStockStatus> for skuCodes passed in queryParams")
     void stocksStatusTest() throws Exception {
         final var expectedStockStatus = List.of(
                 new InventoryStockStatus("skuCode1", true),

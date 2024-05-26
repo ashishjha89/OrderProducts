@@ -26,7 +26,9 @@ public class InventoryStatusRepository {
     private final String inventoryApiBaseUrl;
 
     @NonNull
-    public CompletableFuture<List<InventoryStockStatus>> getInventoryAvailabilityFuture(List<String> skuCodes) throws InternalServerException {
+    public CompletableFuture<List<InventoryStockStatus>> getInventoryAvailabilityFuture(
+            List<String> skuCodes
+    ) throws InternalServerException {
         return webClientBuilder.baseUrl(inventoryApiBaseUrl).build().get()
                 .uri(uriBuilder -> uriBuilder.path(INVENTORY_API_PATH).queryParam(SKU_CODE_QUERY_PARAM, skuCodes).build())
                 .retrieve()

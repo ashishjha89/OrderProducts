@@ -25,8 +25,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
-@Transactional
 @AllArgsConstructor
+@Transactional
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -36,34 +36,36 @@ public class OrderService {
     private final OrderNumberGenerator orderNumberGenerator;
 
     @NonNull
-    public CompletableFuture<SavedOrder> placeOrder(@NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
-        final var order = Order.builder()
-                .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
-                .orderLineItemsList(orderRequest.getOrderLineItemsList().stream().map(this::mapToDto).toList())
-                .build();
+    public CompletableFuture<SavedOrder> placeOrder(
+            @NonNull OrderRequest orderRequest
+    ) throws InternalServerException, InventoryNotInStockException {
         return isAnyLineItemMissing(orderRequest).thenCompose(isAnyLineItemMissing -> {
             if (isAnyLineItemMissing) {
                 log.info("InventoryNotInStock orderRequest:" + orderRequest);
                 throw new InventoryNotInStockException();
             }
-            return CompletableFuture.supplyAsync(() -> saveOrder(order));
+            return CompletableFuture.supplyAsync(() -> saveOrder(getOrder(orderRequest)));
         });
     }
 
     @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackStockStatus")
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
-    private CompletableFuture<Boolean> isAnyLineItemMissing(@NonNull OrderRequest orderRequest) throws InternalServerException {
-        final var skuCodesInOrder = orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
-        final var stocksStatusFuture = inventoryStatusRepository.getInventoryAvailabilityFuture(skuCodesInOrder);
-        return stocksStatusFuture.handle((stocksStatus, exception) -> {
-            if (exception instanceof InternalServerException) throw new InternalServerException();
-            if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
-                log.error("StockStatus not returned for all LineItems in Order");
-                throw new InternalServerException();
-            }
-            return !stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
-        });
+    private CompletableFuture<Boolean> isAnyLineItemMissing(
+            @NonNull OrderRequest orderRequest
+    ) throws InternalServerException {
+        final var skuCodesInOrder =
+                orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
+        return inventoryStatusRepository
+                .getInventoryAvailabilityFuture(skuCodesInOrder)
+                .handle((stocksStatus, exception) -> {
+                    if (exception instanceof RuntimeException) throw (RuntimeException) exception;
+                    if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
+                        log.error("StockStatus not returned for all LineItems in Order");
+                        throw new InternalServerException();
+                    }
+                    return !stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
+                });
     }
 
     @SuppressWarnings("unused")
@@ -95,6 +97,13 @@ public class OrderService {
 
     private boolean isStockStatusAvailable(String skuCode, List<InventoryStockStatus> stockStatusList) {
         return stockStatusList.stream().anyMatch(stockStatus -> stockStatus.skuCode().equals(skuCode));
+    }
+
+    private Order getOrder(OrderRequest orderRequest) {
+        return Order.builder()
+                .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
+                .orderLineItemsList(orderRequest.getOrderLineItemsList().stream().map(this::mapToDto).toList())
+                .build();
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {
