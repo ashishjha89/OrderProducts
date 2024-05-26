@@ -35,3 +35,4 @@ It will stop Docker-Desktop, MySql, MongoDB and then stop all services
 - Databases
   - MySql
   - MongoDB
+- CircuitBreakers (Resilience4J)
