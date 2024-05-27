@@ -13,6 +13,8 @@ import com.example.orderservice.repository.OrderRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -35,6 +37,8 @@ public class OrderService {
 
     private final OrderNumberGenerator orderNumberGenerator;
 
+    private final ObservationRegistry observationRegistry;
+
     @NonNull
     public CompletableFuture<SavedOrder> placeOrder(
             @NonNull OrderRequest orderRequest
@@ -56,16 +60,23 @@ public class OrderService {
     ) throws InternalServerException {
         final var skuCodesInOrder =
                 orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
-        return inventoryStatusRepository
-                .getInventoryAvailabilityFuture(skuCodesInOrder)
-                .handle((stocksStatus, exception) -> {
-                    if (exception instanceof RuntimeException) throw (RuntimeException) exception;
-                    if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
-                        log.error("StockStatus not returned for all LineItems in Order");
-                        throw new InternalServerException();
-                    }
-                    return !stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
-                });
+        Observation inventoryServiceObservation = Observation.createNotStarted(
+                "inventory-service-lookup",
+                this.observationRegistry
+        );
+        inventoryServiceObservation.lowCardinalityKeyValue("call", "inventory-service");
+        return inventoryServiceObservation.observe(() ->
+                inventoryStatusRepository
+                        .getInventoryAvailabilityFuture(skuCodesInOrder)
+                        .handle((stocksStatus, exception) -> {
+                            if (exception instanceof RuntimeException) throw (RuntimeException) exception;
+                            if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
+                                log.error("StockStatus not returned for all LineItems in Order");
+                                throw new InternalServerException();
+                            }
+                            return !stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
+                        })
+        );
     }
 
     @SuppressWarnings("unused")

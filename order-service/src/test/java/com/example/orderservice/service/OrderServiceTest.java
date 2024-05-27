@@ -9,6 +9,7 @@ import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.InventoryStatusRepository;
 import com.example.orderservice.repository.OrderRepository;
+import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,14 @@ public class OrderServiceTest {
 
     private final OrderNumberGenerator orderNumberGenerator = mock(OrderNumberGenerator.class);
 
-    private final OrderService orderService = new OrderService(orderRepository, inventoryStatusRepository, orderNumberGenerator);
+    private final ObservationRegistry observationRegistry = ObservationRegistry.create();
+
+    private final OrderService orderService = new OrderService(
+            orderRepository,
+            inventoryStatusRepository,
+            orderNumberGenerator,
+            observationRegistry
+    );
 
     private final String orderNumber = "ThisIsUniqueOrderNumber";
 
