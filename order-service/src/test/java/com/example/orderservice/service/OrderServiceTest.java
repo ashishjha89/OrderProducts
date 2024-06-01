@@ -5,6 +5,7 @@ import com.example.orderservice.common.InventoryNotInStockException;
 import com.example.orderservice.dto.InventoryStockStatus;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
+import com.example.orderservice.event.OrderPlacedEvent;
 import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.InventoryStatusRepository;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +31,8 @@ public class OrderServiceTest {
 
     private final InventoryStatusRepository inventoryStatusRepository = mock(InventoryStatusRepository.class);
 
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate = mock(KafkaTemplate.class);
+
     private final OrderNumberGenerator orderNumberGenerator = mock(OrderNumberGenerator.class);
 
     private final ObservationRegistry observationRegistry = ObservationRegistry.create();
@@ -36,6 +40,7 @@ public class OrderServiceTest {
     private final OrderService orderService = new OrderService(
             orderRepository,
             inventoryStatusRepository,
+            kafkaTemplate,
             orderNumberGenerator,
             observationRegistry
     );
@@ -85,6 +90,7 @@ public class OrderServiceTest {
         verify(orderRepository).save(orderThatWillBePassedToRepoToSave);
         assertEquals("ThisIsUniqueOrderNumber", savedOrder.orderNumber());
         assertEquals("1", savedOrder.orderId());
+        verify(kafkaTemplate).send("notificationTopic", new OrderPlacedEvent("ThisIsUniqueOrderNumber"));
     }
 
     @Test

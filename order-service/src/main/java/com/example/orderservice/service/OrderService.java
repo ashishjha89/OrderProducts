@@ -6,6 +6,7 @@ import com.example.orderservice.dto.InventoryStockStatus;
 import com.example.orderservice.dto.OrderLineItemsDto;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.dto.SavedOrder;
+import com.example.orderservice.event.OrderPlacedEvent;
 import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderLineItems;
 import com.example.orderservice.repository.InventoryStatusRepository;
@@ -20,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,6 +37,8 @@ public class OrderService {
 
     private final InventoryStatusRepository inventoryStatusRepository;
 
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
+
     private final OrderNumberGenerator orderNumberGenerator;
 
     private final ObservationRegistry observationRegistry;
@@ -48,7 +52,11 @@ public class OrderService {
                 log.info("InventoryNotInStock orderRequest:" + orderRequest);
                 throw new InventoryNotInStockException();
             }
-            return CompletableFuture.supplyAsync(() -> saveOrder(getOrder(orderRequest)));
+            return CompletableFuture.supplyAsync(() -> {
+                SavedOrder savedOrder = saveOrder(getOrder(orderRequest));
+                sendOrderPlacedEventToNotificationTopic(savedOrder);
+                return savedOrder;
+            });
         });
     }
 
@@ -100,6 +108,10 @@ public class OrderService {
             log.error("Error when saving Order:" + e.getMessage());
             throw new InternalServerException();
         }
+    }
+
+    private void sendOrderPlacedEventToNotificationTopic(SavedOrder savedOrder) {
+        kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(savedOrder.orderNumber()));
     }
 
     private boolean isStockAvailableForAllSkuCodes(List<String> skuCodeList, List<InventoryStockStatus> stockStatusList) {
