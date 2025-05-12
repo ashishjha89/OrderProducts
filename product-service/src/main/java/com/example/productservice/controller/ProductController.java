@@ -20,10 +20,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/product")
+@RequestMapping("/api/products")
 @SuppressWarnings("unused")
 @Slf4j
-public record ProductController(ProductService productService) {
+public class ProductController {
+
+    private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -54,13 +60,13 @@ public record ProductController(ProductService productService) {
             }
     )
     public SavedProduct createProduct(@RequestBody ProductRequest productRequest) throws BadRequestException, InternalServerException {
-        log.info("POST:/api/product");
+        log.info("POST:/api/product/products");
         if (productRequest == null
                 || productRequest.getName() == null || productRequest.getName().isBlank()
                 || productRequest.getDescription() == null || productRequest.getDescription().isBlank()
                 || productRequest.getPrice() == null
         ) {
-            log.error("BadRequestException because POST:/api/product is called with invalid ProductRequest productRequest:" + productRequest);
+            log.error("BadRequestException because POST:/api/product is called with invalid ProductRequest productRequest:{}", productRequest);
             throw new BadRequestException();
         }
 
@@ -92,7 +98,7 @@ public record ProductController(ProductService productService) {
             }
     )
     public List<ProductResponse> getAllProducts() throws InternalServerException {
-        log.info("GET:/api/product");
+        log.info("GET:/api/product/products");
         return productService.getAllProducts();
     }
 }

@@ -8,6 +8,7 @@ import com.example.productservice.model.Product;
 import com.example.productservice.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -59,13 +60,18 @@ class ProductServiceApplicationTests {
     }
 
     @Test
+    @DisplayName("should return `SavedProduct` successfully when `POST api/products` is called with valid request")
     void postApiCall_ShouldInsertProductToDatabase() throws Exception {
         // Initialise
-        var productRequest = getProductRequest();
+        var productRequest = ProductRequest.builder()
+                .name("iPhone 13")
+                .description("iPhone 13")
+                .price(BigDecimal.valueOf(1200))
+                .build();
         var productRequestStr = objectMapper.writeValueAsString(productRequest);
 
         // Make Api call
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productRequestStr))
                 .andExpect(status().isCreated());
@@ -75,12 +81,13 @@ class ProductServiceApplicationTests {
     }
 
     @Test
+    @DisplayName("should throw `BadRequestException` when `POST api/products` is called with invalid request")
     void postApiCall_ShouldThrowBadRequestException_WhenNameOrDescriptionOrPriceIsEmptyOrMissing() throws Exception {
         // Initialise 1
         var productRequestWithAllNullFields = ProductRequest.builder().build();
         var productRequestStr1 = objectMapper.writeValueAsString(productRequestWithAllNullFields);
         // Make Api call and expect BadRequest
-        MvcResult result1 = mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+        MvcResult result1 = mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productRequestStr1))
                 .andExpect(status().isBadRequest())
@@ -96,7 +103,7 @@ class ProductServiceApplicationTests {
         var productRequestWithNameAsNull = ProductRequest.builder().name(null).price(BigDecimal.valueOf(100)).description("Description").build();
         var productRequestStr2 = objectMapper.writeValueAsString(productRequestWithNameAsNull);
         // Make Api call and expect BadRequest
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productRequestStr2))
                 .andExpect(status().isBadRequest());
@@ -105,7 +112,7 @@ class ProductServiceApplicationTests {
         var productRequestWithDescriptionAsNull = ProductRequest.builder().name("name").price(BigDecimal.valueOf(100)).description(null).build();
         var productRequestStr3 = objectMapper.writeValueAsString(productRequestWithDescriptionAsNull);
         // Make Api call and expect BadRequest
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productRequestStr3))
                 .andExpect(status().isBadRequest());
@@ -114,13 +121,14 @@ class ProductServiceApplicationTests {
         var productRequestWithPriceAsNull = ProductRequest.builder().name("name").price(null).description("Description").build();
         var productRequestStr4 = objectMapper.writeValueAsString(productRequestWithPriceAsNull);
         // Make Api call and expect BadRequest
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productRequestStr4))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @DisplayName("should return `ProductResponse` successfully when `GET api/products` is called")
     void getApiCallForProduct_ShouldReturnAllProductsFromDatabase() throws Exception {
         // Insert a product
         var uniqueName = System.currentTimeMillis() + "";
@@ -129,7 +137,7 @@ class ProductServiceApplicationTests {
 
         // Make Api call
         MvcResult result = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/product"))
+                .perform(MockMvcRequestBuilders.get("/api/products"))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -142,14 +150,6 @@ class ProductServiceApplicationTests {
 
         // Assert that api returns inserted item
         assertTrue(productOpt.isPresent());
-    }
-
-    private ProductRequest getProductRequest() {
-        return ProductRequest.builder()
-                .name("iPhone 13")
-                .description("iPhone 13")
-                .price(BigDecimal.valueOf(1200))
-                .build();
     }
 
 }

@@ -15,7 +15,13 @@ import java.util.List;
 
 @Service
 @Slf4j
-public record ProductService(ProductRepository productRepository) {
+public class ProductService {
+
+    private final ProductRepository productRepository;
+
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
 
     public SavedProduct createProduct(@NonNull ProductRequest productRequest) throws InternalServerException {
         final var product = Product.builder()
@@ -28,7 +34,7 @@ public record ProductService(ProductRepository productRepository) {
             log.info("Product {} is saved", product.getId());
             return new SavedProduct(savedItem.getId());
         } catch (DataAccessException e) {
-            log.error("Error when saving product:" + e.getMessage());
+            log.error("Error when saving product:{}", e.getMessage());
             throw new InternalServerException();
         }
     }
@@ -37,7 +43,7 @@ public record ProductService(ProductRepository productRepository) {
         try {
             return productRepository.findAll().stream().map(this::mapToProductResponse).toList();
         } catch (DataAccessException e) {
-            log.error("Error when getting all products:" + e.getMessage());
+            log.error("Error when getting all products:{}", e.getMessage());
             throw new InternalServerException();
         }
     }
