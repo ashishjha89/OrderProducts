@@ -4,8 +4,8 @@ It runs on:
 http://localhost:8761/
 ```
 
-Note: Start Eureka Service Registry before your running your services.
+Note: Start Eureka Service Registry before running your services.
 
 ### Responsibilities
-- This service act as Eureka Server. It registers other services (implemented as Eureka Client).
+- This service acts as Eureka Server. It registers other services (implemented as Eureka Client).
 - Through Eureka Server dashboard, we can see service health related metrics.

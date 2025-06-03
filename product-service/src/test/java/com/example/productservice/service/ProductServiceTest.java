@@ -4,7 +4,7 @@ import com.example.productservice.common.InternalServerException;
 import com.example.productservice.dto.ProductRequest;
 import com.example.productservice.dto.ProductResponse;
 import com.example.productservice.dto.SavedProduct;
-import com.example.productservice.model.Product;
+import com.example.productservice.entity.Product;
 import com.example.productservice.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

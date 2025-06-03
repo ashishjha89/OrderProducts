@@ -60,7 +60,7 @@ public class ProductController {
             }
     )
     public SavedProduct createProduct(@RequestBody ProductRequest productRequest) throws BadRequestException, InternalServerException {
-        log.info("POST:/api/product/products");
+        log.info("POST:/api/products");
         if (productRequest == null
                 || productRequest.getName() == null || productRequest.getName().isBlank()
                 || productRequest.getDescription() == null || productRequest.getDescription().isBlank()
@@ -98,7 +98,7 @@ public class ProductController {
             }
     )
     public List<ProductResponse> getAllProducts() throws InternalServerException {
-        log.info("GET:/api/product/products");
+        log.info("GET:/api/products");
         return productService.getAllProducts();
     }
 }

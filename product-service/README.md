@@ -8,7 +8,7 @@ This is a Spring MVC project designed to manage products (store & retrieve), wit
 
 Before running the service, ensure the following dependencies are set up:
 
-1. **MongoDB**: Used to store "Products". You can start MongoDB using:
+1. **MongoDB**: Used to store "Products." You can start MongoDB using:
    ```bash
    brew services start mongodb-community
    ```

@@ -4,7 +4,7 @@ import com.example.productservice.common.InternalServerException;
 import com.example.productservice.dto.ProductRequest;
 import com.example.productservice.dto.ProductResponse;
 import com.example.productservice.dto.SavedProduct;
-import com.example.productservice.model.Product;
+import com.example.productservice.entity.Product;
 import com.example.productservice.repository.ProductRepository;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -41,14 +41,14 @@ public class ProductService {
 
     public List<ProductResponse> getAllProducts() throws InternalServerException {
         try {
-            return productRepository.findAll().stream().map(this::mapToProductResponse).toList();
+            return productRepository.findAll().stream().map(this::toProductResponse).toList();
         } catch (DataAccessException e) {
             log.error("Error when getting all products:{}", e.getMessage());
             throw new InternalServerException();
         }
     }
 
-    private ProductResponse mapToProductResponse(Product product) {
+    private ProductResponse toProductResponse(Product product) {
         return ProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())

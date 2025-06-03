@@ -4,7 +4,7 @@ import com.example.productservice.common.ErrorBody;
 import com.example.productservice.common.ErrorComponent;
 import com.example.productservice.dto.ProductRequest;
 import com.example.productservice.dto.ProductResponse;
-import com.example.productservice.model.Product;
+import com.example.productservice.entity.Product;
 import com.example.productservice.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
