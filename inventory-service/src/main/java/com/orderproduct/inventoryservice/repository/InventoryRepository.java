@@ -1,6 +1,6 @@
-package com.example.inventoryservice.repository;
+package com.orderproduct.inventoryservice.repository;
 
-import com.example.inventoryservice.model.Inventory;
+import com.orderproduct.inventoryservice.entity.Inventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

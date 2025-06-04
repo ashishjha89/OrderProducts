@@ -1,4 +1,4 @@
-package com.example.inventoryservice.model;
+package com.orderproduct.inventoryservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

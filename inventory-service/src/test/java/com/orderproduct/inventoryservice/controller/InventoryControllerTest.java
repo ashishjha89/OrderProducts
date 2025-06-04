@@ -1,8 +1,8 @@
-package com.example.inventoryservice.controller;
+package com.orderproduct.inventoryservice.controller;
 
-import com.example.inventoryservice.common.InternalServerException;
-import com.example.inventoryservice.dto.InventoryStockStatus;
-import com.example.inventoryservice.service.InventoryService;
+import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.service.InventoryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

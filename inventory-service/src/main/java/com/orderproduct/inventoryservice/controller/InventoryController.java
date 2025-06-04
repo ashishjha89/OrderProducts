@@ -1,10 +1,10 @@
-package com.example.inventoryservice.controller;
+package com.orderproduct.inventoryservice.controller;
 
-import com.example.inventoryservice.common.ErrorBody;
-import com.example.inventoryservice.common.ErrorComponent;
-import com.example.inventoryservice.common.InternalServerException;
-import com.example.inventoryservice.dto.InventoryStockStatus;
-import com.example.inventoryservice.service.InventoryService;
+import com.orderproduct.inventoryservice.common.ErrorBody;
+import com.orderproduct.inventoryservice.common.ErrorComponent;
+import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.service.InventoryService;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

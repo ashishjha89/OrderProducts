@@ -1,9 +1,9 @@
-package com.example.inventoryservice.service;
+package com.orderproduct.inventoryservice.service;
 
-import com.example.inventoryservice.common.InternalServerException;
-import com.example.inventoryservice.dto.InventoryStockStatus;
-import com.example.inventoryservice.model.Inventory;
-import com.example.inventoryservice.repository.InventoryRepository;
+import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.entity.Inventory;
+import com.orderproduct.inventoryservice.repository.InventoryRepository;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;

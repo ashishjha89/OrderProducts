@@ -1,9 +1,9 @@
-package com.example.inventoryservice;
+package com.orderproduct.inventoryservice;
 
-import com.example.inventoryservice.common.InternalServerException;
-import com.example.inventoryservice.controller.InventoryController;
-import com.example.inventoryservice.dto.InventoryStockStatus;
-import com.example.inventoryservice.service.InventoryService;
+import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.controller.InventoryController;
+import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.service.InventoryService;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;

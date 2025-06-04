@@ -1,4 +1,4 @@
-package com.example.inventoryservice.common;
+package com.orderproduct.inventoryservice.common;
 
 public class InternalServerException extends Exception {
 }

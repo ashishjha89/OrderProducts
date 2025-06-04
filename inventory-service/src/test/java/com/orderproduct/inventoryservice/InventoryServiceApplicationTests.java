@@ -1,8 +1,8 @@
-package com.example.inventoryservice;
+package com.orderproduct.inventoryservice;
 
-import com.example.inventoryservice.dto.InventoryStockStatus;
-import com.example.inventoryservice.model.Inventory;
-import com.example.inventoryservice.repository.InventoryRepository;
+import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.entity.Inventory;
+import com.orderproduct.inventoryservice.repository.InventoryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
