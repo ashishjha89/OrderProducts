@@ -10,14 +10,4 @@ public class ErrorComponent {
 
     public static final String badRequestMsg = "This is an incorrect request-body";
 
-    public static final ErrorBody internalServerError = new ErrorBody(
-            SOMETHING_WENT_WRONG,
-            somethingWentWrongMsg
-    );
-
-    public static final ErrorBody badRequestError = new ErrorBody(
-            BAD_REQUEST,
-            badRequestMsg
-    );
-
 }

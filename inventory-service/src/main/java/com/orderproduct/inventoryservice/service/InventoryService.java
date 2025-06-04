@@ -26,7 +26,7 @@ public class InventoryService {
         try {
             return new InventoryStockStatus(skuCode, inventoryRepository.findBySkuCode(skuCode).isPresent());
         } catch (DataAccessException e) {
-            log.error("Error when finding inventory by skuCode:" + e.getMessage());
+            log.error("Error when finding inventory by skuCode:{} and errorMsg:{}", skuCode, e.getMessage());
             throw new InternalServerException();
         }
     }
@@ -37,7 +37,7 @@ public class InventoryService {
         try {
             final var inventoryList = inventoryRepository.findBySkuCodeIn(skuCodes);
             if (inventoryList == null) {
-                log.error("Null Inventory-list fetched from Repo for skuCodes:" + skuCodes);
+                log.error("Null Inventory-list fetched from Repo for skuCodes:{}", skuCodes);
                 throw new InternalServerException();
             }
             final var inventoriesFound = inventoryList.stream().filter(inventory -> inventory.getQuantity() > 0).toList();
@@ -46,7 +46,7 @@ public class InventoryService {
                     .map(skuCode -> new InventoryStockStatus(skuCode, isInventoryPresent(skuCode, inventoriesFound)))
                     .toList();
         } catch (DataAccessException e) {
-            log.error("Error when finding inventory by skuCode:" + e.getMessage());
+            log.error("Error when finding stocksStatus for skuCodes:{} and errorMsg:{}", skuCodes, e.getMessage());
             throw new InternalServerException();
         }
     }
