@@ -1,11 +1,11 @@
-package com.example.productservice.service;
+package com.orderproduct.productservice.service;
 
-import com.example.productservice.common.InternalServerException;
-import com.example.productservice.dto.ProductRequest;
-import com.example.productservice.dto.ProductResponse;
-import com.example.productservice.dto.SavedProduct;
-import com.example.productservice.entity.Product;
-import com.example.productservice.repository.ProductRepository;
+import com.orderproduct.productservice.common.InternalServerException;
+import com.orderproduct.productservice.dto.ProductRequest;
+import com.orderproduct.productservice.dto.ProductResponse;
+import com.orderproduct.productservice.dto.SavedProduct;
+import com.orderproduct.productservice.entity.Product;
+import com.orderproduct.productservice.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;

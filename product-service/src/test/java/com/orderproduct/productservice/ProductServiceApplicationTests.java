@@ -1,11 +1,11 @@
-package com.example.productservice;
+package com.orderproduct.productservice;
 
-import com.example.productservice.common.ErrorBody;
-import com.example.productservice.common.ErrorComponent;
-import com.example.productservice.dto.ProductRequest;
-import com.example.productservice.dto.ProductResponse;
-import com.example.productservice.entity.Product;
-import com.example.productservice.repository.ProductRepository;
+import com.orderproduct.productservice.common.ErrorBody;
+import com.orderproduct.productservice.common.ErrorComponent;
+import com.orderproduct.productservice.dto.ProductRequest;
+import com.orderproduct.productservice.dto.ProductResponse;
+import com.orderproduct.productservice.entity.Product;
+import com.orderproduct.productservice.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;

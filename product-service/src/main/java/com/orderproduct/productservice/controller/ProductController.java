@@ -1,13 +1,13 @@
-package com.example.productservice.controller;
+package com.orderproduct.productservice.controller;
 
-import com.example.productservice.common.BadRequestException;
-import com.example.productservice.common.ErrorBody;
-import com.example.productservice.common.ErrorComponent;
-import com.example.productservice.common.InternalServerException;
-import com.example.productservice.dto.ProductRequest;
-import com.example.productservice.dto.ProductResponse;
-import com.example.productservice.dto.SavedProduct;
-import com.example.productservice.service.ProductService;
+import com.orderproduct.productservice.common.BadRequestException;
+import com.orderproduct.productservice.common.ErrorBody;
+import com.orderproduct.productservice.common.ErrorComponent;
+import com.orderproduct.productservice.common.InternalServerException;
+import com.orderproduct.productservice.dto.ProductRequest;
+import com.orderproduct.productservice.dto.ProductResponse;
+import com.orderproduct.productservice.dto.SavedProduct;
+import com.orderproduct.productservice.service.ProductService;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

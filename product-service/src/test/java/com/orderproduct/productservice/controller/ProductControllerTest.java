@@ -1,10 +1,10 @@
-package com.example.productservice.controller;
+package com.orderproduct.productservice.controller;
 
-import com.example.productservice.common.InternalServerException;
-import com.example.productservice.dto.ProductRequest;
-import com.example.productservice.dto.ProductResponse;
-import com.example.productservice.dto.SavedProduct;
-import com.example.productservice.service.ProductService;
+import com.orderproduct.productservice.common.InternalServerException;
+import com.orderproduct.productservice.dto.ProductRequest;
+import com.orderproduct.productservice.dto.ProductResponse;
+import com.orderproduct.productservice.dto.SavedProduct;
+import com.orderproduct.productservice.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

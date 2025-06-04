@@ -1,8 +1,8 @@
-package com.example.productservice.controller;
+package com.orderproduct.productservice.controller;
 
-import com.example.productservice.common.ApiException;
-import com.example.productservice.common.ErrorBody;
-import com.example.productservice.common.ErrorComponent;
+import com.orderproduct.productservice.common.ApiException;
+import com.orderproduct.productservice.common.ErrorBody;
+import com.orderproduct.productservice.common.ErrorComponent;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

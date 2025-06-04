@@ -1,4 +1,4 @@
-package com.example.productservice.common;
+package com.orderproduct.productservice.common;
 
 import lombok.Getter;
 import lombok.NonNull;

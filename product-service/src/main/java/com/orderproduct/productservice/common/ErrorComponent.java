@@ -1,4 +1,4 @@
-package com.example.productservice.common;
+package com.orderproduct.productservice.common;
 
 public class ErrorComponent {
 

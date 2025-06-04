@@ -1,4 +1,4 @@
-package com.example.productservice.entity;
+package com.orderproduct.productservice.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

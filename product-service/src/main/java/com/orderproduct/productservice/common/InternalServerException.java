@@ -1,4 +1,4 @@
-package com.example.productservice.common;
+package com.orderproduct.productservice.common;
 
 import org.springframework.http.HttpStatus;
 
