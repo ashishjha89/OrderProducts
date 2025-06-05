@@ -3,71 +3,103 @@ package com.orderproduct.inventoryservice.controller;
 import com.orderproduct.inventoryservice.common.InternalServerException;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
 import com.orderproduct.inventoryservice.service.InventoryService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WebMvcTest(controllers = {InventoryController.class})
+@Import({InventoryControllerTest.MockedServiceConfig.class})
 public class InventoryControllerTest {
 
-    private final InventoryService inventoryService = mock(InventoryService.class);
+    @Autowired
+    private MockMvc mockMvc;
 
-    private final InventoryController inventoryController = new InventoryController(inventoryService);
+    @Autowired
+    private InventoryService inventoryService;
 
-    @Test
-    @DisplayName("`isInStock()` retrieves `InventoryStockStatus` from `InventoryService.isInStock()`")
-    public void isInStockTest() throws InternalServerException {
-        // Initialise
-        when(inventoryService.isInStock("skuCode")).thenReturn(new InventoryStockStatus("skuCode", true));
+    @TestConfiguration
+    static class MockedServiceConfig {
+        @Bean
+        public InventoryService productService() {
+            return mock(InventoryService.class);
+        }
+    }
 
-        // Call method and assert
-        assertEquals(new InventoryStockStatus("skuCode", true), inventoryController.isInStock("skuCode"));
+    @BeforeEach
+    public void setUp() {
+        when(inventoryService.isInStock(anyString())).thenReturn(new InventoryStockStatus("test-sku", true));
     }
 
     @Test
-    @DisplayName("`isInStock()` forwards InternalServerException from InventoryService")
-    public void isInStockInternalServerExceptionTest() throws InternalServerException {
-        // Initialise
-        when(inventoryService.isInStock("skuCode")).thenThrow(new InternalServerException());
+    @DisplayName("should return InventoryStockStatus when GET /inventory/{sku-id} is called and product exists")
+    public void isInStock_WhenProductExists_ReturnsSuccess() throws Exception {
+        InventoryStockStatus status = new InventoryStockStatus("test-sku", true);
+        when(inventoryService.isInStock("test-sku")).thenReturn(status);
 
-        // Call method and assert
-        assertThrows(
-                InternalServerException.class,
-                () -> inventoryController.isInStock("skuCode")
-        );
+        mockMvc.perform(get("/api/inventory/test-sku"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.skuCode").value("test-sku"))
+                .andExpect(jsonPath("$.inStock").value(true));
     }
 
     @Test
-    @DisplayName("`stocksStatus()` retrieves `List<InventoryStockStatus>` from `InventoryService.stocksStatus()`")
-    public void stocksStatusTest() throws InternalServerException {
-        // Initialise
-        final var skuCodeList = List.of("skuCode1", "skuCode2");
-        final var stocksStatus = List.of(
-                new InventoryStockStatus("skuCode1", false),
-                new InventoryStockStatus("skuCode2", true)
-        );
-        when(inventoryService.stocksStatus(skuCodeList)).thenReturn(stocksStatus);
+    @DisplayName("should return 500 when GET /inventory/{sku-id} is called and service throws InternalServerException")
+    public void isInStock_WhenInternalError_ReturnsInternalServerError() throws Exception {
+        when(inventoryService.isInStock("test-sku")).thenThrow(new InternalServerException());
 
-        // Call method and assert
-        assertEquals(stocksStatus, inventoryController.stocksStatus(skuCodeList));
+        mockMvc.perform(get("/api/inventory/test-sku"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").exists())
+                .andExpect(jsonPath("$.errorMessage").exists());
     }
 
     @Test
-    @DisplayName("`stocksStatus()` throws BadRequestException when null or empty List<skuCode> is passed")
-    public void stocksStatusInternalServerExceptionTest() throws InternalServerException {
-        // Initialise
-        final var skuCodeList = List.of("skuCode1", "skuCode2");
-        when(inventoryService.stocksStatus(skuCodeList)).thenThrow(new InternalServerException());
-
-        // Call method and assert
-        assertThrows(
-                InternalServerException.class,
-                () -> inventoryController.stocksStatus(skuCodeList)
+    @DisplayName("should return List<InventoryStockStatus> when GET /inventory?skuCode={id1,id2} is called and products exist")
+    public void stocksStatus_WhenProductsExist_ReturnsSuccess() throws Exception {
+        List<InventoryStockStatus> statuses = List.of(
+                new InventoryStockStatus("sku1", true),
+                new InventoryStockStatus("sku2", false)
         );
+        when(inventoryService.stocksStatus(any())).thenReturn(statuses);
+
+        mockMvc.perform(get("/api/inventory")
+                        .param("skuCode", "sku1", "sku2"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].skuCode").value("sku1"))
+                .andExpect(jsonPath("$[0].inStock").value(true))
+                .andExpect(jsonPath("$[1].skuCode").value("sku2"))
+                .andExpect(jsonPath("$[1].inStock").value(false));
+    }
+
+    @Test
+    @DisplayName("should return 500 when GET /inventory?skuCode={id1,id2} is called and service throws InternalServerException")
+    public void stocksStatus_WhenInternalError_ReturnsInternalServerError() throws Exception {
+        when(inventoryService.stocksStatus(any())).thenThrow(new InternalServerException());
+
+        mockMvc.perform(get("/api/inventory")
+                        .param("skuCode", "sku1", "sku2"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errorCode").exists())
+                .andExpect(jsonPath("$.errorMessage").exists());
     }
 }

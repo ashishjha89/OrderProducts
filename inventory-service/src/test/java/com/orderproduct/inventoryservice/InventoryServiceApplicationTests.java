@@ -84,7 +84,7 @@ class InventoryServiceApplicationTests {
         final var stockStatus = objectMapper.readValue(jsonStr, InventoryStockStatus.class);
 
         // Assert
-        assertTrue(stockStatus.isInStock());
+        assertTrue(stockStatus.inStock());
     }
 
     @Test
@@ -100,7 +100,7 @@ class InventoryServiceApplicationTests {
         final var stockStatus = objectMapper.readValue(jsonStr, InventoryStockStatus.class);
 
         // Assert
-        assertFalse(stockStatus.isInStock());
+        assertFalse(stockStatus.inStock());
     }
 
     @Test
