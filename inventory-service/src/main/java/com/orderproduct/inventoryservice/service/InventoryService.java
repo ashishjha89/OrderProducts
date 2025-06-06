@@ -2,6 +2,7 @@ package com.orderproduct.inventoryservice.service;
 
 import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.common.NotFoundException;
 import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
 import com.orderproduct.inventoryservice.entity.Inventory;
@@ -69,7 +70,21 @@ public class InventoryService {
         }
     }
 
+    @Transactional
+    public void deleteInventory(@NonNull String skuCode) throws InternalServerException, NotFoundException {
+        try {
+            int deletedCount = inventoryRepository.deleteBySkuCode(skuCode);
+            if (deletedCount == 0) {
+                throw new NotFoundException();
+            }
+        } catch (DataAccessException e) {
+            log.error("Error when deleting inventory with skuCode:{} and errorMsg:{}", skuCode, e.getMessage());
+            throw new InternalServerException();
+        }
+    }
+
     private boolean isInventoryPresent(String skuCode, List<Inventory> inventoryList) {
         return inventoryList.stream().anyMatch(inventory -> inventory.getSkuCode().equals(skuCode));
     }
 }
+

@@ -139,4 +139,34 @@ public record InventoryController(InventoryService inventoryService) {
                 .created(location)
                 .body(response);
     }
+
+    @DeleteMapping("/{sku-code}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "204",
+                            description = "No Content - Deleted successfully"
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "errorCode:" + ErrorComponent.NOT_FOUND + " errorMessage:" + ErrorComponent.notFoundMsg,
+                            content = {
+                                    @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                            }
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            content = {
+                                    @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                            }
+                    )
+            }
+    )
+    public void deleteInventory(@PathVariable("sku-code") String skuCode) throws InternalServerException {
+        log.info("DELETE:/api/inventory/{}", skuCode);
+        inventoryService.deleteInventory(skuCode);
+    }
 }
+

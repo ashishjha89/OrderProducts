@@ -2,6 +2,7 @@ package com.orderproduct.inventoryservice.service;
 
 import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.common.NotFoundException;
 import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
 import com.orderproduct.inventoryservice.entity.Inventory;
@@ -17,8 +18,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -147,6 +147,7 @@ public class InventoryServiceTest {
     }
 
     @Test
+    @DisplayName("`createInventory()` should throw InternalServerException when repository throws DataAccessException")
     void createInventory_DatabaseError_ThrowsInternalServerException() {
         // Given
         var inventory = Inventory.builder()
@@ -159,6 +160,41 @@ public class InventoryServiceTest {
 
         // Then
         assertThatThrownBy(() -> inventoryService.createInventory(inventory))
+                .isInstanceOf(InternalServerException.class);
+    }
+
+    @Test
+    @DisplayName("`deleteInventory()` should succeed when inventory exists")
+    void deleteInventory_ExistingSkuCode_Succeeds() throws Exception {
+        // Given
+        when(inventoryRepository.deleteBySkuCode("SKU-123")).thenReturn(1);
+
+        // When & Then
+        assertThatNoException()
+                .isThrownBy(() -> inventoryService.deleteInventory("SKU-123"));
+    }
+
+    @Test
+    @DisplayName("`deleteInventory()` should throw NotFoundException when inventory does not exist")
+    void deleteInventory_NonExistentSkuCode_ThrowsNotFoundException() {
+        // Given
+        when(inventoryRepository.deleteBySkuCode("NON-EXISTENT")).thenReturn(0);
+
+        // Then
+        assertThatThrownBy(() -> inventoryService.deleteInventory("NON-EXISTENT"))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("`deleteInventory()` should throw InternalServerException when repository throws DataAccessException")
+    void deleteInventory_DatabaseError_ThrowsInternalServerException() {
+        // Given
+        when(inventoryRepository.deleteBySkuCode("SKU-123"))
+                .thenThrow(new DataAccessException("Database connection failed") {
+                });
+
+        // Then
+        assertThatThrownBy(() -> inventoryService.deleteInventory("SKU-123"))
                 .isInstanceOf(InternalServerException.class);
     }
 }

@@ -8,10 +8,14 @@ public class ErrorComponent {
 
     public static final String DUPLICATE_SKU_CODE = "DUPLICATE_SKU_CODE";
 
+    public static final String NOT_FOUND = "NOT_FOUND";
+
     public static final String somethingWentWrongMsg = "Sorry, something went wrong.";
 
     public static final String badRequestMsg = "This is an incorrect request-body.";
 
     public static final String duplicateSkuCodeMsg = "Inventory with this SKU code already exists.";
+
+    public static final String notFoundMsg = "Resource not found.";
 
 }

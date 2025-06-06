@@ -2,6 +2,7 @@ package com.orderproduct.inventoryservice.controller;
 
 import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.common.NotFoundException;
 import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
 import com.orderproduct.inventoryservice.entity.Inventory;
@@ -21,10 +22,8 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = {InventoryController.class})
@@ -240,5 +239,43 @@ public class InventoryControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.errorMessage").value("Quantity must be non-negative."));
+    }
+
+    @Test
+    @DisplayName("should return 204 when DELETE /inventory/{sku-code} successfully deletes inventory")
+    void deleteInventory_ExistingSkuCode_Returns204() throws Exception {
+        // Given
+        doNothing().when(inventoryService).deleteInventory("SKU-123");
+
+        // When & Then
+        mockMvc.perform(delete("/api/inventory/SKU-123"))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    @DisplayName("should return 404 when DELETE /inventory/{sku-code} is called with non-existent SKU code")
+    void deleteInventory_NonExistentSkuCode_Returns404() throws Exception {
+        // Given
+        doThrow(new NotFoundException()).when(inventoryService).deleteInventory("NON-EXISTENT");
+
+        // When & Then
+        mockMvc.perform(delete("/api/inventory/NON-EXISTENT"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.errorMessage").value("Resource not found."));
+    }
+
+    @Test
+    @DisplayName("should return 500 when DELETE /inventory/{sku-code} fails due to internal error")
+    void deleteInventory_InternalError_Returns500() throws Exception {
+        // Given
+        doThrow(new InternalServerException()).when(inventoryService).deleteInventory("SKU-123");
+
+        // When & Then
+        mockMvc.perform(delete("/api/inventory/SKU-123"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errorCode").value("SOMETHING_WENT_WRONG"))
+                .andExpect(jsonPath("$.errorMessage").value("Sorry, something went wrong."));
     }
 }
