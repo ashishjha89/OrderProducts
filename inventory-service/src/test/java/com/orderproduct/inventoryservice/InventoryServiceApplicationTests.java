@@ -1,9 +1,9 @@
 package com.orderproduct.inventoryservice;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +23,8 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -129,4 +131,57 @@ class InventoryServiceApplicationTests {
         assertEquals(expectedStockStatus, stocksStatus);
     }
 
+    @Test
+    @DisplayName("POST:/api/inventory should return 201 when creating new inventory")
+    void createInventory_Success() throws Exception {
+        // Given
+        final var newInventory = """
+                {
+                    "skuCode": "newSkuCode",
+                    "quantity": 50
+                }
+                """;
+
+        // Make Api call
+        MvcResult result = mockMvc.perform(
+                        MockMvcRequestBuilders
+                                .post("/api/inventory")
+                                .contentType("application/json")
+                                .content(newInventory)
+                )
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        // Process response
+        final var jsonStr = result.getResponse().getContentAsString();
+        final var response = objectMapper.readValue(jsonStr, Map.class);
+
+        // Assert
+        assertEquals("newSkuCode", response.get("skuCode"));
+        assertEquals("Inventory created successfully", response.get("message"));
+        assertTrue(Objects.requireNonNull(result.getResponse().getHeader("Location"))
+                .endsWith("/api/inventory/newSkuCode"));
+
+        // Verify in database
+        final var savedInventory = inventoryRepository.findBySkuCode("newSkuCode");
+        assertTrue(savedInventory.isPresent());
+        assertEquals(50, savedInventory.get().getQuantity());
+    }
+
+    @Test
+    @DisplayName("DELETE:/api/inventory/{sku-code} should return 204 when deleting existing inventory")
+    void deleteInventory_Success() throws Exception {
+        // Given - we already have inventory1 from setup
+
+        // Make Api call
+        mockMvc.perform(
+                        MockMvcRequestBuilders
+                                .delete("/api/inventory/skuCode1")
+                )
+                .andExpect(status().isNoContent());
+
+        // Verify deletion in database
+        final var deletedInventory = inventoryRepository.findBySkuCode("skuCode1");
+        assertTrue(deletedInventory.isEmpty());
+    }
 }
