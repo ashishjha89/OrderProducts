@@ -18,7 +18,7 @@ Contract.make {
         }
         body(
                 "skuCode": "iphone_13",
-                "isInStock": true
+                "inStock": true
         )
     }
 

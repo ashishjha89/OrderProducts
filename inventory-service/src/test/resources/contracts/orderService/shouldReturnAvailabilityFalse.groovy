@@ -18,7 +18,7 @@ Contract.make {
         }
         body(
                 "skuCode": "iphone_14",
-                "isInStock": false
+                "inStock": false
         )
     }
 

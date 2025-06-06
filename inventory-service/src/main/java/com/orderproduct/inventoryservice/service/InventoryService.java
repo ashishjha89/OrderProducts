@@ -1,12 +1,15 @@
 package com.orderproduct.inventoryservice.service;
 
+import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,21 @@ public class InventoryService {
                     .toList();
         } catch (DataAccessException e) {
             log.error("Error when finding stocksStatus for skuCodes:{} and errorMsg:{}", skuCodes, e.getMessage());
+            throw new InternalServerException();
+        }
+    }
+
+    @Transactional
+    @NonNull
+    public CreateInventoryResponse createInventory(@NonNull Inventory inventory) throws InternalServerException, DuplicateSkuCodeException {
+        try {
+            inventoryRepository.save(inventory);
+            return CreateInventoryResponse.success(inventory.getSkuCode());
+        } catch (DataAccessException e) {
+            if (e.getCause() instanceof ConstraintViolationException) {
+                throw new DuplicateSkuCodeException();
+            }
+            log.error("Error when creating inventory with skuCode:{} and errorMsg:{}", inventory.getSkuCode(), e.getMessage());
             throw new InternalServerException();
         }
     }

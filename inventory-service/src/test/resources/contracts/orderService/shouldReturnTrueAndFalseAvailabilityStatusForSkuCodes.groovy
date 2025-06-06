@@ -3,8 +3,7 @@ package contracts.orderService
 import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
-
-    description "should return availability=true for iphone_13 and availability=false for iphone_14"
+    description "should return true and false availability status for skuCodes=iphone_13,iphone_14"
 
     request {
         url "/api/inventory?skuCode=iphone_13&skuCode=iphone_14"
@@ -18,9 +17,9 @@ Contract.make {
         }
         body([
                 ["skuCode"  : "iphone_13",
-                 "isInStock": true],
+                 "inStock": true],
                 ["skuCode"  : "iphone_14",
-                 "isInStock": false]
+                 "inStock": false]
         ])
     }
 

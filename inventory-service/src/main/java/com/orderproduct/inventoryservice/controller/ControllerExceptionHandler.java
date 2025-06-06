@@ -6,6 +6,8 @@ import com.orderproduct.inventoryservice.common.ErrorComponent;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -19,6 +21,16 @@ public class ControllerExceptionHandler {
         return new ResponseEntity<>(
                 new ErrorBody(apiException.getErrorCode(), apiException.getMessage()),
                 apiException.getHttpStatus()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorBody> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        FieldError fieldError = ex.getBindingResult().getFieldError();
+        String errorMessage = fieldError != null ? fieldError.getDefaultMessage() : ErrorComponent.badRequestMsg;
+        return new ResponseEntity<>(
+                new ErrorBody(ErrorComponent.BAD_REQUEST, errorMessage),
+                HttpStatus.BAD_REQUEST
         );
     }
 

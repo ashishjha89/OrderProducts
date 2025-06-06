@@ -18,7 +18,7 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String skuCode;
 
     @Column(nullable = false)
@@ -29,11 +29,11 @@ public class Inventory {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Inventory inventory = (Inventory) o;
-        return quantity == inventory.quantity && id.equals(inventory.id) && skuCode.equals(inventory.skuCode);
+        return quantity == inventory.quantity && skuCode.equals(inventory.skuCode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, skuCode, quantity);
+        return Objects.hash(skuCode, quantity);
     }
 }

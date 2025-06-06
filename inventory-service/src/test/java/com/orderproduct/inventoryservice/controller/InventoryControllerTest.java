@@ -1,7 +1,10 @@
 package com.orderproduct.inventoryservice.controller;
 
+import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.service.InventoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = {InventoryController.class})
@@ -101,5 +105,140 @@ public class InventoryControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errorCode").exists())
                 .andExpect(jsonPath("$.errorMessage").exists());
+    }
+
+    @Test
+    @DisplayName("should return 201 when POST /inventory is called with valid request")
+    void createInventory_ValidRequest_Returns201() throws Exception {
+        // Given
+        var response = CreateInventoryResponse.success("SKU-123");
+        when(inventoryService.createInventory(any(Inventory.class))).thenReturn(response);
+
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "skuCode": "SKU-123",
+                                    "quantity": 10
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/inventory/SKU-123"))
+                .andExpect(jsonPath("$.skuCode").value("SKU-123"))
+                .andExpect(jsonPath("$.message").value("Inventory created successfully"));
+    }
+
+    @Test
+    @DisplayName("should return 409 when POST /inventory is called with duplicate SKU code")
+    void createInventory_DuplicateSkuCode_Returns409() throws Exception {
+        // Given
+        when(inventoryService.createInventory(any(Inventory.class)))
+                .thenThrow(new DuplicateSkuCodeException());
+
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "skuCode": "SKU-123",
+                                    "quantity": 10
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("DUPLICATE_SKU_CODE"))
+                .andExpect(jsonPath("$.errorMessage").value("Inventory with this SKU code already exists."));
+    }
+
+    @Test
+    @DisplayName("should return 500 when POST /inventory fails due to internal error")
+    void createInventory_DatabaseError_Returns500() throws Exception {
+        // Given
+        when(inventoryService.createInventory(any(Inventory.class)))
+                .thenThrow(new InternalServerException());
+
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "skuCode": "SKU-123",
+                                    "quantity": 10
+                                }
+                                """))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errorCode").value("SOMETHING_WENT_WRONG"))
+                .andExpect(jsonPath("$.errorMessage").value("Sorry, something went wrong."));
+    }
+
+    @Test
+    @DisplayName("should return 400 when POST /inventory is called with blank SKU code")
+    void createInventory_BlankSkuCode_Returns400() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "skuCode": "",
+                                    "quantity": 10
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.errorMessage").value("SKU code cannot be blank."));
+    }
+
+    @Test
+    @DisplayName("should return 400 when POST /inventory is called with invalid SKU code characters")
+    void createInventory_InvalidSkuCodeCharacters_Returns400() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "skuCode": "SKU#123",
+                                    "quantity": 10
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.errorMessage").value("SKU code can only contain alphanumeric characters, hyphens, and underscores."));
+    }
+
+    @Test
+    @DisplayName("should return 400 when POST /inventory is called with SKU code exceeding length limit.")
+    void createInventory_SkuCodeTooLong_Returns400() throws Exception {
+        // Given
+        String longSkuCode = "a".repeat(101);
+
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(String.format("""
+                                {
+                                    "skuCode": "%s",
+                                    "quantity": 10
+                                }
+                                """, longSkuCode)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.errorMessage").value("SKU code length must be less than 100 characters."));
+    }
+
+    @Test
+    @DisplayName("should return 400 when POST /inventory is called with negative quantity")
+    void createInventory_NegativeQuantity_Returns400() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/inventory")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "skuCode": "SKU-123",
+                                    "quantity": -1
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.errorMessage").value("Quantity must be non-negative."));
     }
 }

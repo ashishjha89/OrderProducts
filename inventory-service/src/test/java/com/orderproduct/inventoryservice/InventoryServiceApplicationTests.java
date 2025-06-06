@@ -72,7 +72,7 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("GET:/api/inventory should return isInStock=true if skuCode is not available")
+    @DisplayName("GET:/api/inventory should return inStock=true if skuCode is not available")
     void isInStock_WhenInventoryIsPresent() throws Exception {
         // Make Api call
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/skuCode1"))
@@ -88,7 +88,7 @@ class InventoryServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("GET:/api/inventory should return isInStock=false if skuCode is not available")
+    @DisplayName("GET:/api/inventory should return inStock=false if skuCode is not available")
     void isInStock_WhenInventoryIsAbsent() throws Exception {
         // Make Api call
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/inventory/skuCodeRandom"))
