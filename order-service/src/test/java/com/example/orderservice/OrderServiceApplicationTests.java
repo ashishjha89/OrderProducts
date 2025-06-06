@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.stubrunner.spring.AutoConfigureStubRunner;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,15 +33,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
 @AutoConfigureStubRunner(
         stubsMode = LOCAL,
-        ids = "com.example:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
+        ids = "com.orderproduct:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
+@EmbeddedKafka(topics = {"notification.topic"})
 @SuppressWarnings("unused")
 class OrderServiceApplicationTests {
 
@@ -91,7 +92,11 @@ class OrderServiceApplicationTests {
                         .content(orderRequestStr))
                 .andExpect(request().asyncStarted())
                 .andReturn();
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isCreated()).andDo(print());
+
+        // Wait for async completion and verify
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isCreated())
+                .andDo(print());
 
         // Assert item is inserted
         assertEquals(1, orderRepository.findAll().size());

@@ -9,12 +9,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
 import static org.mockito.Mockito.when;
 
 @WebMvcTest(InventoryController.class)
+@ActiveProfiles("contracts")
 public abstract class CdcBaseClass {
 
     @Autowired

@@ -82,7 +82,7 @@ public class OrderService {
                                 log.error("StockStatus not returned for all LineItems in Order");
                                 throw new InternalServerException();
                             }
-                            return !stocksStatus.stream().allMatch(InventoryStockStatus::isInStock);
+                            return !stocksStatus.stream().allMatch(InventoryStockStatus::inStock);
                         })
         );
     }
