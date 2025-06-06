@@ -6,7 +6,10 @@ import lombok.*;
 import java.util.Objects;
 
 @Entity
-@Table(name = "inventory")
+@Table(name = "inventory",
+        indexes = {
+                @Index(name = "idx_inventory_sku_code", columnList = "skuCode")
+        })
 @Getter
 @Setter
 @AllArgsConstructor
