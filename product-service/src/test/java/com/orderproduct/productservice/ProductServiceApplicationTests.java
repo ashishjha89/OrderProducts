@@ -96,7 +96,7 @@ class ProductServiceApplicationTests {
         final var jsonStr = result1.getResponse().getContentAsString();
         final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
         // Assert
-        assertEquals(ErrorComponent.BAD_REQUEST, errorBody.errorCode());
+        assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
         assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
 
         // Initialise 2

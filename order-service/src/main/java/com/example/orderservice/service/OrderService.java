@@ -49,7 +49,7 @@ public class OrderService {
     ) throws InternalServerException, InventoryNotInStockException {
         return isAnyLineItemMissing(orderRequest).thenCompose(isAnyLineItemMissing -> {
             if (isAnyLineItemMissing) {
-                log.info("InventoryNotInStock orderRequest:" + orderRequest);
+                log.info("InventoryNotInStock orderRequest:{}", orderRequest);
                 throw new InventoryNotInStockException();
             }
             return CompletableFuture.supplyAsync(() -> {
@@ -92,7 +92,7 @@ public class OrderService {
             @NonNull OrderRequest orderRequest,
             RuntimeException runtimeException
     ) throws InternalServerException, InventoryNotInStockException {
-        log.error("Exception thrown by CircuitBreaker " + runtimeException.getMessage());
+        log.error("Exception thrown by CircuitBreaker {}", runtimeException.getMessage());
         if (runtimeException.getCause() instanceof InventoryNotInStockException)
             throw new InventoryNotInStockException();
         else
@@ -102,10 +102,10 @@ public class OrderService {
     private SavedOrder saveOrder(Order order) throws InternalServerException {
         try {
             final var savedOrder = orderRepository.save(order);
-            log.info("Order is saved Id:" + savedOrder.getId() + " orderNumber:" + savedOrder.getOrderNumber());
+            log.info("Order is saved Id:{} orderNumber:{}", savedOrder.getId(), savedOrder.getOrderNumber());
             return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
         } catch (DataAccessException e) {
-            log.error("Error when saving Order:" + e.getMessage());
+            log.error("Error when saving Order:{}", e.getMessage());
             throw new InternalServerException();
         }
     }

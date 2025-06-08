@@ -31,21 +31,21 @@ public record OrderController(OrderService orderService) {
                     ),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "errorCode:" + ErrorComponent.BAD_REQUEST + " errorMessage:" + ErrorComponent.badRequestMsg,
+                            description = "errorCode:" + ErrorComponent.BAD_REQUEST_ERROR_CODE + " errorMessage:" + ErrorComponent.badRequestMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
                     ),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "errorCode:" + ErrorComponent.INVENTORY_NOT_IN_STOCK + " errorMessage:" + ErrorComponent.inventoryNotInStockMsg,
+                            description = "errorCode:" + ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE + " errorMessage:" + ErrorComponent.inventoryNotInStockMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
@@ -63,7 +63,7 @@ public record OrderController(OrderService orderService) {
                 || orderRequest.getOrderLineItemsList() == null
                 || orderRequest.getOrderLineItemsList().isEmpty()
         ) {
-            log.error("BadRequestException because POST:/api/order is called with invalid OrderRequest orderRequest:" + orderRequest);
+            log.info("BadRequestException because POST:/api/order is called with invalid OrderRequest orderRequest:{}", orderRequest);
             throw new BadRequestException();
         }
         return orderService.placeOrder(orderRequest);

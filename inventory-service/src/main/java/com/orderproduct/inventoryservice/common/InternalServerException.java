@@ -5,6 +5,10 @@ import org.springframework.http.HttpStatus;
 public class InternalServerException extends ApiException {
 
     public InternalServerException() {
-        super(ErrorComponent.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR, ErrorComponent.somethingWentWrongMsg);
+        super(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE,
+                ErrorComponent.somethingWentWrongMsg
+        );
     }
 }

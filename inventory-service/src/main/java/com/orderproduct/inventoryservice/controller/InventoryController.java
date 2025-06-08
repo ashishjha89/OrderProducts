@@ -45,7 +45,7 @@ public record InventoryController(InventoryService inventoryService) {
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
@@ -74,7 +74,7 @@ public record InventoryController(InventoryService inventoryService) {
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
@@ -108,14 +108,14 @@ public record InventoryController(InventoryService inventoryService) {
                     ),
                     @ApiResponse(
                             responseCode = "409",
-                            description = "errorCode:" + ErrorComponent.DUPLICATE_SKU_CODE + " errorMessage:" + ErrorComponent.duplicateSkuCodeMsg,
+                            description = "errorCode:" + ErrorComponent.DUPLICATE_SKU_ERROR_CODE + " errorMessage:" + ErrorComponent.duplicateSkuCodeMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
@@ -150,14 +150,14 @@ public record InventoryController(InventoryService inventoryService) {
                     ),
                     @ApiResponse(
                             responseCode = "404",
-                            description = "errorCode:" + ErrorComponent.NOT_FOUND + " errorMessage:" + ErrorComponent.notFoundMsg,
+                            description = "errorCode:" + ErrorComponent.NOT_FOUND_ERROR_CODE + " errorMessage:" + ErrorComponent.notFoundMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }

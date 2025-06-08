@@ -5,6 +5,10 @@ import org.springframework.http.HttpStatus;
 public class DuplicateSkuCodeException extends ApiException {
 
     public DuplicateSkuCodeException() {
-        super(ErrorComponent.DUPLICATE_SKU_CODE, HttpStatus.CONFLICT, ErrorComponent.duplicateSkuCodeMsg);
+        super(
+                HttpStatus.CONFLICT,
+                ErrorComponent.DUPLICATE_SKU_ERROR_CODE,
+                ErrorComponent.duplicateSkuCodeMsg
+        );
     }
 }

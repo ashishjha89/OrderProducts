@@ -45,14 +45,14 @@ public class ProductController {
                     ),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "errorCode:" + ErrorComponent.BAD_REQUEST + " errorMessage:" + ErrorComponent.badRequestMsg,
+                            description = "errorCode:" + ErrorComponent.BAD_REQUEST_ERROR_CODE + " errorMessage:" + ErrorComponent.badRequestMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }
@@ -90,7 +90,7 @@ public class ProductController {
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
+                            description = "errorCode:" + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:" + ErrorComponent.somethingWentWrongMsg,
                             content = {
                                     @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                             }

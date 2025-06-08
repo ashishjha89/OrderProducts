@@ -2,13 +2,13 @@ package com.orderproduct.inventoryservice.common;
 
 public class ErrorComponent {
 
-    public static final String SOMETHING_WENT_WRONG = "SOMETHING_WENT_WRONG";
+    public static final String SOMETHING_WENT_WRONG_ERROR_CODE = "SOMETHING_WENT_WRONG";
 
-    public static final String BAD_REQUEST = "BAD_REQUEST";
+    public static final String BAD_REQUEST_ERROR_CODE = "BAD_REQUEST";
 
-    public static final String DUPLICATE_SKU_CODE = "DUPLICATE_SKU_CODE";
+    public static final String NOT_FOUND_ERROR_CODE = "NOT_FOUND";
 
-    public static final String NOT_FOUND = "NOT_FOUND";
+    public static final String DUPLICATE_SKU_ERROR_CODE = "DUPLICATE_SKU_CODE";
 
     public static final String somethingWentWrongMsg = "Sorry, something went wrong.";
 

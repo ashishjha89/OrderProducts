@@ -1,11 +1,14 @@
 package com.example.orderservice.controller;
 
-import com.example.orderservice.common.*;
+import com.example.orderservice.common.ApiException;
+import com.example.orderservice.common.ErrorBody;
+import com.example.orderservice.common.ErrorComponent;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @SuppressWarnings("unused")
@@ -13,31 +16,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Hidden // To hide it from Swagger! Controllers are specifying their exact errors.
 public class ControllerExceptionHandler {
 
-    @ExceptionHandler(InternalServerException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<ErrorBody> internalServerException() {
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorBody> handleApiException(ApiException apiException) {
         return new ResponseEntity<>(
-                ErrorComponent.internalServerError,
+                new ErrorBody(apiException.getErrorCode(), apiException.getMessage()),
+                apiException.getHttpStatus()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorBody> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        FieldError fieldError = ex.getBindingResult().getFieldError();
+        String errorMessage = fieldError != null ? fieldError.getDefaultMessage() : ErrorComponent.badRequestMsg;
+        return new ResponseEntity<>(
+                new ErrorBody(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorMessage),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorBody> handleGenericException(Exception exception) {
+        return new ResponseEntity<>(
+                new ErrorBody(ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE, ErrorComponent.somethingWentWrongMsg),
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
-
-    @ExceptionHandler(BadRequestException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorBody> badRequestException() {
-        return new ResponseEntity<>(
-                ErrorComponent.badRequestError,
-                HttpStatus.BAD_REQUEST
-        );
-    }
-
-    @ExceptionHandler(InventoryNotInStockException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorBody> inventoryNotInStockException() {
-        return new ResponseEntity<>(
-                ErrorComponent.inventoryNotInStockError,
-                HttpStatus.BAD_REQUEST
-        );
-    }
-
 }

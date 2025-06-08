@@ -127,7 +127,7 @@ class OrderServiceApplicationTests {
         final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
 
         // Assert
-        assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK, errorBody.errorCode());
+        assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE, errorBody.errorCode());
         assertEquals(ErrorComponent.inventoryNotInStockMsg, errorBody.errorMessage());
         // Assert item is not inserted
         assertEquals(0, orderRepository.findAll().size());
@@ -152,7 +152,7 @@ class OrderServiceApplicationTests {
         final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
 
         // Assert
-        assertEquals(ErrorComponent.BAD_REQUEST, errorBody.errorCode());
+        assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
         assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
     }
 
@@ -175,7 +175,7 @@ class OrderServiceApplicationTests {
         final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
 
         // Assert
-        assertEquals(ErrorComponent.BAD_REQUEST, errorBody.errorCode());
+        assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
         assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
     }
 

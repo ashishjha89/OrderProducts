@@ -36,7 +36,7 @@ public class InventoryStatusRepository {
                 .toFuture()
                 .handle((stockStatus, exception) -> {
                     if (exception != null) {
-                        log.error("Error when retrieving stockStatus from inventory-service:" + exception.getMessage());
+                        log.error("Error when retrieving stockStatus from inventory-service:{}", exception.getMessage());
                         throw new InternalServerException();
                     }
                     if (stockStatus == null) {

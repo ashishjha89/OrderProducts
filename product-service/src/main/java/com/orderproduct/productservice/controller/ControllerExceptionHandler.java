@@ -25,7 +25,7 @@ public class ControllerExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorBody> handleGenericException(Exception exception) {
         return new ResponseEntity<>(
-                new ErrorBody(ErrorComponent.SOMETHING_WENT_WRONG, ErrorComponent.somethingWentWrongMsg),
+                new ErrorBody(ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE, ErrorComponent.somethingWentWrongMsg),
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
