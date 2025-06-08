@@ -39,7 +39,7 @@ public class InventoryControllerTest {
     @TestConfiguration
     static class MockedServiceConfig {
         @Bean
-        public InventoryService productService() {
+        public InventoryService inventoryService() {
             return mock(InventoryService.class);
         }
     }
