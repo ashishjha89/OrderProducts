@@ -38,7 +38,7 @@ public class InventoryServiceTest {
                 .thenReturn(Optional.of(new Inventory(1L, "skuCode", 10)));
 
         // Then
-        assertEquals(new InventoryStockStatus("skuCode", true), inventoryService.isInStock("skuCode"));
+        assertEquals(new InventoryStockStatus("skuCode", true), inventoryService.inStock("skuCode"));
     }
 
     @Test
@@ -49,18 +49,18 @@ public class InventoryServiceTest {
                 .thenReturn(Optional.empty());
 
         // Then
-        assertEquals(new InventoryStockStatus("skuCode", false), inventoryService.isInStock("skuCode"));
+        assertEquals(new InventoryStockStatus("skuCode", false), inventoryService.inStock("skuCode"));
     }
 
     @Test
     @DisplayName("`inStock()` throws InternalServerException when Repo throws DataAccessException")
-    public void isInStock_WhenRepoThrowsError() {
+    public void inStock_WhenRepoThrowsError() {
         // Given
         when(inventoryRepository.findBySkuCode("skuCode"))
                 .thenThrow(new DataAccessResourceFailureException("Child class of DataAccessException"));
 
         // Then
-        assertThrows(InternalServerException.class, () -> inventoryService.isInStock("skuCode"));
+        assertThrows(InternalServerException.class, () -> inventoryService.inStock("skuCode"));
     }
 
     @Test

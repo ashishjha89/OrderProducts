@@ -11,9 +11,6 @@ import com.orderproduct.orderservice.entity.Order;
 import com.orderproduct.orderservice.entity.OrderLineItems;
 import com.orderproduct.orderservice.repository.InventoryStatusRepository;
 import com.orderproduct.orderservice.repository.OrderRepository;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import jakarta.transaction.Transactional;
@@ -53,6 +50,7 @@ public class OrderService {
                 throw new InventoryNotInStockException();
             }
             return CompletableFuture.supplyAsync(() -> {
+                // TODO: Implement outbox pattern here
                 SavedOrder savedOrder = saveOrder(getOrder(orderRequest));
                 sendOrderPlacedEventToNotificationTopic(savedOrder);
                 return savedOrder;
@@ -60,15 +58,12 @@ public class OrderService {
         });
     }
 
-    @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackStockStatus")
-    @TimeLimiter(name = "inventory")
-    @Retry(name = "inventory")
     private CompletableFuture<Boolean> isAnyLineItemMissing(
             @NonNull OrderRequest orderRequest
     ) throws InternalServerException {
-        final var skuCodesInOrder =
+        final List<String> skuCodesInOrder =
                 orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
-        Observation inventoryServiceObservation = Observation.createNotStarted(
+        final Observation inventoryServiceObservation = Observation.createNotStarted(
                 "inventory-service-lookup",
                 this.observationRegistry
         );
@@ -87,18 +82,6 @@ public class OrderService {
         );
     }
 
-    @SuppressWarnings("unused")
-    private CompletableFuture<SavedOrder> fallbackStockStatus(
-            @NonNull OrderRequest orderRequest,
-            RuntimeException runtimeException
-    ) throws InternalServerException, InventoryNotInStockException {
-        log.error("Exception thrown by CircuitBreaker {}", runtimeException.getMessage());
-        if (runtimeException.getCause() instanceof InventoryNotInStockException)
-            throw new InventoryNotInStockException();
-        else
-            throw new InternalServerException();
-    }
-
     private SavedOrder saveOrder(Order order) throws InternalServerException {
         try {
             final var savedOrder = orderRepository.save(order);
@@ -111,7 +94,19 @@ public class OrderService {
     }
 
     private void sendOrderPlacedEventToNotificationTopic(SavedOrder savedOrder) {
-        kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(savedOrder.orderNumber()));
+        try {
+            kafkaTemplate
+                    .send("notificationTopic", new OrderPlacedEvent(savedOrder.orderNumber()))
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("Failed to send OrderPlacedEvent to Kafka for orderNumber:{} - {}", savedOrder.orderNumber(), ex.getMessage());
+                        } else {
+                            log.info("OrderPlacedEvent sent to Kafka for orderNumber:{}", savedOrder.orderNumber());
+                        }
+                    });
+        } catch (Exception ex) {
+            log.error("Exception while sending OrderPlacedEvent to Kafka for orderNumber:{} - {}", savedOrder.orderNumber(), ex.getMessage());
+        }
     }
 
     private boolean isStockAvailableForAllSkuCodes(List<String> skuCodeList, List<InventoryStockStatus> stockStatusList) {

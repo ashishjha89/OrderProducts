@@ -26,7 +26,13 @@ import java.util.List;
 @RequestMapping("/api/inventory")
 @Slf4j
 @SuppressWarnings("unused")
-public record InventoryController(InventoryService inventoryService) {
+public class InventoryController {
+
+    private final InventoryService inventoryService;
+
+    public InventoryController(InventoryService inventoryService) {
+        this.inventoryService = inventoryService;
+    }
 
     @GetMapping("/{sku-code}")
     @ResponseStatus(HttpStatus.OK)
@@ -52,9 +58,9 @@ public record InventoryController(InventoryService inventoryService) {
                     )
             }
     )
-    public InventoryStockStatus isInStock(@PathVariable("sku-code") String skuCode) throws InternalServerException {
+    public InventoryStockStatus inStock(@PathVariable("sku-code") String skuCode) throws InternalServerException {
         log.info("GET:/api/inventory/{}", skuCode);
-        return inventoryService.isInStock(skuCode);
+        return inventoryService.inStock(skuCode);
     }
 
     @GetMapping

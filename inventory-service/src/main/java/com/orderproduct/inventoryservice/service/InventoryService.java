@@ -26,7 +26,7 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     @NonNull
-    public InventoryStockStatus isInStock(@NonNull String skuCode) throws InternalServerException {
+    public InventoryStockStatus inStock(@NonNull String skuCode) throws InternalServerException {
         try {
             return new InventoryStockStatus(skuCode, inventoryRepository.findBySkuCode(skuCode).isPresent());
         } catch (DataAccessException e) {

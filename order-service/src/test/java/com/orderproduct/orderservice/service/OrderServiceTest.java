@@ -137,7 +137,7 @@ public class OrderServiceTest {
     @Test
     @DisplayName("`placeOrder()` forwards InternalServerException from InventoryStatusRepository")
     public void placeOrder_ForwardsInternalServerException_FromInventoryStatusRepository() throws InternalServerException {
-        // Mock throwing of exception (one of the child of DataAccessException) from repo
+        // Mock throwing of exception (one of the children of DataAccessException) from repo
         when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                 .thenReturn(CompletableFuture.failedFuture(new InternalServerException()));
         // Assert

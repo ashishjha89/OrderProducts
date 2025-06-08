@@ -18,18 +18,18 @@ Before running the service, ensure the following dependencies are set up:
    docker run -d -p 9411:9411 openzipkin/zipkin
    ```
 
-3. **Discovery Server**: Ensure the `discovery-server` (Eureka server) is running to enable service registration and
+3. Ensure the `discovery-server` (Eureka server) is running to enable service registration and
    discovery.
+
+4. Ensure the `api-gateway` is running so that this service is available via port 8080.
 
 ## API Documentation
 
 The API documentation is available at:
 
 ```
-http://localhost:<dynamic-port>/api/product/swagger-ui/index.html
+http://localhost:8080/api/product/swagger-ui/index.html
 ```
-
-> **Note**: The port is dynamically assigned. Check the logs during application startup to find the correct port.
 
 ## Running the Application
 
@@ -51,3 +51,16 @@ Run tests using:
 ```bash
 mvn test
 ```
+
+## Technologies used
+- Integration tests with TestContainers
+- MongoDB
+- Distributed tracking (Zipkin & micrometer)
+- Swagger
+- Integration with Eureka Discovery Server and Api Gateway
+
+## Next Steps
+- Add endpoints to update product.
+- Add endpoint to get all products with pagination.
+- Update `application.properties` to make it production-ready.
+- Implement authorizations for create, update, and delete operations.

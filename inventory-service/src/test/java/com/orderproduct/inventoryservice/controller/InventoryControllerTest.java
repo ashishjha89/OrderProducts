@@ -46,14 +46,14 @@ public class InventoryControllerTest {
 
     @BeforeEach
     public void setUp() {
-        when(inventoryService.isInStock(anyString())).thenReturn(new InventoryStockStatus("test-sku", true));
+        when(inventoryService.inStock(anyString())).thenReturn(new InventoryStockStatus("test-sku", true));
     }
 
     @Test
     @DisplayName("should return InventoryStockStatus when GET /inventory/{sku-id} is called and product exists")
-    public void isInStock_WhenProductExists_ReturnsSuccess() throws Exception {
+    public void inStock_WhenProductExists_ReturnsSuccess() throws Exception {
         InventoryStockStatus status = new InventoryStockStatus("test-sku", true);
-        when(inventoryService.isInStock("test-sku")).thenReturn(status);
+        when(inventoryService.inStock("test-sku")).thenReturn(status);
 
         mockMvc.perform(get("/api/inventory/test-sku"))
                 .andExpect(status().isOk())
@@ -64,8 +64,8 @@ public class InventoryControllerTest {
 
     @Test
     @DisplayName("should return 500 when GET /inventory/{sku-id} is called and service throws InternalServerException")
-    public void isInStock_WhenInternalError_ReturnsInternalServerError() throws Exception {
-        when(inventoryService.isInStock("test-sku")).thenThrow(new InternalServerException());
+    public void inStock_WhenInternalError_ReturnsInternalServerError() throws Exception {
+        when(inventoryService.inStock("test-sku")).thenThrow(new InternalServerException());
 
         mockMvc.perform(get("/api/inventory/test-sku"))
                 .andExpect(status().isInternalServerError())

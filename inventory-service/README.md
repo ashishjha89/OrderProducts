@@ -19,7 +19,7 @@ Before running the service, ensure the following dependencies are set up:
    docker run -d -p 9411:9411 openzipkin/zipkin
    ```
 
-3. **Discovery Server**: Ensure the `discovery-server` (Eureka server) is running to enable service registration and
+3. Ensure the `discovery-server` (Eureka server) is running to enable service registration and
    discovery.
 
 ## API Documentation
@@ -65,23 +65,19 @@ Run all tests using:
 mvn test
 ```
 
+## Technologies used
+- Integration tests
+   - TestContainers
+   - Consumer Driven Contracts (spring-cloud-contract)
+- MySql
+- Distributed tracking (Zipkin & micrometer)
+- Swagger
+- Integration with Eureka Discovery Server and Api Gateway
+
 ## Next Steps
-
-### Authorization Implementation
-
-The following authorization rules need to be implemented for different endpoints:
-
-#### Endpoint Authorization Matrix
-
-| Endpoint                            | Required Role/Authorization |
-|-------------------------------------|-----------------------------|
-| GET `/api/inventory/{sku-code}`     | ROLE_INVENTORY_READ         |
-| GET `/api/inventory?skuCode=<code>` | ROLE_INVENTORY_READ         |
-| POST `/api/inventory`               | ROLE_INVENTORY_WRITE        |
-| DELETE `/api/inventory/{sku-code}`  | ROLE_INVENTORY_ADMIN        |
-
-#### Implementation Details
-- Integrate with OAuth2/JWT for authentication
-- Implement role-based access control (RBAC)
-- Add Spring Security configuration
-- Set up proper error responses for unauthorized access
+- Return sku-quantity in the response for GET requests.
+- Implement logic to manage SKU quantities in the inventory.
+- Add endpoints to update SKU quantities.
+- Add endpoint to get all SKUs with their quantities (with pagination).
+- Update `application.properties` to make it production-ready.
+- Implement authorizations according to different operations.

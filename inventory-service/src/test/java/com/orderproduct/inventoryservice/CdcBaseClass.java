@@ -29,11 +29,11 @@ public abstract class CdcBaseClass {
     public void setup() throws InternalServerException {
         RestAssuredMockMvc.standaloneSetup(inventoryController);
 
-        when(inventoryService.isInStock("iphone_12"))
+        when(inventoryService.inStock("iphone_12"))
                 .thenReturn(new InventoryStockStatus("iphone_12", true));
-        when(inventoryService.isInStock("iphone_13"))
+        when(inventoryService.inStock("iphone_13"))
                 .thenReturn(new InventoryStockStatus("iphone_13", true));
-        when(inventoryService.isInStock("iphone_14"))
+        when(inventoryService.inStock("iphone_14"))
                 .thenReturn(new InventoryStockStatus("iphone_14", false));
 
 
