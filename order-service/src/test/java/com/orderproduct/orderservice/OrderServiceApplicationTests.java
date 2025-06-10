@@ -160,8 +160,7 @@ class OrderServiceApplicationTests {
     @DisplayName("POST:/api/order should return BAD_REQUEST when OrderRequest in request-body has missing LineItems")
     void postOrder_ShouldThrowBadRequest_WhenOrderLineItemsIsMissing() throws Exception {
         // Initialise
-        final var orderRequest = new OrderRequest();
-        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+        final var orderRequestStr = "{}";
 
         // Make Api call and expect BadRequest
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")

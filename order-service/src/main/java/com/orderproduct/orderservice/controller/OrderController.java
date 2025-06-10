@@ -60,8 +60,8 @@ public record OrderController(OrderService orderService) {
     ) throws BadRequestException, InternalServerException, InventoryNotInStockException {
         log.info("POST:/api/order");
         if (orderRequest == null
-                || orderRequest.getOrderLineItemsList() == null
-                || orderRequest.getOrderLineItemsList().isEmpty()
+                || orderRequest.orderLineItemsList() == null
+                || orderRequest.orderLineItemsList().isEmpty()
         ) {
             log.info("BadRequestException because POST:/api/order is called with invalid OrderRequest orderRequest:{}", orderRequest);
             throw new BadRequestException();

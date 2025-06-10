@@ -164,9 +164,9 @@ public class OrderServiceTest {
     private List<OrderLineItems> getOrderLineItemsListFromDtoList(List<OrderLineItemsDto> lineItemsDtoList) {
         return lineItemsDtoList.stream().map(orderLineItemsDto ->
                 OrderLineItems.builder()
-                        .skuCode(orderLineItemsDto.getSkuCode())
-                        .price(orderLineItemsDto.getPrice())
-                        .quantity(orderLineItemsDto.getQuantity())
+                        .skuCode(orderLineItemsDto.skuCode())
+                        .price(orderLineItemsDto.price())
+                        .quantity(orderLineItemsDto.quantity())
                         .build()
         ).toList();
     }

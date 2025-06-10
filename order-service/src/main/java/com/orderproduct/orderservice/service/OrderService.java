@@ -62,7 +62,7 @@ public class OrderService {
             @NonNull OrderRequest orderRequest
     ) throws InternalServerException {
         final List<String> skuCodesInOrder =
-                orderRequest.getOrderLineItemsList().stream().map(OrderLineItemsDto::getSkuCode).toList();
+                orderRequest.orderLineItemsList().stream().map(OrderLineItemsDto::skuCode).toList();
         final Observation inventoryServiceObservation = Observation.createNotStarted(
                 "inventory-service-lookup",
                 this.observationRegistry
@@ -120,15 +120,15 @@ public class OrderService {
     private Order getOrder(OrderRequest orderRequest) {
         return Order.builder()
                 .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
-                .orderLineItemsList(orderRequest.getOrderLineItemsList().stream().map(this::mapToDto).toList())
+                .orderLineItemsList(orderRequest.orderLineItemsList().stream().map(this::mapToDto).toList())
                 .build();
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {
         return OrderLineItems.builder()
-                .price(orderLineItemsDto.getPrice())
-                .skuCode(orderLineItemsDto.getSkuCode())
-                .quantity(orderLineItemsDto.getQuantity())
+                .price(orderLineItemsDto.price())
+                .skuCode(orderLineItemsDto.skuCode())
+                .quantity(orderLineItemsDto.quantity())
                 .build();
     }
 }
