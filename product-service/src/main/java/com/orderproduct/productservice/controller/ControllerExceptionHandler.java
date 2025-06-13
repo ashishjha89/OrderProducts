@@ -1,15 +1,14 @@
 package com.orderproduct.productservice.controller;
 
-import com.orderproduct.productservice.common.ApiException;
-import com.orderproduct.productservice.common.ErrorBody;
-import com.orderproduct.productservice.common.ErrorComponent;
-import io.swagger.v3.oas.annotations.Hidden;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@SuppressWarnings("unused")
+import com.orderproduct.productservice.common.ApiException;
+import com.orderproduct.productservice.common.ErrorBody;
+
+import io.swagger.v3.oas.annotations.Hidden;
+
 @RestControllerAdvice
 @Hidden // To hide it from Swagger! Controllers are specifying their exact errors.
 public class ControllerExceptionHandler {
@@ -18,16 +17,7 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ErrorBody> handleApiException(ApiException apiException) {
         return new ResponseEntity<>(
                 new ErrorBody(apiException.getErrorCode(), apiException.getMessage()),
-                apiException.getHttpStatus()
-        );
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorBody> handleGenericException(Exception exception) {
-        return new ResponseEntity<>(
-                new ErrorBody(ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE, ErrorComponent.somethingWentWrongMsg),
-                HttpStatus.INTERNAL_SERVER_ERROR
-        );
+                apiException.getHttpStatus());
     }
 
 }

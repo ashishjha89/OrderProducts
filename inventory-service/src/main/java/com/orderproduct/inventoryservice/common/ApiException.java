@@ -1,8 +1,9 @@
 package com.orderproduct.inventoryservice.common;
 
+import org.springframework.http.HttpStatus;
+
 import lombok.Getter;
 import lombok.NonNull;
-import org.springframework.http.HttpStatus;
 
 @Getter
 public abstract class ApiException extends RuntimeException {

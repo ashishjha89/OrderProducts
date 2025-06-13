@@ -1,10 +1,19 @@
 package com.orderproduct.orderservice.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "order_line_items")
@@ -31,10 +40,13 @@ public class OrderLineItems {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         OrderLineItems that = (OrderLineItems) o;
-        return Objects.equals(id, that.id) && skuCode.equals(that.skuCode) && price.equals(that.price) && quantity.equals(that.quantity);
+        return Objects.equals(id, that.id) && skuCode.equals(that.skuCode) && price.equals(that.price)
+                && quantity.equals(that.quantity);
     }
 
     @Override

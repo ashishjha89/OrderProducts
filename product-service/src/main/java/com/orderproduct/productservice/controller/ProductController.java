@@ -21,7 +21,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
-@SuppressWarnings("unused")
 @Slf4j
 public class ProductController {
 
@@ -33,7 +32,6 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @SuppressWarnings("unused")
     @ApiResponses(
             value = {
                     @ApiResponse(
@@ -75,7 +73,6 @@ public class ProductController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    @SuppressWarnings("unused")
     @ApiResponses(
             value = {
                     @ApiResponse(

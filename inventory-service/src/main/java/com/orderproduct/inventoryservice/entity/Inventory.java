@@ -1,15 +1,24 @@
 package com.orderproduct.inventoryservice.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.util.Objects;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
-@Table(name = "inventory",
-        indexes = {
-                @Index(name = "idx_inventory_sku_code", columnList = "skuCode")
-        })
+@Table(name = "inventory", indexes = {
+        @Index(name = "idx_inventory_sku_code", columnList = "skuCode")
+})
 @Getter
 @Setter
 @AllArgsConstructor
@@ -29,8 +38,10 @@ public class Inventory {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Inventory inventory = (Inventory) o;
         return quantity == inventory.quantity && skuCode.equals(inventory.skuCode);
     }

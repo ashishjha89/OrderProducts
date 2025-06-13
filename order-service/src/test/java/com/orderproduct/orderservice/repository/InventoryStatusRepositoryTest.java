@@ -56,8 +56,8 @@ public class InventoryStatusRepositoryTest {
     void getInventoryAvailabilityFutureTest() throws Exception {
         // Given
         final var mockStatuses = List.of(
-                new InventoryStockStatus("sku1", true),
-                new InventoryStockStatus("sku2", false)
+                new InventoryStockStatus("sku1", 10),
+                new InventoryStockStatus("sku2", 0)
         );
         mockWebServer.enqueue(new MockResponse()
                 .setBody(objectMapper.writeValueAsString(mockStatuses))

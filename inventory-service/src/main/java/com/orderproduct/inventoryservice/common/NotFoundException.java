@@ -7,7 +7,6 @@ public class NotFoundException extends ApiException {
         super(
                 HttpStatus.NOT_FOUND,
                 ErrorComponent.NOT_FOUND_ERROR_CODE,
-                ErrorComponent.notFoundMsg
-        );
+                ErrorComponent.notFoundMsg);
     }
 }

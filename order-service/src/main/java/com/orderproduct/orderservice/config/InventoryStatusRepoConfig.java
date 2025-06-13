@@ -1,12 +1,12 @@
 package com.orderproduct.orderservice.config;
 
-import com.orderproduct.orderservice.repository.InventoryStatusRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
-@SuppressWarnings("unused")
+import com.orderproduct.orderservice.repository.InventoryStatusRepository;
+
 @Configuration
 public class InventoryStatusRepoConfig {
 

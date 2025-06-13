@@ -8,7 +8,6 @@ public class DuplicateSkuCodeException extends ApiException {
         super(
                 HttpStatus.CONFLICT,
                 ErrorComponent.DUPLICATE_SKU_ERROR_CODE,
-                ErrorComponent.duplicateSkuCodeMsg
-        );
+                ErrorComponent.duplicateSkuCodeMsg);
     }
 }

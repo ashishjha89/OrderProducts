@@ -8,8 +8,6 @@ public class BadRequestException extends ApiException {
         super(
                 HttpStatus.BAD_REQUEST,
                 ErrorComponent.BAD_REQUEST_ERROR_CODE,
-                ErrorComponent.badRequestMsg
-        );
+                ErrorComponent.badRequestMsg);
     }
 }
-

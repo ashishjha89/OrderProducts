@@ -1,21 +1,24 @@
 package com.orderproduct.productservice.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
+
 import com.orderproduct.productservice.common.InternalServerException;
 import com.orderproduct.productservice.dto.ProductRequest;
 import com.orderproduct.productservice.dto.ProductResponse;
 import com.orderproduct.productservice.dto.SavedProduct;
 import com.orderproduct.productservice.entity.Product;
 import com.orderproduct.productservice.repository.ProductRepository;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataAccessResourceFailureException;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
 
 public class ProductServiceTest {
 
@@ -33,7 +36,8 @@ public class ProductServiceTest {
         final var productRequest = new ProductRequest(name, description, price);
         final var productPassedToRepo = Product.builder().name(name).description(description).price(price).build();
 
-        final var productReturnedFromRepo = Product.builder().id("id1").name(name).description(description).price(price).build();
+        final var productReturnedFromRepo = Product.builder().id("id1").name(name).description(description).price(price)
+                .build();
         when(productRepository.save(productPassedToRepo)).thenReturn(productReturnedFromRepo);
 
         // Call method to test
@@ -54,7 +58,8 @@ public class ProductServiceTest {
         final var productRequest = new ProductRequest(name, description, price);
         final var productPassedToRepo = Product.builder().name(name).description(description).price(price).build();
 
-        // Mock throwing of exception (one of the child of DataAccessException) from repo
+        // Mock throwing of exception (one of the child of DataAccessException) from
+        // repo
         when(productRepository.save(productPassedToRepo))
                 .thenThrow(new DataAccessResourceFailureException("Child class of DataAccessException"));
 
@@ -81,7 +86,8 @@ public class ProductServiceTest {
         final var productResponse2 = new ProductResponse(id2, name2, description2, price2);
 
         final var productList = List.of(product1, product2);
-        // List<ProductResponse> productResponseList = List.of(productResponse1, productResponse2);
+        // List<ProductResponse> productResponseList = List.of(productResponse1,
+        // productResponse2);
 
         // Mock
         when(productRepository.findAll()).thenReturn(productList);
@@ -96,7 +102,8 @@ public class ProductServiceTest {
     @Test
     @DisplayName("createProduct throws InternalServerException when Repo throws DataAccessException")
     public void getAllProductsWhenDBThrowsError() {
-        // Mock throwing of exception (one of the child of DataAccessException) from repo
+        // Mock throwing of exception (one of the child of DataAccessException) from
+        // repo
         when(productRepository.findAll())
                 .thenThrow(new DataAccessResourceFailureException("Child class of DataAccessException"));
 

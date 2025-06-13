@@ -8,7 +8,6 @@ public class InternalServerException extends ApiException {
         super(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE,
-                ErrorComponent.somethingWentWrongMsg
-        );
+                ErrorComponent.somethingWentWrongMsg);
     }
 }

@@ -1,12 +1,15 @@
 package com.orderproduct.orderservice;
 
-import com.orderproduct.orderservice.common.ErrorBody;
-import com.orderproduct.orderservice.common.ErrorComponent;
-import com.orderproduct.orderservice.dto.OrderLineItemsDto;
-import com.orderproduct.orderservice.dto.OrderRequest;
-import com.orderproduct.orderservice.repository.OrderRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,156 +29,157 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.math.BigDecimal;
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.orderproduct.orderservice.common.ErrorBody;
+import com.orderproduct.orderservice.common.ErrorComponent;
+import com.orderproduct.orderservice.dto.OrderLineItemsDto;
+import com.orderproduct.orderservice.dto.OrderRequest;
+import com.orderproduct.orderservice.repository.OrderRepository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
-@AutoConfigureStubRunner(
-        stubsMode = LOCAL,
-        ids = "com.orderproduct:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
-@EmbeddedKafka(topics = {"notification.topic"})
-@SuppressWarnings("unused")
+@AutoConfigureStubRunner(stubsMode = LOCAL, ids = "com.orderproduct:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
+@EmbeddedKafka(topics = { "notification.topic" })
 class OrderServiceApplicationTests {
 
-    @Container
-    static final MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
+        @Container
+        static final MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"));
 
-    @Autowired
-    private OrderRepository orderRepository;
+        @Autowired
+        private OrderRepository orderRepository;
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @Autowired
-    private CircuitBreakerRegistry circuitBreakerRegistry;
+        @Autowired
+        private CircuitBreakerRegistry circuitBreakerRegistry;
 
-    @DynamicPropertySource
-    static void configureTestProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
-        registry.add("spring.datasource.username", mySQLContainer::getUsername);
-        registry.add("spring.datasource.password", mySQLContainer::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
-    }
+        private final int iphone12SQuantityInStubIsFive = 5;
+        private final int iphone13QuantityInStubIsTen = 10;
+        private final int iphone14QuantityInStubIsZero = 0;
 
-    @AfterEach
-    void cleanup() {
-        orderRepository.deleteAll();
-        circuitBreakerRegistry.circuitBreaker("inventory").transitionToClosedState();
-    }
+        @DynamicPropertySource
+        static void configureTestProperties(DynamicPropertyRegistry registry) {
+                registry.add("spring.datasource.url", mySQLContainer::getJdbcUrl);
+                registry.add("spring.datasource.username", mySQLContainer::getUsername);
+                registry.add("spring.datasource.password", mySQLContainer::getPassword);
+                registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
+        }
 
-    @Test
-    @DisplayName("POST:/api/order should save OrderRequest in request-body, if its lineItems are available in inventory")
-    void postOrder_ShouldAddItem_IfAllLineItemsAreAvailable() throws Exception {
-        // Initialise
-        final var orderRequest = new OrderRequest(
-                List.of(
-                        new OrderLineItemsDto("iphone_12", BigDecimal.valueOf(900), 5),
-                        new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(1200), 10)
-                )
-        );
-        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+        @AfterEach
+        void cleanup() {
+                orderRepository.deleteAll();
+                circuitBreakerRegistry.circuitBreaker("inventory").transitionToClosedState();
+        }
 
-        // Make Api call
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestStr))
-                .andExpect(request().asyncStarted())
-                .andReturn();
+        @Test
+        @DisplayName("POST:/api/order should save OrderRequest in request-body, if its lineItems are available in inventory")
+        void postOrder_ShouldAddItem_IfAllLineItemsAreAvailable() throws Exception {
+                // Initialise
+                final var orderRequest = new OrderRequest(
+                                List.of(
+                                                new OrderLineItemsDto("iphone_12", BigDecimal.valueOf(100),
+                                                                iphone12SQuantityInStubIsFive),
+                                                new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(200),
+                                                                iphone13QuantityInStubIsTen)));
+                final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
-        // Wait for async completion and verify
-        mockMvc.perform(asyncDispatch(result))
-                .andExpect(status().isCreated())
-                .andDo(print());
+                // Make Api call
+                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(orderRequestStr))
+                                .andExpect(request().asyncStarted())
+                                .andReturn();
 
-        // Assert item is inserted
-        assertEquals(1, orderRepository.findAll().size());
-    }
+                // Wait for async completion and verify
+                mockMvc.perform(asyncDispatch(result))
+                                .andExpect(status().isCreated())
+                                .andDo(print());
 
-    @Test
-    @DisplayName("POST:/api/order should respond with INVENTORY_NOT_IN_STOCK when request-body in OrderRequest have some lineItems not available in inventory")
-    void postOrder_ShouldNotAddOrder_IfSomeLineItemIsNotAvailable() throws Exception {
-        // Initialise
-        final var orderRequest = new OrderRequest(
-                List.of(
-                        new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(1200), 10),
-                        new OrderLineItemsDto("iphone_14", BigDecimal.valueOf(1600), 7)
-                )
-        );
-        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+                // Assert item is inserted
+                assertEquals(1, orderRepository.findAll().size());
+        }
 
-        // Make Api call
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestStr))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-        mockMvc.perform(asyncDispatch(result)).andExpect(status().isBadRequest()).andDo(print());
+        @Test
+        @DisplayName("POST:/api/order should respond with INVENTORY_NOT_IN_STOCK when request-body in OrderRequest have some lineItems not available in inventory")
+        void postOrder_ShouldNotAddOrder_IfSomeLineItemIsNotAvailable() throws Exception {
+                // Initialise
+                final var orderRequest = new OrderRequest(
+                                List.of(
+                                                new OrderLineItemsDto("iphone_13", BigDecimal.valueOf(200),
+                                                                15), // Requesting 15 when only 10 are available
+                                                new OrderLineItemsDto("iphone_14", BigDecimal.valueOf(400),
+                                                                iphone14QuantityInStubIsZero)));
+                final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
-        // Process response
-        final var jsonStr = result.getResponse().getContentAsString();
-        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+                // Make Api call
+                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(orderRequestStr))
+                                .andExpect(request().asyncStarted())
+                                .andReturn();
+                mockMvc.perform(asyncDispatch(result)).andExpect(status().isBadRequest()).andDo(print());
 
-        // Assert
-        assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE, errorBody.errorCode());
-        assertEquals(ErrorComponent.inventoryNotInStockMsg, errorBody.errorMessage());
-        // Assert item is not inserted
-        assertEquals(0, orderRepository.findAll().size());
-    }
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
 
-    @Test
-    @DisplayName("POST:/api/order should return BAD_REQUEST when request-body in OrderRequest has empty LineItems")
-    void postOrder_ShouldThrowBadRequest_WhenEmptyOrderLineItemsIsPassed() throws Exception {
-        // Initialise
-        final var orderRequest = new OrderRequest(List.of());
-        final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
+                // Assert
+                assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE, errorBody.errorCode());
+                assertEquals(ErrorComponent.inventoryNotInStockMsg, errorBody.errorMessage());
+                // Assert item is not inserted
+                assertEquals(0, orderRepository.findAll().size());
+        }
 
-        // Make Api call and expect BadRequest
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestStr))
-                .andExpect(status().isBadRequest())
-                .andReturn();
+        @Test
+        @DisplayName("POST:/api/order should return BAD_REQUEST when request-body in OrderRequest has empty LineItems")
+        void postOrder_ShouldThrowBadRequest_WhenEmptyOrderLineItemsIsPassed() throws Exception {
+                // Initialise
+                final var orderRequest = new OrderRequest(List.of());
+                final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
-        // Process response
-        final var jsonStr = result.getResponse().getContentAsString();
-        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+                // Make Api call and expect BadRequest
+                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(orderRequestStr))
+                                .andExpect(status().isBadRequest())
+                                .andReturn();
 
-        // Assert
-        assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
-        assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
-    }
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
 
-    @Test
-    @DisplayName("POST:/api/order should return BAD_REQUEST when OrderRequest in request-body has missing LineItems")
-    void postOrder_ShouldThrowBadRequest_WhenOrderLineItemsIsMissing() throws Exception {
-        // Initialise
-        final var orderRequestStr = "{}";
+                // Assert
+                assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
+                assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+        }
 
-        // Make Api call and expect BadRequest
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(orderRequestStr))
-                .andExpect(status().isBadRequest())
-                .andReturn();
+        @Test
+        @DisplayName("POST:/api/order should return BAD_REQUEST when OrderRequest in request-body has missing LineItems")
+        void postOrder_ShouldThrowBadRequest_WhenOrderLineItemsIsMissing() throws Exception {
+                // Initialise
+                final var orderRequestStr = "{}";
 
-        // Process response
-        final var jsonStr = result.getResponse().getContentAsString();
-        final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+                // Make Api call and expect BadRequest
+                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(orderRequestStr))
+                                .andExpect(status().isBadRequest())
+                                .andReturn();
 
-        // Assert
-        assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
-        assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
-    }
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
+
+                // Assert
+                assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
+                assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+        }
 
 }

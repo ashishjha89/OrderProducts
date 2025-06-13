@@ -1,9 +1,5 @@
 package com.orderproduct.inventoryservice.controller;
 
-import com.orderproduct.inventoryservice.common.ApiException;
-import com.orderproduct.inventoryservice.common.ErrorBody;
-import com.orderproduct.inventoryservice.common.ErrorComponent;
-import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -11,7 +7,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@SuppressWarnings("unused")
+import com.orderproduct.inventoryservice.common.ApiException;
+import com.orderproduct.inventoryservice.common.ErrorBody;
+import com.orderproduct.inventoryservice.common.ErrorComponent;
+
+import io.swagger.v3.oas.annotations.Hidden;
+
 @RestControllerAdvice
 @Hidden // To hide it from Swagger! Controllers are specifying their exact errors.
 public class ControllerExceptionHandler {
@@ -20,8 +21,7 @@ public class ControllerExceptionHandler {
     public ResponseEntity<ErrorBody> handleApiException(ApiException apiException) {
         return new ResponseEntity<>(
                 new ErrorBody(apiException.getErrorCode(), apiException.getMessage()),
-                apiException.getHttpStatus()
-        );
+                apiException.getHttpStatus());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -30,16 +30,7 @@ public class ControllerExceptionHandler {
         String errorMessage = fieldError != null ? fieldError.getDefaultMessage() : ErrorComponent.badRequestMsg;
         return new ResponseEntity<>(
                 new ErrorBody(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorMessage),
-                HttpStatus.BAD_REQUEST
-        );
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorBody> handleGenericException(Exception exception) {
-        return new ResponseEntity<>(
-                new ErrorBody(ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE, ErrorComponent.somethingWentWrongMsg),
-                HttpStatus.INTERNAL_SERVER_ERROR
-        );
+                HttpStatus.BAD_REQUEST);
     }
 
 }

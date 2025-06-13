@@ -42,23 +42,29 @@ public class InventoryStatusRepository {
     }
 
     /**
-     * Circuit breaking and retry will only be triggered for {@link InternalServerException}.
+     * Circuit breaking and retry will only be triggered for
+     * {@link InternalServerException}.
      * <ul>
-     *   <li>{@code InternalServerException} is thrown for HTTP 5xx and 429 errors (server errors and rate limiting).</li>
-     *   <li>{@code InvalidInventoryException} is thrown for all other HTTP errors (4xx except 429), as well as for null/empty inventory responses.</li>
-     *   <li>{@code InvalidInputException} is thrown for empty input.</li>
-     *   <li>Only {@code InternalServerException} participates in circuit breaker and retry logic. {@code InvalidInventoryException} and {@code InvalidInputException} are fast-fail and will not affect circuit breaker state or trigger retries.</li>
+     * <li>{@code InternalServerException} is thrown for HTTP 5xx and 429 errors
+     * (server errors and rate limiting).</li>
+     * <li>{@code InvalidInventoryException} is thrown for all other HTTP errors
+     * (4xx except 429), as well as for null/empty inventory responses.</li>
+     * <li>{@code InvalidInputException} is thrown for empty input.</li>
+     * <li>Only {@code InternalServerException} participates in circuit breaker and
+     * retry logic. {@code InvalidInventoryException} and
+     * {@code InvalidInputException} are fast-fail and will not affect circuit
+     * breaker state or trigger retries.</li>
      * </ul>
      * <p>
-     * This behavior is enforced by both the code and the resilience4j configuration ({@code record-exceptions}/{@code retry-exceptions}).
+     * This behavior is enforced by both the code and the resilience4j configuration
+     * ({@code record-exceptions}/{@code retry-exceptions}).
      */
     @CircuitBreaker(name = "inventory", fallbackMethod = "onInventoryServiceFailure")
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     @NonNull
     public CompletableFuture<List<InventoryStockStatus>> getInventoryAvailabilityFuture(
-            @NonNull List<String> skuCodes
-    ) throws InternalServerException {
+            @NonNull List<String> skuCodes) throws InternalServerException {
 
         if (skuCodes.isEmpty()) {
             log.warn("Attempted to check inventory with empty SKU codes list");
@@ -74,19 +80,16 @@ public class InventoryStatusRepository {
                         response -> {
                             log.error("Received {} from inventory service (5xx or 429)", response.statusCode());
                             return Mono.error(new InternalServerException());
-                        }
-                )
+                        })
                 .onStatus(
                         status -> status.is4xxClientError() && status.value() != 429,
                         response -> {
                             log.error("Received {} from inventory service (4xx, not 429)", response.statusCode());
                             return Mono.error(new InvalidInventoryException());
-                        }
-                )
+                        })
                 .bodyToMono(InventoryStockStatus[].class)
                 .switchIfEmpty(
-                        Mono.error(new InvalidInventoryException())
-                )
+                        Mono.error(new InvalidInventoryException()))
                 .flatMap(stockStatus -> {
                     if (stockStatus == null) {
                         log.error("Received null response from inventory service. SKUs: {}", skuCodes);
@@ -108,7 +111,8 @@ public class InventoryStatusRepository {
                     if (ex instanceof JsonProcessingException || ex instanceof DecodingException) {
                         return new InvalidInventoryException();
                     }
-                    // For all other errors (e.g., connection failures), treat as InternalServerException
+                    // For all other errors (e.g., connection failures), treat as
+                    // InternalServerException
                     return new InternalServerException();
                 })
                 .toFuture();
@@ -117,8 +121,7 @@ public class InventoryStatusRepository {
     @SuppressWarnings("unused")
     private CompletableFuture<List<InventoryStockStatus>> onInventoryServiceFailure(
             @NonNull List<String> skuCodes,
-            RuntimeException runtimeException
-    ) {
+            RuntimeException runtimeException) {
         log.error("Circuit breaker fallback for skuCodes: {}. Error: {}", skuCodes, runtimeException.getMessage());
         CompletableFuture<List<InventoryStockStatus>> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(new InternalServerException());

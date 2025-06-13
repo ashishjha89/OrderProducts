@@ -8,8 +8,7 @@ public class InvalidInputException extends ApiException {
         super(
                 HttpStatus.BAD_REQUEST,
                 ErrorComponent.BAD_REQUEST_ERROR_CODE,
-                message
-        );
+                message);
     }
 
     public InvalidInputException() {

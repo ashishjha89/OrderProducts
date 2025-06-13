@@ -8,7 +8,6 @@ public class InventoryNotInStockException extends ApiException {
         super(
                 HttpStatus.BAD_REQUEST,
                 ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE,
-                ErrorComponent.inventoryNotInStockMsg
-        );
+                ErrorComponent.inventoryNotInStockMsg);
     }
 }

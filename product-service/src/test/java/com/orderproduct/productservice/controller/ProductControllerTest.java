@@ -1,10 +1,15 @@
 package com.orderproduct.productservice.controller;
 
-import com.orderproduct.productservice.common.InternalServerException;
-import com.orderproduct.productservice.dto.ProductRequest;
-import com.orderproduct.productservice.dto.ProductResponse;
-import com.orderproduct.productservice.dto.SavedProduct;
-import com.orderproduct.productservice.service.ProductService;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,18 +22,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.util.List;
+import com.orderproduct.productservice.common.InternalServerException;
+import com.orderproduct.productservice.dto.ProductRequest;
+import com.orderproduct.productservice.dto.ProductResponse;
+import com.orderproduct.productservice.dto.SavedProduct;
+import com.orderproduct.productservice.service.ProductService;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-@WebMvcTest(controllers = {ProductController.class})
-@Import({ProductControllerTest.MockedServiceConfig.class})
+@WebMvcTest(controllers = { ProductController.class })
+@Import({ ProductControllerTest.MockedServiceConfig.class })
 public class ProductControllerTest {
 
     @Autowired
@@ -60,14 +61,14 @@ public class ProductControllerTest {
 
         // Call method
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "name",
-                                    "description": "description",
-                                    "price": 1000
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "name",
+                            "description": "description",
+                            "price": 1000
+                        }
+                        """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.productId").value(savedProduct.productId()));
     }
@@ -77,62 +78,62 @@ public class ProductControllerTest {
     public void createProductBadRequestTest() throws Exception {
         // Empty name
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "",
-                                    "description": "description",
-                                    "price": 1000
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "",
+                            "description": "description",
+                            "price": 1000
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
 
         // Null name
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": null,
-                                    "description": "description",
-                                    "price": 1000
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": null,
+                            "description": "description",
+                            "price": 1000
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
 
         // Empty description
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "name",
-                                    "description": "",
-                                    "price": 1000
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "name",
+                            "description": "",
+                            "price": 1000
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
 
         // Null description
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "name",
-                                    "description": null,
-                                    "price": 1000
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "name",
+                            "description": null,
+                            "price": 1000
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
 
         // Empty price
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "name",
-                                    "description": "",
-                                    "price": null
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "name",
+                            "description": "",
+                            "price": null
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
     }
 
@@ -145,14 +146,14 @@ public class ProductControllerTest {
                 .thenThrow(new InternalServerException());
         // Call method
         mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "name",
-                                    "description": "description",
-                                    "price": 1000
-                                }
-                                """))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "name",
+                            "description": "description",
+                            "price": 1000
+                        }
+                        """))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -166,7 +167,7 @@ public class ProductControllerTest {
 
         // Call method
         mockMvc.perform(get("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].id").value(product1.getId()))
