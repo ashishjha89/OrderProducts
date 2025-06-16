@@ -56,8 +56,7 @@ public class InventoryStatusRepository {
      * breaker state or trigger retries.</li>
      * </ul>
      * <p>
-     * This behavior is enforced by both the code and the resilience4j configuration
-     * ({@code record-exceptions}/{@code retry-exceptions}).
+     * This behavior is enforced by both the code and the resilience4j configuration.
      */
     @CircuitBreaker(name = "inventory", fallbackMethod = "onInventoryServiceFailure")
     @TimeLimiter(name = "inventory")
