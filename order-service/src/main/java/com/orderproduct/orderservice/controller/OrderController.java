@@ -27,7 +27,13 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/order")
 @Slf4j
-public record OrderController(OrderService orderService) {
+public class OrderController {
+
+        private final OrderService orderService;
+
+        public OrderController(OrderService orderService) {
+                this.orderService = orderService;
+        }
 
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "201", description = "OK", content = {
