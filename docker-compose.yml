@@ -50,7 +50,6 @@ services:
       CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_REST_ADVERTISED_HOST_NAME: localhost
       CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
-
       CONNECT_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
@@ -58,6 +57,12 @@ services:
       - broker
     volumes:
       - connect_plugins:/usr/share/java/debezium-plugins
+    # Add healthcheck to ensure Kafka Connect REST API is ready
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 50 # Increased retries as connect can take a while to start
 
   mysql: # Your MySQL database, configured for Debezium CDC
     image: mysql:8.0 # Keeping 8.0 for stability, change to 8.3.0 if specifically needed
@@ -89,6 +94,25 @@ services:
     ports:
       - "9411:9411" # Expose Zipkin UI and API port to host
 
+  # Registers the Debezium MySQL Connector with Kafka Connect
+  register_debezium_connector:
+    image: curlimages/curl:latest # A lightweight image with curl
+    container_name: register_debezium_connector
+    depends_on:
+      connect:
+        condition: service_healthy # Ensure Kafka Connect is fully healthy before attempting to register
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "Waiting for Kafka Connect to be fully ready (additional delay)..."
+        sleep 15 # Give Kafka Connect a few more seconds beyond healthcheck
+        echo "Registering Debezium MySQL Outbox Connector..."
+        curl -X POST -H "Content-Type: application/json" --data @/config/mysql-outbox-connector.json http://connect:8083/connectors || exit 1
+        echo "Debezium MySQL Outbox Connector registration command sent."
+    volumes:
+      - ./debezium_connector_config:/config # Mount the directory containing your JSON config
+
 volumes: # Define named volumes for persistent data
   zookeeper_data:
   zookeeper_log:
@@ -96,3 +120,4 @@ volumes: # Define named volumes for persistent data
   connect_plugins:
   mysql_data:
   mongodb_data:
+  debezium_connector_config:

@@ -75,6 +75,18 @@ mvn test
 - Swagger
 - Integration with Eureka Discovery Server and Api Gateway
 
+## Note about Debezium
+After running `docker compose up -d`, you can check if the connector registered successfully by running:
+```bash
+curl localhost:8083/connectors
+```
+
+You should see "mysql-outbox-connector" listed. You can also check its status:
+```bash
+curl localhost:8083/connectors/mysql-outbox-connector/status
+```
+It should show RUNNING.
+
 ## Next Steps
 
 - Implement logic to allow posting order if SKU quantities are in the inventory.
