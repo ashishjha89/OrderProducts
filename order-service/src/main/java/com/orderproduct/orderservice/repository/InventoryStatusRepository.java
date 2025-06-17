@@ -56,14 +56,16 @@ public class InventoryStatusRepository {
      * breaker state or trigger retries.</li>
      * </ul>
      * <p>
-     * This behavior is enforced by both the code and the resilience4j configuration.
+     * This behavior is enforced by both the code and the resilience4j
+     * configuration.
      */
     @CircuitBreaker(name = "inventory", fallbackMethod = "onInventoryServiceFailure")
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     @NonNull
     public CompletableFuture<List<InventoryStockStatus>> getInventoryAvailabilityFuture(
-            @NonNull List<String> skuCodes) throws InternalServerException {
+            @NonNull List<String> skuCodes)
+            throws InternalServerException, InvalidInventoryException, InvalidInputException {
 
         if (skuCodes.isEmpty()) {
             log.warn("Attempted to check inventory with empty SKU codes list");

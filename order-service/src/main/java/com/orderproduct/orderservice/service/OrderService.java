@@ -3,8 +3,6 @@ package com.orderproduct.orderservice.service;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.springframework.dao.DataAccessException;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import com.orderproduct.orderservice.common.InternalServerException;
@@ -13,15 +11,10 @@ import com.orderproduct.orderservice.dto.InventoryStockStatus;
 import com.orderproduct.orderservice.dto.OrderLineItemsDto;
 import com.orderproduct.orderservice.dto.OrderRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
-import com.orderproduct.orderservice.entity.Order;
-import com.orderproduct.orderservice.entity.OrderLineItems;
-import com.orderproduct.orderservice.event.OrderPlacedEvent;
 import com.orderproduct.orderservice.repository.InventoryStatusRepository;
-import com.orderproduct.orderservice.repository.OrderRepository;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -29,17 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @AllArgsConstructor
-@Transactional
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-
+    private final OrderTransactionService orderTransactionService;
     private final InventoryStatusRepository inventoryStatusRepository;
-
-    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
-
-    private final OrderNumberGenerator orderNumberGenerator;
-
     private final ObservationRegistry observationRegistry;
 
     @NonNull
@@ -48,14 +34,10 @@ public class OrderService {
         return isAnyLineItemMissing(orderRequest).thenCompose(isAnyLineItemMissing -> {
             if (isAnyLineItemMissing) {
                 log.info("InventoryNotInStock orderRequest:{}", orderRequest);
-                throw new InventoryNotInStockException();
+                return CompletableFuture.failedFuture(new InventoryNotInStockException());
             }
-            return CompletableFuture.supplyAsync(() -> {
-                // TODO: Implement outbox pattern here
-                SavedOrder savedOrder = saveOrder(getOrder(orderRequest));
-                sendOrderPlacedEventToNotificationTopic(savedOrder);
-                return savedOrder;
-            });
+            return CompletableFuture
+                    .supplyAsync(() -> orderTransactionService.executeTransactionalOrderPlacement(orderRequest));
         });
     }
 
@@ -93,35 +75,6 @@ public class OrderService {
                 }));
     }
 
-    private SavedOrder saveOrder(Order order) throws InternalServerException {
-        try {
-            final var savedOrder = orderRepository.save(order);
-            log.info("Order is saved Id:{} orderNumber:{}", savedOrder.getId(), savedOrder.getOrderNumber());
-            return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
-        } catch (DataAccessException e) {
-            log.error("Error when saving Order:{}", e.getMessage());
-            throw new InternalServerException();
-        }
-    }
-
-    private void sendOrderPlacedEventToNotificationTopic(SavedOrder savedOrder) {
-        try {
-            kafkaTemplate
-                    .send("notificationTopic", new OrderPlacedEvent(savedOrder.orderNumber()))
-                    .whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            log.error("Failed to send OrderPlacedEvent to Kafka for orderNumber:{} - {}",
-                                    savedOrder.orderNumber(), ex.getMessage());
-                        } else {
-                            log.info("OrderPlacedEvent sent to Kafka for orderNumber:{}", savedOrder.orderNumber());
-                        }
-                    });
-        } catch (Exception ex) {
-            log.error("Exception while sending OrderPlacedEvent to Kafka for orderNumber:{} - {}",
-                    savedOrder.orderNumber(), ex.getMessage());
-        }
-    }
-
     private boolean isStockAvailableForAllSkuCodes(List<String> skuCodeList,
             List<InventoryStockStatus> stockStatusList) {
         return skuCodeList.stream().allMatch(skuCode -> isStockStatusAvailable(skuCode, stockStatusList));
@@ -131,25 +84,4 @@ public class OrderService {
         return stockStatusList.stream().anyMatch(stockStatus -> stockStatus.skuCode().equals(skuCode));
     }
 
-    private Order getOrder(OrderRequest orderRequest) {
-        Order order = Order.builder()
-                .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
-                .build();
-        
-        List<OrderLineItems> orderLineItems = orderRequest.orderLineItemsList().stream()
-                .map(dto -> mapToDto(dto, order))
-                .toList();
-        
-        order.setOrderLineItemsList(orderLineItems);
-        return order;
-    }
-
-    private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto, Order order) {
-        return OrderLineItems.builder()
-                .price(orderLineItemsDto.price())
-                .skuCode(orderLineItemsDto.skuCode())
-                .quantity(orderLineItemsDto.quantity())
-                .order(order)
-                .build();
-    }
 }
