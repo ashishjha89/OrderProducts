@@ -1,30 +1,26 @@
 package com.orderproduct.orderservice.controller;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderproduct.orderservice.common.InternalServerException;
 import com.orderproduct.orderservice.common.InventoryNotInStockException;
 import com.orderproduct.orderservice.dto.OrderRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
 import com.orderproduct.orderservice.service.OrderService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import java.util.concurrent.CompletableFuture;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class OrderControllerTest {
 
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
     private OrderService orderService;
     private ObjectMapper objectMapper;
     private static final String TEST_CONTENT = """
@@ -44,8 +40,8 @@ class OrderControllerTest {
         orderService = mock(OrderService.class);
         OrderController orderController = new OrderController(orderService);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(orderController)
-                .setControllerAdvice(new ControllerExceptionHandler())
+        webTestClient = WebTestClient.bindToController(orderController)
+                .controllerAdvice(new ControllerExceptionHandler())
                 .build();
         objectMapper = new ObjectMapper();
     }
@@ -59,19 +55,16 @@ class OrderControllerTest {
         when(orderService.placeOrder(orderRequest))
                 .thenReturn(CompletableFuture.completedFuture(savedOrder));
 
-        // When
-        MvcResult mvcResult = mockMvc.perform(post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TEST_CONTENT))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        // Then
-        mockMvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.orderId").value("orderId"))
-                .andExpect(jsonPath("$.orderNumber").value("orderNumber"));
+        // When & Then
+        webTestClient.post()
+                .uri("/api/order")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(TEST_CONTENT)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.orderId").isEqualTo("orderId")
+                .jsonPath("$.orderNumber").isEqualTo("orderNumber");
     }
 
     @Test
@@ -82,19 +75,16 @@ class OrderControllerTest {
         when(orderService.placeOrder(orderRequest))
                 .thenReturn(CompletableFuture.failedFuture(new InternalServerException()));
 
-        // When
-        MvcResult mvcResult = mockMvc.perform(post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TEST_CONTENT))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        // Then
-        mockMvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isInternalServerError())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errorCode").value("SOMETHING_WENT_WRONG"))
-                .andExpect(jsonPath("$.errorMessage").value("Sorry, something went wrong."));
+        // When & Then
+        webTestClient.post()
+                .uri("/api/order")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(TEST_CONTENT)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody()
+                .jsonPath("$.errorCode").isEqualTo("SOMETHING_WENT_WRONG")
+                .jsonPath("$.errorMessage").isEqualTo("Sorry, something went wrong.");
     }
 
     @Test
@@ -105,35 +95,34 @@ class OrderControllerTest {
         when(orderService.placeOrder(orderRequest))
                 .thenReturn(CompletableFuture.failedFuture(new InventoryNotInStockException()));
 
-        // When
-        MvcResult mvcResult = mockMvc.perform(post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TEST_CONTENT))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        // Then
-        mockMvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errorCode").value("INVENTORY_NOT_IN_STOCK"))
-                .andExpect(jsonPath("$.errorMessage").value("This product is not in stock."));
+        // When & Then
+        webTestClient.post()
+                .uri("/api/order")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(TEST_CONTENT)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.errorCode").isEqualTo("INVENTORY_NOT_IN_STOCK")
+                .jsonPath("$.errorMessage").isEqualTo("This product is not in stock.");
     }
 
     @Test
     @DisplayName("should return 400 when POST /api/order is called with invalid request")
     void placeOrder_InvalidRequest_Returns400() throws Exception {
         // When & Then
-        mockMvc.perform(post("/api/order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "orderLineItemsList": []
-                                }
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.errorMessage").value("This is an incorrect request-body."));
+        webTestClient.post()
+                .uri("/api/order")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {
+                            "orderLineItemsList": []
+                        }
+                        """)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.errorCode").isEqualTo("BAD_REQUEST")
+                .jsonPath("$.errorMessage").isEqualTo("This is an incorrect request-body.");
     }
 }

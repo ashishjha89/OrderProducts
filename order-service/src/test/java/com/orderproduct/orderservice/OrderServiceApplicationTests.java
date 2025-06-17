@@ -2,10 +2,6 @@ package com.orderproduct.orderservice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.cloud.contract.stubrunner.spring.StubRunnerProperties.StubsMode.LOCAL;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -14,16 +10,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.stubrunner.spring.AutoConfigureStubRunner;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -39,7 +32,6 @@ import com.orderproduct.orderservice.repository.OrderRepository;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
 @Testcontainers
 @AutoConfigureStubRunner(stubsMode = LOCAL, ids = "com.orderproduct:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
 @EmbeddedKafka(topics = { "notification.topic" })
@@ -52,7 +44,7 @@ class OrderServiceApplicationTests {
         private OrderRepository orderRepository;
 
         @Autowired
-        private MockMvc mockMvc;
+        private WebTestClient webTestClient;
 
         @Autowired
         private ObjectMapper objectMapper;
@@ -90,17 +82,13 @@ class OrderServiceApplicationTests {
                                                                 iphone13QuantityInStubIsTen)));
                 final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
-                // Make Api call
-                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                // Make Api call and verify
+                webTestClient.post()
+                                .uri("/api/order")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(orderRequestStr))
-                                .andExpect(request().asyncStarted())
-                                .andReturn();
-
-                // Wait for async completion and verify
-                mockMvc.perform(asyncDispatch(result))
-                                .andExpect(status().isCreated())
-                                .andDo(print());
+                                .bodyValue(orderRequestStr)
+                                .exchange()
+                                .expectStatus().isCreated();
 
                 // Assert item is inserted
                 assertEquals(1, orderRepository.findAll().size());
@@ -118,21 +106,17 @@ class OrderServiceApplicationTests {
                                                                 iphone14QuantityInStubIsZero)));
                 final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
-                // Make Api call
-                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                // Make Api call and verify
+                webTestClient.post()
+                                .uri("/api/order")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(orderRequestStr))
-                                .andExpect(request().asyncStarted())
-                                .andReturn();
-                mockMvc.perform(asyncDispatch(result)).andExpect(status().isBadRequest()).andDo(print());
+                                .bodyValue(orderRequestStr)
+                                .exchange()
+                                .expectStatus().isBadRequest()
+                                .expectBody(ErrorBody.class)
+                                .isEqualTo(new ErrorBody(ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE,
+                                                ErrorComponent.inventoryNotInStockMsg));
 
-                // Process response
-                final var jsonStr = result.getResponse().getContentAsString();
-                final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
-
-                // Assert
-                assertEquals(ErrorComponent.INVENTORY_NOT_IN_STOCK_ERROR_CODE, errorBody.errorCode());
-                assertEquals(ErrorComponent.inventoryNotInStockMsg, errorBody.errorMessage());
                 // Assert item is not inserted
                 assertEquals(0, orderRepository.findAll().size());
         }
@@ -144,20 +128,16 @@ class OrderServiceApplicationTests {
                 final var orderRequest = new OrderRequest(List.of());
                 final var orderRequestStr = objectMapper.writeValueAsString(orderRequest);
 
-                // Make Api call and expect BadRequest
-                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                // Make Api call and verify
+                webTestClient.post()
+                                .uri("/api/order")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(orderRequestStr))
-                                .andExpect(status().isBadRequest())
-                                .andReturn();
-
-                // Process response
-                final var jsonStr = result.getResponse().getContentAsString();
-                final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
-
-                // Assert
-                assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
-                assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+                                .bodyValue(orderRequestStr)
+                                .exchange()
+                                .expectStatus().isBadRequest()
+                                .expectBody(ErrorBody.class)
+                                .isEqualTo(new ErrorBody(ErrorComponent.BAD_REQUEST_ERROR_CODE,
+                                                ErrorComponent.badRequestMsg));
         }
 
         @Test
@@ -166,20 +146,15 @@ class OrderServiceApplicationTests {
                 // Initialise
                 final var orderRequestStr = "{}";
 
-                // Make Api call and expect BadRequest
-                MvcResult result = mockMvc.perform(MockMvcRequestBuilders.post("/api/order")
+                // Make Api call and verify
+                webTestClient.post()
+                                .uri("/api/order")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(orderRequestStr))
-                                .andExpect(status().isBadRequest())
-                                .andReturn();
-
-                // Process response
-                final var jsonStr = result.getResponse().getContentAsString();
-                final var errorBody = objectMapper.readValue(jsonStr, ErrorBody.class);
-
-                // Assert
-                assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode());
-                assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage());
+                                .bodyValue(orderRequestStr)
+                                .exchange()
+                                .expectStatus().isBadRequest()
+                                .expectBody(ErrorBody.class)
+                                .isEqualTo(new ErrorBody(ErrorComponent.BAD_REQUEST_ERROR_CODE,
+                                                ErrorComponent.badRequestMsg));
         }
-
 }
