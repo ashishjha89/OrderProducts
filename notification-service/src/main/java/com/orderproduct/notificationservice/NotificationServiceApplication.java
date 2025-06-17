@@ -1,4 +1,4 @@
-package com.example.notification_service;
+package com.orderproduct.notificationservice;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +9,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 @SpringBootApplication
 @Slf4j
 @RequiredArgsConstructor
-@SuppressWarnings("unused")
 public class NotificationServiceApplication {
 
     public static void main(String[] args) {
@@ -21,5 +20,4 @@ public class NotificationServiceApplication {
         log.info("Got message <{}>", orderPlacedEvent);
         // Do some action, e.g. send out an email notification
     }
-
-}
+} 
