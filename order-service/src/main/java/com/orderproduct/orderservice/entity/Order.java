@@ -30,11 +30,10 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String orderNumber;
 
-    @Column(nullable = false)
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "order")
     private List<OrderLineItems> orderLineItemsList;
 
     @Override
@@ -44,12 +43,11 @@ public class Order {
         if (o == null || getClass() != o.getClass())
             return false;
         Order order = (Order) o;
-        return Objects.equals(id, order.id) && orderNumber.equals(order.orderNumber)
-                && orderLineItemsList.equals(order.orderLineItemsList);
+        return Objects.equals(id, order.id) && orderNumber.equals(order.orderNumber);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, orderNumber, orderLineItemsList);
+        return Objects.hash(id, orderNumber);
     }
 }

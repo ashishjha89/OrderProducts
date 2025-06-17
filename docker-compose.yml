@@ -73,6 +73,7 @@ services:
     command: ["mysqld", "--binlog-format=ROW", "--log-bin=mysql-bin", "--server-id=1"] # Crucial for Debezium
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql_init_scripts:/docker-entrypoint-initdb.d 
 
   mongodb: # Your MongoDB database
     image: mongo:7.0

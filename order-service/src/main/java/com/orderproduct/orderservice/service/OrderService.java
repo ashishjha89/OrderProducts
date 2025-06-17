@@ -132,17 +132,24 @@ public class OrderService {
     }
 
     private Order getOrder(OrderRequest orderRequest) {
-        return Order.builder()
+        Order order = Order.builder()
                 .orderNumber(orderNumberGenerator.getUniqueOrderNumber())
-                .orderLineItemsList(orderRequest.orderLineItemsList().stream().map(this::mapToDto).toList())
                 .build();
+        
+        List<OrderLineItems> orderLineItems = orderRequest.orderLineItemsList().stream()
+                .map(dto -> mapToDto(dto, order))
+                .toList();
+        
+        order.setOrderLineItemsList(orderLineItems);
+        return order;
     }
 
-    private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {
+    private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto, Order order) {
         return OrderLineItems.builder()
                 .price(orderLineItemsDto.price())
                 .skuCode(orderLineItemsDto.skuCode())
                 .quantity(orderLineItemsDto.quantity())
+                .order(order)
                 .build();
     }
 }
