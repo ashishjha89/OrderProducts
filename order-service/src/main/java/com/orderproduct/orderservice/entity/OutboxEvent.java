@@ -39,7 +39,7 @@ public class OutboxEvent {
     @Column(name = "payload", nullable = false, columnDefinition = "json")
     private String payload;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "processed_at")

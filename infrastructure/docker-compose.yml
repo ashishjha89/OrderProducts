@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  broker:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: broker
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: connect
+    ports:
+      - "8083:8083"
+    depends_on:
+      broker:
+        condition: service_healthy
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: broker:29092
+      CONNECT_GROUP_ID: connect-cluster-group
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      CONNECT_PLUGIN_PATH: /kafka/connect
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_TOPIC_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_PARTITIONS: 1
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - ./debezium_plugins_host:/kafka/connect
+      - ./connect_config:/kafka/config
+    command: ["bash", "-c", "/kafka/bin/connect-distributed.sh /kafka/config/connect-distributed.properties"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 60
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: order_product_db
+      MYSQL_USER: order_product_user
+      MYSQL_PASSWORD: 283656ff3b8e513f
+      MYSQL_LOWER_CASE_TABLE_NAMES: 1
+    command: ["mysqld", "--binlog-format=ROW", "--log-bin=mysql-bin", "--server-id=1"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql_init_scripts:/docker-entrypoint-initdb.d
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+
+  register_debezium_connector:
+    image: mysql:8.0
+    container_name: register_debezium_connector
+    depends_on:
+      connect:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        chmod +x /config/register-and-wait.sh
+        /config/register-and-wait.sh
+    volumes:
+      - ./debezium_connector_config:/config
+
+volumes:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:
+  mysql_data:
+  mongodb_data:
+  debezium_connector_config:
