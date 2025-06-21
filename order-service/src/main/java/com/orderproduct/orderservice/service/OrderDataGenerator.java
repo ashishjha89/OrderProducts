@@ -16,8 +16,8 @@ public class OrderDataGenerator {
         return generateUniqueId();
     }
 
-    public Instant getCurrentTimestamp() {
-        return Instant.now();
+    public Long getCurrentTimestamp() {
+        return Instant.now().toEpochMilli();
     }
 
     private String generateUniqueId() {

@@ -30,12 +30,12 @@ CREATE TABLE order_line_items (
 
 CREATE TABLE outbox_event (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    event_id VARCHAR(36) NOT NULL,
-    event_type VARCHAR(255) NOT NULL,
-    aggregate_type VARCHAR(255) NOT NULL,
-    aggregate_id VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    processed_at TIMESTAMP(3) NULL,
+    eventid VARCHAR(36) NOT NULL,
+    eventtype VARCHAR(255) NOT NULL,
+    aggregatetype VARCHAR(255) NOT NULL,
+    aggregateid VARCHAR(255) NOT NULL,
+    createdat BIGINT NOT NULL,
+    processedat BIGINT NULL,
     payload JSON NOT NULL,
-    INDEX idx_processed_at (processed_at)
+    INDEX idx_processedat (processedat)
 );

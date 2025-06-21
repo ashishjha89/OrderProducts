@@ -1,7 +1,5 @@
 package com.orderproduct.orderservice.entity;
 
-import java.time.Instant;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -24,24 +22,24 @@ public class OutboxEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "event_id", nullable = false)
+    @Column(name = "eventid", nullable = false)
     private String eventId;
 
-    @Column(name = "event_type", nullable = false)
+    @Column(name = "eventtype", nullable = false)
     private String eventType;
 
-    @Column(name = "aggregate_type", nullable = false)
+    @Column(name = "aggregatetype", nullable = false)
     private String aggregateType;
 
-    @Column(name = "aggregate_id", nullable = false)
+    @Column(name = "aggregateid", nullable = false)
     private String aggregateId;
 
     @Column(name = "payload", nullable = false, columnDefinition = "json")
     private String payload;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private Instant createdAt;
+    @Column(name = "createdat", nullable = false)
+    private Long createdAt;
 
-    @Column(name = "processed_at")
-    private Instant processedAt;
+    @Column(name = "processedat")
+    private Long processedAt;
 }

@@ -52,7 +52,7 @@ public class OrderTransactionServiceTest {
         @DisplayName("`executeTransactionalOrderPlacement()` successfully saves order and creates outbox event")
         public void executeTransactionalOrderPlacement_SuccessfullySavesOrderAndCreatesOutboxEvent() throws Exception {
                 // Setup order to save
-                Instant now = Instant.now();
+                Long now = Instant.now().toEpochMilli();
                 Order orderToSave = Order.builder().orderNumber(orderNumber).build();
                 List<OrderLineItems> orderLineItems = orderRequest.orderLineItemsList().stream()
                                 .map(dto -> toOrderLineItemEntity(dto, orderToSave))
