@@ -4,7 +4,6 @@ echo "=== Restarting Infrastructure and Testing Debezium Setup ==="
 
 # Stop existing containers
 echo "1. Stopping existing containers..."
-cd infrastructure
 docker-compose down -v
 
 # Start infrastructure
@@ -25,7 +24,6 @@ sleep 20
 
 # Run the test script
 echo "6. Running Debezium test..."
-cd ..
 ./test_debezium_setup.sh
 
 echo "=== Setup and test completed ===" 
