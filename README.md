@@ -19,24 +19,6 @@ http://localhost:9411/zipkin/
 ./stop_services.sh
 ```
 
-### Setup infrastructure and run services
-It will start Docker-Desktop, MySql, MongoDB and then start all services
-```
-./start_infrastructure_and_services.sh
-```
-
-### Setup infrastructure
-It will start Docker-Desktop, MySql and MongoDB
-```
-./start_infrastructure.sh
-```
-
-### Shutdown infrastructure and services
-It will stop Docker-Desktop, MySql, MongoDB and then stop all services
-```
-./shutdown_infrastructure_and_services.sh
-```
-
 ### Technologies/concepts used
 - Integration tests
   - TestContainers

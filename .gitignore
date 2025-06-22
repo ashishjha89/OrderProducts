@@ -18,3 +18,4 @@ zipkin-server-*.jar
 
 ### IntelliJ IDEA ###
 .idea
+.vscode

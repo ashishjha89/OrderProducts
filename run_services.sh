@@ -4,7 +4,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Find all subdirectories within the script directory, excluding hidden ones and .git/.idea directories
-services=$(find "$script_dir" -maxdepth 1 -mindepth 1 -type d ! -name ".*" ! -name ".git" ! -name ".idea")
+services=$(find "$script_dir" -maxdepth 1 -mindepth 1 -type d ! -name ".*" ! -name ".git" ! -name ".idea" ! -name ".vscode" ! -name "infrastructure")
 
 # Loop through each service and run mvn spring-boot:run in the background
 for service in $services; do

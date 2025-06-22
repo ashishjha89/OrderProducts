@@ -29,15 +29,15 @@ echo -e "\n4. Checking connector status after insertion..."
 curl -s http://localhost:8083/connectors/order-outbox-connector/status | jq .
 
 # Check if the topic was created
-echo -e "\n5. Checking if Order.OrderPlacedEvent topic was created..."
-docker exec broker kafka-topics --bootstrap-server localhost:29092 --list | grep "Order.OrderPlacedEvent" || echo "Topic not created yet"
+echo -e "\n5. Checking if outbox.event.Order topic was created..."
+docker exec broker kafka-topics --bootstrap-server localhost:29092 --list | grep "outbox.event.Order" || echo "Topic not created yet"
 
 # Check if the topic has messages (only if topic exists)
-if docker exec broker kafka-topics --bootstrap-server localhost:29092 --list | grep -q "Order.OrderPlacedEvent"; then
-    echo -e "\n6. Checking messages in the Order.OrderPlacedEvent topic..."
-    docker exec broker kafka-console-consumer --bootstrap-server localhost:29092 --topic Order.OrderPlacedEvent --from-beginning --max-messages 1 --timeout-ms 10000
+if docker exec broker kafka-topics --bootstrap-server localhost:29092 --list | grep -q "outbox.event.Order"; then
+    echo -e "\n6. Checking messages in the outbox.event.Order topic..."
+    docker exec broker kafka-console-consumer --bootstrap-server localhost:29092 --topic outbox.event.Order --from-beginning --max-messages 1 --timeout-ms 10000
 else
-    echo -e "\n6. Topic Order.OrderPlacedEvent not found. Checking connector logs for errors..."
+    echo -e "\n6. Topic outbox.event.Order not found. Checking connector logs for errors..."
     docker logs connect --tail 20
 fi
 
