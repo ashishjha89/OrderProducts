@@ -12,7 +12,6 @@ The outbox pattern ensures that when an order is placed, both the order data and
 2. **MySQL Database**: Stores orders and outbox events
 3. **Debezium**: Captures changes from the `outbox_event` table and routes them to Kafka topics
 4. **Kafka**: Distributes events to consumers
-5. **Notification Service**: Consumes events from Kafka topics
 
 ## Key Changes Made
 
@@ -63,7 +62,7 @@ Run the test script to verify the setup:
 3. **Insert a test event**:
    ```bash
    mysql -h localhost -P 3306 -u order_product_user -p283656ff3b8e513f order_product_db -e "
-   INSERT INTO outbox_event(event_id, event_type, aggregate_type, aggregate_id, payload, created_at) 
+   INSERT INTO outbox_event(eventid, eventtype, aggregatetype, aggregateid, payload, createdat)  
    VALUES (UUID(), 'OrderPlacedEvent', 'Order', 'test-order-123', '{\"orderNumber\":\"test-order-123\"}', UNIX_TIMESTAMP(NOW(3)) * 1000);
    "
    ```
@@ -80,48 +79,6 @@ To completely restart and test the setup:
 ```bash
 ./restart_and_test_debezium.sh
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Connector Fails**: Check the connector status and logs:
-   ```bash
-   curl http://localhost:8083/connectors/order-outbox-connector/status | jq
-   docker logs connect
-   ```
-
-2. **Topic Not Created**: Check if the connector is running and the table exists:
-   ```bash
-   docker exec broker kafka-topics --bootstrap-server localhost:29092 --list
-   ```
-
-3. **No Messages**: Verify the event was inserted correctly:
-   ```bash
-   mysql -h localhost -P 3306 -u order_product_user -p283656ff3b8e513f order_product_db -e "SELECT * FROM outbox_event ORDER BY created_at DESC LIMIT 5;"
-   ```
-
-### Logs
-
-Check logs for different services:
-
-```bash
-# Debezium Connect logs
-docker logs connect
-
-# Kafka broker logs
-docker logs broker
-
-# MySQL logs
-docker logs mysql
-```
-
-## Benefits
-
-1. **Reliability**: Events are guaranteed to be published if the order is saved (atomic transaction)
-2. **Scalability**: Events are processed asynchronously
-3. **Decoupling**: Services communicate through events, not direct calls
-4. **Auditability**: All events are stored in the database for audit purposes
 
 ## Next Steps
 
