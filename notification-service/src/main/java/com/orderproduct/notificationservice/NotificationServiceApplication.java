@@ -16,7 +16,7 @@ public class NotificationServiceApplication {
     }
 
     @KafkaListener(topics = "outbox.event.Order")
-    public void handleNotification(String orderPlacedEvent) {
+    public void handleNotification(OrderPlacedEvent orderPlacedEvent) {
         log.info("Got message <{}>", orderPlacedEvent);
         // Do some action, e.g. send out an email notification
     }
