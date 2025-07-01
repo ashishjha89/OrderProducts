@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.orderproduct.inventoryservice.common.ApiException;
 import com.orderproduct.inventoryservice.common.ErrorBody;
+import com.orderproduct.inventoryservice.common.ErrorBodyWithUnavailableProducts;
 import com.orderproduct.inventoryservice.common.ErrorComponent;
+import com.orderproduct.inventoryservice.common.NotEnoughStockException;
 
 import io.swagger.v3.oas.annotations.Hidden;
 
@@ -22,6 +24,16 @@ public class ControllerExceptionHandler {
         return new ResponseEntity<>(
                 new ErrorBody(apiException.getErrorCode(), apiException.getMessage()),
                 apiException.getHttpStatus());
+    }
+
+    @ExceptionHandler(NotEnoughStockException.class)
+    public ResponseEntity<ErrorBodyWithUnavailableProducts> handleNotEnoughStockException(NotEnoughStockException ex) {
+        return new ResponseEntity<>(
+                new ErrorBodyWithUnavailableProducts(
+                        ex.getErrorCode(),
+                        ex.getMessage(),
+                        ex.getUnavailableProducts()),
+                ex.getHttpStatus());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

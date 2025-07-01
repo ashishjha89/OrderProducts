@@ -10,10 +10,13 @@ import org.springframework.data.repository.query.Param;
 
 import com.orderproduct.inventoryservice.entity.Inventory;
 
+import io.micrometer.common.lang.NonNull;
+
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     Optional<Inventory> findBySkuCode(String skuCode);
 
+    @NonNull
     List<Inventory> findBySkuCodeIn(List<String> skuCodes);
 
     @Modifying

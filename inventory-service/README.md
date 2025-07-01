@@ -75,9 +75,7 @@ mvn test
 - Integration with Eureka Discovery Server and Api Gateway
 
 ## Next Steps
-- Return sku-quantity in the response for GET requests.
-- Implement logic to manage SKU quantities in the inventory.
 - Add endpoints to update SKU quantities.
-- Add endpoint to get all SKUs with their quantities (with pagination).
+- Add pagination to get all SKUs.
 - Update `application.properties` to make it production-ready.
 - Implement authorizations according to different operations.

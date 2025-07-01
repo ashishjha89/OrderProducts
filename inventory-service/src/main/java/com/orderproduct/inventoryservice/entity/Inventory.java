@@ -27,11 +27,22 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true) // This handles the unique index
+    // This results in table creation with unique index on skuCode column
+    @Column(name = "sku_code", nullable = false, unique = true)
     private String skuCode;
 
-    @Column(nullable = false)
-    private int quantity;
+    @Column(name = "on_hand_quantity", nullable = false)
+    private int onHandQuantity;
+
+    public static Inventory createInventory(String skuCode, int quantity) {
+        if (quantity < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative");
+        }
+        return Inventory.builder()
+                .skuCode(skuCode)
+                .onHandQuantity(quantity)
+                .build();
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -40,11 +51,11 @@ public class Inventory {
         if (o == null || getClass() != o.getClass())
             return false;
         Inventory inventory = (Inventory) o;
-        return quantity == inventory.quantity && skuCode.equals(inventory.skuCode);
+        return onHandQuantity == inventory.onHandQuantity && skuCode.equals(inventory.skuCode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(skuCode, quantity);
+        return Objects.hash(skuCode, onHandQuantity);
     }
 }

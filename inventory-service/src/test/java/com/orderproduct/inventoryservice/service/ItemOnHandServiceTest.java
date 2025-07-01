@@ -21,20 +21,20 @@ import org.springframework.dao.DataIntegrityViolationException;
 import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.InternalServerException;
 import com.orderproduct.inventoryservice.common.NotFoundException;
-import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
-import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
+import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
+import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
 
-public class InventoryServiceTest {
+public class ItemOnHandServiceTest {
 
         private final InventoryRepository inventoryRepository = mock(InventoryRepository.class);
 
-        private final InventoryService inventoryService = new InventoryService(inventoryRepository);
+        private final ItemOnHandService itemOnHandService = new ItemOnHandService(inventoryRepository);
 
         @Test
-        @DisplayName("`stocksStatus()` should return `List<InventoryStockStatus>` for passed skuCodes with their respective quantities")
-        public void stocksStatusTest() throws InternalServerException {
+        @DisplayName("`itemAvailabilities()` should return `List<ItemOnHandQuantity>` for passed skuCodes with their respective quantities")
+        public void itemAvailabilitiesTest() throws InternalServerException {
                 // Given
                 final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
                 final var matchingInventories = List.of(
@@ -43,30 +43,19 @@ public class InventoryServiceTest {
                                 new Inventory(4L, "skuCode4", 15));
                 when(inventoryRepository.findBySkuCodeIn(skuCodeList)).thenReturn(matchingInventories);
                 final var expectedStatus = List.of(
-                                new InventoryStockStatus("skuCode1", 10),
-                                new InventoryStockStatus("skuCode2", 0),
-                                new InventoryStockStatus("skuCode3", 0), // Note that skuCode3 is not in the
-                                                                         // matchingInventories list
-                                new InventoryStockStatus("skuCode4", 15));
+                                new ItemOnHandQuantity("skuCode1", 10),
+                                new ItemOnHandQuantity("skuCode2", 0),
+                                new ItemOnHandQuantity("skuCode3", 0), // Note that skuCode3 is not in the
+                                                                       // matchingInventories list
+                                new ItemOnHandQuantity("skuCode4", 15));
 
                 // Then
-                assertEquals(expectedStatus, inventoryService.stocksStatus(skuCodeList));
+                assertEquals(expectedStatus, itemOnHandService.itemAvailabilities(skuCodeList));
         }
 
         @Test
-        @DisplayName("`stocksStatus()` should throw InternalServerException when repo returns null inventories")
-        public void stocksStatus_WhenInventoryIsReceivedAsNullFromRepo() {
-                // Given
-                final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
-                when(inventoryRepository.findBySkuCodeIn(skuCodeList)).thenReturn(null);
-
-                // Then
-                assertThrows(InternalServerException.class, () -> inventoryService.stocksStatus(skuCodeList));
-        }
-
-        @Test
-        @DisplayName("`stocksStatus()` should throw InternalServerException when Repo throws DataAccessException")
-        public void stocksStatus_WhenRepoThrowsError() {
+        @DisplayName("`itemAvailabilities()` should throw InternalServerException when Repo throws DataAccessException")
+        public void itemAvailabilities_WhenRepoThrowsError() {
                 // Given
                 final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
                 when(inventoryRepository.findBySkuCodeIn(skuCodeList))
@@ -74,21 +63,18 @@ public class InventoryServiceTest {
                                                 "Child class of DataAccessException"));
 
                 // Then
-                assertThrows(InternalServerException.class, () -> inventoryService.stocksStatus(skuCodeList));
+                assertThrows(InternalServerException.class, () -> itemOnHandService.itemAvailabilities(skuCodeList));
         }
 
         @Test
         @DisplayName("`createInventory()` should return CreateInventoryResponse when inventory is created")
         void createInventory_ValidInventory_ReturnsSuccessResponse() {
                 // Given
-                var inventory = Inventory.builder()
-                                .skuCode("SKU-123")
-                                .quantity(10)
-                                .build();
+                var inventory = Inventory.createInventory("SKU-123", 10);
                 when(inventoryRepository.save(inventory)).thenReturn(inventory);
 
                 // When
-                CreateInventoryResponse response = inventoryService.createInventory(inventory);
+                CreateInventoryResponse response = itemOnHandService.createInventory(inventory);
 
                 // Then
                 assertThat(response.skuCode()).isEqualTo("SKU-123");
@@ -98,10 +84,7 @@ public class InventoryServiceTest {
         @DisplayName("`createInventory()` should throw DuplicateSkuCodeException when repository throws DataIntegrityViolationException")
         void createInventory_DuplicateSkuCode_ThrowsDuplicateSkuCodeException() {
                 // Given
-                var inventory = Inventory.builder()
-                                .skuCode("SKU-123")
-                                .quantity(10)
-                                .build();
+                var inventory = Inventory.createInventory("SKU-123", 10);
                 when(inventoryRepository.save(inventory))
                                 .thenThrow(
                                                 new DataIntegrityViolationException(
@@ -110,7 +93,7 @@ public class InventoryServiceTest {
                                                                                 "inventory_pkey")));
 
                 // Then
-                assertThatThrownBy(() -> inventoryService.createInventory(inventory))
+                assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))
                                 .isInstanceOf(DuplicateSkuCodeException.class);
         }
 
@@ -118,16 +101,13 @@ public class InventoryServiceTest {
         @DisplayName("`createInventory()` should throw InternalServerException when repository throws DataAccessException")
         void createInventory_DatabaseError_ThrowsInternalServerException() {
                 // Given
-                var inventory = Inventory.builder()
-                                .skuCode("SKU-123")
-                                .quantity(10)
-                                .build();
+                var inventory = Inventory.createInventory("SKU-123", 10);
                 when(inventoryRepository.save(inventory))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
 
                 // Then
-                assertThatThrownBy(() -> inventoryService.createInventory(inventory))
+                assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))
                                 .isInstanceOf(InternalServerException.class);
         }
 
@@ -139,7 +119,7 @@ public class InventoryServiceTest {
 
                 // When & Then
                 assertThatNoException()
-                                .isThrownBy(() -> inventoryService.deleteInventory("SKU-123"));
+                                .isThrownBy(() -> itemOnHandService.deleteInventory("SKU-123"));
         }
 
         @Test
@@ -149,7 +129,7 @@ public class InventoryServiceTest {
                 when(inventoryRepository.deleteBySkuCode("NON-EXISTENT")).thenReturn(0);
 
                 // Then
-                assertThatThrownBy(() -> inventoryService.deleteInventory("NON-EXISTENT"))
+                assertThatThrownBy(() -> itemOnHandService.deleteInventory("NON-EXISTENT"))
                                 .isInstanceOf(NotFoundException.class);
         }
 
@@ -162,7 +142,7 @@ public class InventoryServiceTest {
                                 });
 
                 // Then
-                assertThatThrownBy(() -> inventoryService.deleteInventory("SKU-123"))
+                assertThatThrownBy(() -> itemOnHandService.deleteInventory("SKU-123"))
                                 .isInstanceOf(InternalServerException.class);
         }
 }

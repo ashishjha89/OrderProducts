@@ -18,11 +18,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.orderproduct.inventoryservice.common.ErrorBody;
 import com.orderproduct.inventoryservice.common.ErrorComponent;
 import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.dto.CreateInventoryResponse;
-import com.orderproduct.inventoryservice.dto.InventoryRequest;
-import com.orderproduct.inventoryservice.dto.InventoryStockStatus;
-import com.orderproduct.inventoryservice.entity.Inventory;
-import com.orderproduct.inventoryservice.service.InventoryService;
+import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
+import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
+import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
+import com.orderproduct.inventoryservice.service.InventoryAvailabilityService;
+import com.orderproduct.inventoryservice.service.InventoryManagementService;
+import com.orderproduct.inventoryservice.service.ReservationManagementService;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -37,17 +39,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class InventoryController {
 
-        private final InventoryService inventoryService;
+        private final InventoryAvailabilityService inventoryAvailabilityService;
+        private final InventoryManagementService inventoryManagementService;
+        private final ReservationManagementService reservationManagementService;
 
-        public InventoryController(InventoryService inventoryService) {
-                this.inventoryService = inventoryService;
+        public InventoryController(
+                        InventoryAvailabilityService inventoryAvailabilityService,
+                        InventoryManagementService inventoryManagementService,
+                        ReservationManagementService reservationManagementService) {
+                this.inventoryAvailabilityService = inventoryAvailabilityService;
+                this.inventoryManagementService = inventoryManagementService;
+                this.reservationManagementService = reservationManagementService;
         }
 
         @GetMapping
         @ResponseStatus(HttpStatus.OK)
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "OK", content = {
-                                        @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = InventoryStockStatus.class)))
+                                        @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = AvailableInventoryResponse.class)))
                         }),
                         @ApiResponse(responseCode = "500", description = "errorCode:"
                                         + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:"
@@ -55,10 +64,36 @@ public class InventoryController {
                                                         @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                                         })
         })
-        public List<InventoryStockStatus> stocksStatus(@RequestParam List<String> skuCode)
+        public List<AvailableInventoryResponse> inventoryAvailabilities(@RequestParam List<String> skuCode)
                         throws InternalServerException {
                 log.info("GET:/api/inventory?skuCode=<code1>&skuCode=<code2>");
-                return inventoryService.stocksStatus(skuCode);
+                return inventoryAvailabilityService.getAvailableInventory(skuCode);
+        }
+
+        @PostMapping("/reserve")
+        @ResponseStatus(HttpStatus.OK)
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "OK - Products reserved successfully", content = {
+                                        @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = AvailableInventoryResponse.class)))
+                        }),
+                        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                        }),
+                        @ApiResponse(responseCode = "409", description = "errorCode:"
+                                        + ErrorComponent.NOT_ENOUGH_STOCK_ERROR_CODE + " errorMessage:"
+                                        + ErrorComponent.notEnoughStockMsg, content = {
+                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                                        }),
+                        @ApiResponse(responseCode = "500", description = "errorCode:"
+                                        + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:"
+                                        + ErrorComponent.somethingWentWrongMsg, content = {
+                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                                        })
+        })
+        public List<AvailableInventoryResponse> reserveProducts(@Valid @RequestBody OrderReservationRequest request)
+                        throws InternalServerException {
+                log.info("POST:/api/inventory/reserve - Reserving products for order: {}", request.orderNumber());
+                return reservationManagementService.reserveProductsIfAvailable(request);
         }
 
         @PostMapping
@@ -80,14 +115,11 @@ public class InventoryController {
                                                         @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                                         })
         })
-        public ResponseEntity<CreateInventoryResponse> createInventory(@Valid @RequestBody InventoryRequest request)
+        public ResponseEntity<CreateInventoryResponse> createInventory(
+                        @Valid @RequestBody CreateInventoryRequest request)
                         throws InternalServerException {
                 log.info("POST:/api/inventory - Creating new inventory for skuCode: {}", request.skuCode());
-                CreateInventoryResponse response = inventoryService.createInventory(
-                                Inventory.builder()
-                                                .skuCode(request.skuCode())
-                                                .quantity(request.quantity())
-                                                .build());
+                CreateInventoryResponse response = inventoryManagementService.createInventory(request);
                 final var location = ServletUriComponentsBuilder
                                 .fromCurrentRequest()
                                 .path("/{sku-code}")
@@ -115,6 +147,6 @@ public class InventoryController {
         })
         public void deleteInventory(@PathVariable("sku-code") String skuCode) throws InternalServerException {
                 log.info("DELETE:/api/inventory/{}", skuCode);
-                inventoryService.deleteInventory(skuCode);
+                inventoryManagementService.deleteInventory(skuCode);
         }
 }

@@ -1,3 +1,4 @@
+/* groovylint-disable CompileStatic */
 package contracts.orderService
 
 import org.springframework.cloud.contract.spec.Contract
