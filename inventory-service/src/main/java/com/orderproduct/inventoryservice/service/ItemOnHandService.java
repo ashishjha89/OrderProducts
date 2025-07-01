@@ -15,6 +15,7 @@ import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
 
+import jakarta.persistence.PersistenceException;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +92,11 @@ class ItemOnHandService {
             }
             log.error("Error when creating inventory with skuCode:{} and errorMsg:{}", inventory.getSkuCode(),
                     e.getMessage());
+            throw new InternalServerException();
+        } catch (PersistenceException e) {
+            log.error("PersistenceException when creating inventory with skuCode:{} and errorMsg:{}", inventory.getSkuCode(),
+                    e.getMessage());
+                    
             throw new InternalServerException();
         }
     }

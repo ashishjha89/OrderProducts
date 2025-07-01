@@ -212,11 +212,19 @@ public class ReservationServiceTest {
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
                 final var request = new OrderReservationRequest(orderNumber, itemRequests);
+                final var reservationsToSave = List.of(
+                                Reservation.builder()
+                                                .orderNumber(orderNumber)
+                                                .skuCode("skuCode1")
+                                                .reservedQuantity(5)
+                                                .reservedAt(currentTime)
+                                                .status(ReservationState.PENDING)
+                                                .build());
 
                 when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, List.of("skuCode1")))
-                                .thenReturn(List.of());
+                                .thenReturn(List.of()); // there is no existing reservation
                 when(timeProvider.getCurrentTimestamp()).thenReturn(currentTime);
-                when(reservationRepository.saveAll(anyList()))
+                when(reservationRepository.saveAll(reservationsToSave))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
 
@@ -231,13 +239,21 @@ public class ReservationServiceTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
+                final var itemRequests = List.of(new ItemReservationRequest("skuCode1", -5));
                 final var request = new OrderReservationRequest(orderNumber, itemRequests);
+                final var reservationsToSave = List.of(
+                                Reservation.builder()
+                                                .orderNumber(orderNumber)
+                                                .skuCode("skuCode1")
+                                                .reservedQuantity(-5)
+                                                .reservedAt(currentTime)
+                                                .status(ReservationState.PENDING)
+                                                .build());
 
                 when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, List.of("skuCode1")))
                                 .thenReturn(List.of());
                 when(timeProvider.getCurrentTimestamp()).thenReturn(currentTime);
-                when(reservationRepository.saveAll(anyList()))
+                when(reservationRepository.saveAll(reservationsToSave))
                                 .thenThrow(new PersistenceException(
                                                 "Constraint violation: reserved_quantity cannot be negative"));
 

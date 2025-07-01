@@ -31,7 +31,7 @@ public class Inventory {
     @Column(name = "sku_code", nullable = false, unique = true)
     private String skuCode;
 
-    @Column(name = "on_hand_quantity", nullable = false)
+    @Column(name = "on_hand_quantity", nullable = false, columnDefinition = "INT CHECK (on_hand_quantity >= 0)")
     private int onHandQuantity;
 
     public static Inventory createInventory(String skuCode, int quantity) {

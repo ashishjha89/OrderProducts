@@ -1,10 +1,12 @@
 package com.orderproduct.inventoryservice.entity;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,7 +18,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import jakarta.persistence.Enumerated;
 
 @Entity
 @Table(name = "inventory_reservation", indexes = {
@@ -52,4 +53,25 @@ public class Reservation {
         @Enumerated(EnumType.STRING)
         private ReservationState status;
 
+        @Override
+        public boolean equals(Object o) {
+                if (this == o)
+                        return true;
+                if (o == null || getClass() != o.getClass())
+                        return false;
+                Reservation reservation = (Reservation) o;
+                return reservedQuantity == reservation.reservedQuantity && skuCode.equals(reservation.skuCode)
+                                && orderNumber.equals(reservation.orderNumber) && status == reservation.status;
+        }
+
+        @Override
+        public int hashCode() {
+                return Objects.hash(skuCode, orderNumber, reservedQuantity, status);
+        }
+
 }
+
+                                
+                                
+                                
+                                

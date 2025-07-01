@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.orderproduct.inventoryservice.entity.Inventory;
 
-import io.micrometer.common.lang.NonNull;
+import lombok.NonNull;
 
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 

@@ -26,6 +26,8 @@ import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
 
+import jakarta.persistence.PersistenceException;
+
 public class ItemOnHandServiceTest {
 
         private final InventoryRepository inventoryRepository = mock(InventoryRepository.class);
@@ -105,6 +107,23 @@ public class ItemOnHandServiceTest {
                 when(inventoryRepository.save(inventory))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`createInventory()` should throw InternalServerException when column constraint fails for onHandQuantity")
+        void createInventory_ColumnConstraintViolation_ThrowsInternalServerException() {
+                // Given
+                var inventory = Inventory.builder()
+                                .skuCode("SKU-123")
+                                .onHandQuantity(-5)
+                                .build();
+                when(inventoryRepository.save(inventory))
+                                .thenThrow(new PersistenceException(
+                                                "Constraint violation: on_hand_quantity cannot be negative"));
 
                 // Then
                 assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))
