@@ -6,8 +6,8 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.InventoryCalculationUtils;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.util.InventoryCalculationUtils;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
@@ -31,8 +31,8 @@ public class InventoryAvailabilityService {
         log.info("Calculating available inventory for {} SKU codes: {}", skuCodes.size(), skuCodes);
 
         // Create maps for efficient lookup
-        Map<String, Integer> inventoryQuantityMap = createSkuCodeToOnHandsQuantityMap(skuCodes);
-        Map<String, Integer> reservedQuantityMap = createSkuCodeToReservedQuantityMap(skuCodes);
+        Map<String, Integer> inventoryQuantityMap = skuCodeToOnHandsQuantityMap(skuCodes);
+        Map<String, Integer> reservedQuantityMap = skuCodeToReservedQuantityMap(skuCodes);
 
         List<AvailableInventoryResponse> result = skuCodes.stream()
                 .map(skuCode -> {
@@ -47,7 +47,7 @@ public class InventoryAvailabilityService {
         return result;
     }
 
-    private Map<String, Integer> createSkuCodeToOnHandsQuantityMap(List<String> skuCodes)
+    private Map<String, Integer> skuCodeToOnHandsQuantityMap(List<String> skuCodes)
             throws InternalServerException {
         List<ItemOnHandQuantity> itemOnHandQuantityList = itemOnHandService.itemAvailabilities(skuCodes);
         Map<String, Integer> result = InventoryCalculationUtils
@@ -55,7 +55,7 @@ public class InventoryAvailabilityService {
         return result;
     }
 
-    private Map<String, Integer> createSkuCodeToReservedQuantityMap(List<String> skuCodes) {
+    private Map<String, Integer> skuCodeToReservedQuantityMap(List<String> skuCodes) {
         List<ReservedItemQuantity> reservedQuantityList = reservationService.findPendingReservedQuantities(skuCodes);
         Map<String, Integer> result = InventoryCalculationUtils
                 .createSkuCodeToReservedQuantityMap(reservedQuantityList);

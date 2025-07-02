@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.orderproduct.inventoryservice.common.ErrorBody;
-import com.orderproduct.inventoryservice.common.ErrorComponent;
-import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.ErrorBody;
+import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
@@ -32,25 +32,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/inventory")
 @Slf4j
+@AllArgsConstructor
 public class InventoryController {
 
         private final InventoryAvailabilityService inventoryAvailabilityService;
         private final InventoryManagementService inventoryManagementService;
         private final ReservationManagementService reservationManagementService;
-
-        public InventoryController(
-                        InventoryAvailabilityService inventoryAvailabilityService,
-                        InventoryManagementService inventoryManagementService,
-                        ReservationManagementService reservationManagementService) {
-                this.inventoryAvailabilityService = inventoryAvailabilityService;
-                this.inventoryManagementService = inventoryManagementService;
-                this.reservationManagementService = reservationManagementService;
-        }
 
         @GetMapping
         @ResponseStatus(HttpStatus.OK)
@@ -80,7 +73,7 @@ public class InventoryController {
                                         @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                         }),
                         @ApiResponse(responseCode = "409", description = "errorCode:"
-                                        + ErrorComponent.NOT_ENOUGH_STOCK_ERROR_CODE + " errorMessage:"
+                                        + ErrorComponent.NOT_ENOUGH_ITEM_ERROR_CODE + " errorMessage:"
                                         + ErrorComponent.notEnoughStockMsg, content = {
                                                         @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                                         }),

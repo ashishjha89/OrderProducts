@@ -14,8 +14,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.NotEnoughStockException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
@@ -31,9 +31,9 @@ public class ReservationManagementServiceTest {
                         itemOnHandService, reservationService);
 
         @Test
-        @DisplayName("`reserveProductsIfAvailable()` should successfully reserve products when sufficient stock is available")
-        public void reserveProductsIfAvailable_SufficientStock_ReservesSuccessfully()
-                        throws NotEnoughStockException, InternalServerException {
+        @DisplayName("`reserveProductsIfAvailable()` should successfully reserve products when sufficient items are available")
+        public void reserveProductsIfAvailable_SufficientItems_ReservesSuccessfully()
+                        throws NotEnoughItemException, InternalServerException {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(
@@ -68,8 +68,8 @@ public class ReservationManagementServiceTest {
         }
 
         @Test
-        @DisplayName("`reserveProductsIfAvailable()` should throw NotEnoughStockException when insufficient stock is available")
-        public void reserveProductsIfAvailable_InsufficientStock_ThrowsNotEnoughStockException() {
+        @DisplayName("`reserveProductsIfAvailable()` should throw NotEnoughItemException when insufficient item is available")
+        public void reserveProductsIfAvailable_InsufficientItem_ThrowsNotEnoughItemExceptionn() {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(
@@ -92,10 +92,10 @@ public class ReservationManagementServiceTest {
 
                 // Then
                 assertThatThrownBy(() -> reservationManagementService.reserveProductsIfAvailable(request))
-                                .isInstanceOf(NotEnoughStockException.class)
+                                .isInstanceOf(NotEnoughItemException.class)
                                 .satisfies(exception -> {
-                                        NotEnoughStockException notEnoughStockException = (NotEnoughStockException) exception;
-                                        List<UnavailableProduct> unavailableProducts = notEnoughStockException
+                                        NotEnoughItemException notEnoughItemException = (NotEnoughItemException) exception;
+                                        List<UnavailableProduct> unavailableProducts = notEnoughItemException
                                                         .getUnavailableProducts();
                                         assertEquals(2, unavailableProducts.size());
 
@@ -114,8 +114,8 @@ public class ReservationManagementServiceTest {
         }
 
         @Test
-        @DisplayName("`reserveProductsIfAvailable()` should throw NotEnoughStockException when some products have insufficient stock")
-        public void reserveProductsIfAvailable_PartialInsufficientStock_ThrowsNotEnoughStockException() {
+        @DisplayName("`reserveProductsIfAvailable()` should throw NotEnoughItemException when some products have insufficient item")
+        public void reserveProductsIfAvailable_PartialInsufficientItem_ThrowsNotEnoughItemException() {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(
@@ -138,10 +138,10 @@ public class ReservationManagementServiceTest {
 
                 // Then
                 assertThatThrownBy(() -> reservationManagementService.reserveProductsIfAvailable(request))
-                                .isInstanceOf(NotEnoughStockException.class)
+                                .isInstanceOf(NotEnoughItemException.class)
                                 .satisfies(exception -> {
-                                        NotEnoughStockException notEnoughStockException = (NotEnoughStockException) exception;
-                                        List<UnavailableProduct> unavailableProducts = notEnoughStockException
+                                        NotEnoughItemException notEnoughItemException = (NotEnoughItemException) exception;
+                                        List<UnavailableProduct> unavailableProducts = notEnoughItemException
                                                         .getUnavailableProducts();
                                         assertEquals(1, unavailableProducts.size());
 
@@ -227,7 +227,7 @@ public class ReservationManagementServiceTest {
         @Test
         @DisplayName("`reserveProductsIfAvailable()` should handle edge case with zero quantities")
         public void reserveProductsIfAvailable_ZeroQuantities_HandlesCorrectly()
-                        throws NotEnoughStockException, InternalServerException {
+                        throws NotEnoughItemException, InternalServerException {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(
@@ -264,7 +264,7 @@ public class ReservationManagementServiceTest {
         @Test
         @DisplayName("`reserveProductsIfAvailable()` should handle case where all requested quantities are zero")
         public void reserveProductsIfAvailable_AllZeroQuantities_ReservesSuccessfully()
-                        throws NotEnoughStockException, InternalServerException {
+                        throws NotEnoughItemException, InternalServerException {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(

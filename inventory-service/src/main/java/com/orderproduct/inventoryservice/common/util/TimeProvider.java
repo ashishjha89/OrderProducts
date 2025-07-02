@@ -1,4 +1,4 @@
-package com.orderproduct.inventoryservice.common;
+package com.orderproduct.inventoryservice.common.util;
 
 import java.time.LocalDateTime;
 

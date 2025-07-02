@@ -1,4 +1,4 @@
-package com.orderproduct.inventoryservice.common;
+package com.orderproduct.inventoryservice.common.util;
 
 import java.util.List;
 import java.util.Map;
@@ -45,16 +45,20 @@ public final class InventoryCalculationUtils {
      * Available quantity = on-hand quantity - reserved quantity (minimum 0)
      * 
      * @param skuCode                 the SKU code
-     * @param onHandsItemQuantityMap  map of SKU codes to on-hand quantities (can be null)
-     * @param reservedItemQuantityMap map of SKU codes to reserved quantities (can be null)
+     * @param onHandsItemQuantityMap  map of SKU codes to on-hand quantities (can be
+     *                                null)
+     * @param reservedItemQuantityMap map of SKU codes to reserved quantities (can
+     *                                be null)
      * @return the available quantity (never negative)
      */
     public static int calculateAvailableQuantity(
             String skuCode,
             Map<String, Integer> onHandsItemQuantityMap,
             Map<String, Integer> reservedItemQuantityMap) {
-        int onHandsItemQuantity = (onHandsItemQuantityMap != null) ? onHandsItemQuantityMap.getOrDefault(skuCode, 0) : 0;
-        int reservedItemQuantity = (reservedItemQuantityMap != null) ? reservedItemQuantityMap.getOrDefault(skuCode, 0) : 0;
+        int onHandsItemQuantity = (onHandsItemQuantityMap != null) ? onHandsItemQuantityMap.getOrDefault(skuCode, 0)
+                : 0;
+        int reservedItemQuantity = (reservedItemQuantityMap != null) ? reservedItemQuantityMap.getOrDefault(skuCode, 0)
+                : 0;
         return Math.max(0, onHandsItemQuantity - reservedItemQuantity);
     }
 }

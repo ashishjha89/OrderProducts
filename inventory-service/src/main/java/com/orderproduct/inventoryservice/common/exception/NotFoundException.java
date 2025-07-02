@@ -1,4 +1,4 @@
-package com.orderproduct.inventoryservice.common;
+package com.orderproduct.inventoryservice.common.exception;
 
 import org.springframework.http.HttpStatus;
 

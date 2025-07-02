@@ -7,11 +7,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.orderproduct.inventoryservice.common.ApiException;
-import com.orderproduct.inventoryservice.common.ErrorBody;
-import com.orderproduct.inventoryservice.common.ErrorBodyWithUnavailableProducts;
-import com.orderproduct.inventoryservice.common.ErrorComponent;
-import com.orderproduct.inventoryservice.common.NotEnoughStockException;
+import com.orderproduct.inventoryservice.common.exception.ApiException;
+import com.orderproduct.inventoryservice.common.exception.ErrorBody;
+import com.orderproduct.inventoryservice.common.exception.ErrorBodyWithUnavailableProducts;
+import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
+import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
 
 import io.swagger.v3.oas.annotations.Hidden;
 
@@ -22,16 +22,16 @@ public class ControllerExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorBody> handleApiException(ApiException apiException) {
         return new ResponseEntity<>(
-                new ErrorBody(apiException.getErrorCode(), apiException.getMessage()),
+                new ErrorBody(apiException.getErrorCode(), apiException.getErrorMessage()),
                 apiException.getHttpStatus());
     }
 
-    @ExceptionHandler(NotEnoughStockException.class)
-    public ResponseEntity<ErrorBodyWithUnavailableProducts> handleNotEnoughStockException(NotEnoughStockException ex) {
+    @ExceptionHandler(NotEnoughItemException.class)
+    public ResponseEntity<ErrorBodyWithUnavailableProducts> handleNotEnoughItemException(NotEnoughItemException ex) {
         return new ResponseEntity<>(
                 new ErrorBodyWithUnavailableProducts(
                         ex.getErrorCode(),
-                        ex.getMessage(),
+                        ex.getErrorMessage(),
                         ex.getUnavailableProducts()),
                 ex.getHttpStatus());
     }

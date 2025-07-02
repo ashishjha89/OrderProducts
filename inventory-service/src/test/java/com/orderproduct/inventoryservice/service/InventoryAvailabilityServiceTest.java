@@ -11,7 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.orderproduct.inventoryservice.common.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;

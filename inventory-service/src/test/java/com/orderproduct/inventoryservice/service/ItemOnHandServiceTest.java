@@ -18,9 +18,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.NotFoundException;
+import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;

@@ -28,7 +28,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.orderproduct.inventoryservice.common.ErrorBodyWithUnavailableProducts;
+import com.orderproduct.inventoryservice.common.exception.ErrorBodyWithUnavailableProducts;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.entity.Reservation;
@@ -119,12 +119,12 @@ class InventoryServiceApplicationTests {
 
                 // Process response
                 final var jsonStr = result.getResponse().getContentAsString();
-                final var stocksStatus = Arrays
+                final var actualAvailableInventoryResponse = Arrays
                                 .stream(objectMapper.readValue(jsonStr, AvailableInventoryResponse[].class))
                                 .toList();
 
                 // Assert
-                assertEquals(expectedAvailableInventoryResponse, stocksStatus);
+                assertEquals(expectedAvailableInventoryResponse, actualAvailableInventoryResponse);
         }
 
         @Test
@@ -200,8 +200,8 @@ class InventoryServiceApplicationTests {
         }
 
         @Test
-        @DisplayName("POST:/api/inventory/reserve should return 409 when insufficient stock")
-        void reserveProducts_InsufficientStock() throws Exception {
+        @DisplayName("POST:/api/inventory/reserve should return 409 when insufficient available items")
+        void reserveProducts_InsufficientItems() throws Exception {
                 // Given - onHands=10, reserved=1, so available=9
                 // But we're requesting 15 which exceeds available quantity
                 final var reservationRequest = """
@@ -230,11 +230,10 @@ class InventoryServiceApplicationTests {
                 final var response = objectMapper.readValue(jsonStr, ErrorBodyWithUnavailableProducts.class);
 
                 // Assert error response
-                assertEquals("NOT_ENOUGH_STOCK_ERROR_CODE", response.getErrorCode());
-                assertEquals("Not enough stock for some products", response.getErrorMessage());
+                assertEquals("NOT_ENOUGH_ITEM_ERROR_CODE", response.errorCode());
 
                 // Assert unavailable products details
-                var unavailableProducts = response.getUnavailableProducts();
+                var unavailableProducts = response.unavailableProducts();
                 assertEquals(1, unavailableProducts.size());
 
                 var unavailableProduct = unavailableProducts.get(0);

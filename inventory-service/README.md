@@ -33,10 +33,10 @@ http://localhost:8080/api/inventory/swagger-ui/index.html
 
 The service supports the following REST endpoints:
 
-- **GET** `/api/inventory/{sku-code}`: Check if a specific SKU is in stock
-- **GET** `/api/inventory?skuCode=<code1>&skuCode=<code2>`: Check stock status for multiple SKUs
-- **POST** `/api/inventory`: Create new inventory entry
-- **DELETE** `/api/inventory/{sku-code}`: Delete an inventory entry
+- **GET** `/api/inventory?skuCode=<code1>&skuCode=<code2>`: Return available quantities for multiple SKUs.
+- **POST** `/api/inventory/reserve`: Reserve multiple items if they are available.
+- **POST** `/api/inventory`: Create new inventory item.
+- **DELETE** `/api/inventory/{sku-code}`: Delete an inventory item.
 
 ## Running the Application
 

@@ -10,8 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.NotEnoughStockException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
 import com.orderproduct.inventoryservice.controller.ControllerExceptionHandler;
 import com.orderproduct.inventoryservice.controller.InventoryController;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
@@ -41,7 +41,7 @@ public abstract class CdcBaseClass {
         private ReservationManagementService reservationManagementService;
 
         @BeforeEach
-        public void setup() throws InternalServerException, NotEnoughStockException {
+        public void setup() throws InternalServerException, NotEnoughItemException {
                 RestAssuredMockMvc.standaloneSetup(inventoryController, new ControllerExceptionHandler());
 
                 // Mock for GET /api/inventory
@@ -66,11 +66,11 @@ public abstract class CdcBaseClass {
                                                 new AvailableInventoryResponse("iphone_13", 5) // 10 - 5 = 5
                                 ));
 
-                // Mock for failed POST /api/inventory/reserve (insufficient stock)
+                // Mock for failed POST /api/inventory/reserve (insufficient item)
                 final var failedRequest = new OrderReservationRequest("ORDER-456",
                                 List.of(new ItemReservationRequest("iphone_12", 10)));
                 when(reservationManagementService.reserveProductsIfAvailable(failedRequest))
-                                .thenThrow(new NotEnoughStockException(List.of(
+                                .thenThrow(new NotEnoughItemException(List.of(
                                                 new UnavailableProduct("iphone_12", 10, 5))));
         }
 

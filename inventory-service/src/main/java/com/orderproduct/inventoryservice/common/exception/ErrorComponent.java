@@ -1,4 +1,4 @@
-package com.orderproduct.inventoryservice.common;
+package com.orderproduct.inventoryservice.common.exception;
 
 public class ErrorComponent {
 
@@ -10,7 +10,7 @@ public class ErrorComponent {
 
     public static final String DUPLICATE_SKU_ERROR_CODE = "DUPLICATE_SKU_CODE";
 
-    public static final String NOT_ENOUGH_STOCK_ERROR_CODE = "NOT_ENOUGH_STOCK_ERROR_CODE";
+    public static final String NOT_ENOUGH_ITEM_ERROR_CODE = "NOT_ENOUGH_ITEM_ERROR_CODE";
 
     public static final String somethingWentWrongMsg = "Sorry, something went wrong.";
 

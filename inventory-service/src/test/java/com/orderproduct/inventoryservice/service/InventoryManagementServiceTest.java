@@ -11,9 +11,9 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.NotFoundException;
+import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;

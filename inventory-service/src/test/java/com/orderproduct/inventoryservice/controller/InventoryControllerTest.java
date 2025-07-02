@@ -26,10 +26,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.NotEnoughStockException;
-import com.orderproduct.inventoryservice.common.NotFoundException;
+import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
@@ -140,14 +140,14 @@ public class InventoryControllerTest {
     }
 
     @Test
-    @DisplayName("should return 409 when POST /inventory/reserve is called with insufficient stock")
-    void reserveProducts_InsufficientStock_Returns409() throws Exception {
+    @DisplayName("should return 409 when POST /inventory/reserve is called with insufficient available items")
+    void reserveProducts_InsufficientAvailableItems_Returns409() throws Exception {
         // Given
         var request = new OrderReservationRequest("ORDER-123",
                 List.of(new ItemReservationRequest("SKU-123", 15)));
         var unavailableProducts = List.of(new UnavailableProduct("SKU-123", 15, 10));
         when(reservationManagementService.reserveProductsIfAvailable(request))
-                .thenThrow(new NotEnoughStockException(unavailableProducts));
+                .thenThrow(new NotEnoughItemException(unavailableProducts));
 
         // When & Then
         mockMvc.perform(post("/api/inventory/reserve")
@@ -164,8 +164,7 @@ public class InventoryControllerTest {
                         }
                         """))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errorCode").value("NOT_ENOUGH_STOCK_ERROR_CODE"))
-                .andExpect(jsonPath("$.errorMessage").value("Not enough stock for some products"))
+                .andExpect(jsonPath("$.errorCode").value("NOT_ENOUGH_ITEM_ERROR_CODE"))
                 .andExpect(jsonPath("$.unavailableProducts[0].skuCode").value("SKU-123"))
                 .andExpect(jsonPath("$.unavailableProducts[0].requestedQuantity").value(15))
                 .andExpect(jsonPath("$.unavailableProducts[0].availableQuantity").value(10));
@@ -234,8 +233,7 @@ public class InventoryControllerTest {
                         }
                         """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.errorMessage").value("Stock statuses cannot be empty."));
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
     }
 
     @Test

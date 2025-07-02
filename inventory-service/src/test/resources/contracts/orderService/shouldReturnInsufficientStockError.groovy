@@ -4,15 +4,15 @@ package contracts.orderService
 import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
-    description 'should return insufficient stock error when requested quantity exceeds available'
+        description 'should return insufficient items error when requested quantity exceeds available'
 
-    request {
-        url '/api/inventory/reserve'
-        method POST()
-        headers {
-            contentType applicationJson()
-        }
-        body([
+        request {
+                url '/api/inventory/reserve'
+                method POST()
+                headers {
+                        contentType applicationJson()
+                }
+                body([
                 'orderNumber': 'ORDER-456',
                 'itemReservationRequests': [
                         [
@@ -21,16 +21,15 @@ Contract.make {
                         ]
                 ]
         ])
-    }
-
-    response {
-        status CONFLICT()
-        headers {
-            contentType applicationJson()
         }
-        body([
-                'errorCode': 'NOT_ENOUGH_STOCK_ERROR_CODE',
-                'errorMessage': 'Not enough stock for some products',
+
+        response {
+                status CONFLICT()
+                headers {
+                        contentType applicationJson()
+                }
+                body([
+                'errorCode': 'NOT_ENOUGH_ITEM_ERROR_CODE',
                 'unavailableProducts': [
                         [
                                 'skuCode': 'iphone_12',
@@ -39,5 +38,5 @@ Contract.make {
                         ]
                 ]
         ])
-    }
+        }
 }

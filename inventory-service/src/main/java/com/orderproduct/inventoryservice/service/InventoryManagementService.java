@@ -3,9 +3,9 @@ package com.orderproduct.inventoryservice.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.orderproduct.inventoryservice.common.DuplicateSkuCodeException;
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.NotFoundException;
+import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;

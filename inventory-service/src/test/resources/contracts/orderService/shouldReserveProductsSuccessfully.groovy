@@ -4,15 +4,15 @@ package contracts.orderService
 import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
-    description 'should reserve products successfully and return available quantities'
+        description 'should reserve products successfully and return available quantities'
 
-    request {
-        url '/api/inventory/reserve'
-        method POST()
-        headers {
-            contentType applicationJson()
-        }
-        body([
+        request {
+                url '/api/inventory/reserve'
+                method POST()
+                headers {
+                        contentType applicationJson()
+                }
+                body([
                 'orderNumber': 'ORDER-123',
                 'itemReservationRequests': [
                         [
@@ -25,14 +25,14 @@ Contract.make {
                         ]
                 ]
         ])
-    }
-
-    response {
-        status OK()
-        headers {
-            contentType applicationJson()
         }
-        body([
+
+        response {
+                status OK()
+                headers {
+                        contentType applicationJson()
+                }
+                body([
                 [
                         'skuCode': 'iphone_12',
                         'quantity': 2
@@ -42,5 +42,5 @@ Contract.make {
                         'quantity': 5
                 ]
         ])
-    }
-} 
+        }
+}

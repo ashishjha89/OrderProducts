@@ -8,8 +8,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.orderproduct.inventoryservice.common.InternalServerException;
-import com.orderproduct.inventoryservice.common.TimeProvider;
+import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.util.TimeProvider;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
@@ -131,7 +131,7 @@ class ReservationService {
 
     private List<String> extractSkuCodes(@NonNull OrderReservationRequest request) {
         return request.itemReservationRequests().stream()
-                .map(stockStatus -> stockStatus.skuCode())
+                .map(requestedItem -> requestedItem.skuCode())
                 .toList();
     }
 
