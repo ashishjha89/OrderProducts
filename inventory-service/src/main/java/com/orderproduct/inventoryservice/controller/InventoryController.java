@@ -19,12 +19,10 @@ import com.orderproduct.inventoryservice.common.exception.ErrorBody;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
-import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.service.InventoryAvailabilityService;
 import com.orderproduct.inventoryservice.service.InventoryManagementService;
-import com.orderproduct.inventoryservice.service.ReservationManagementService;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -35,6 +33,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+// Handles inventory management endpoints: create, delete, and check inventory availability
 @RestController
 @RequestMapping("/api/inventory")
 @Slf4j
@@ -43,8 +42,12 @@ public class InventoryController {
 
         private final InventoryAvailabilityService inventoryAvailabilityService;
         private final InventoryManagementService inventoryManagementService;
-        private final ReservationManagementService reservationManagementService;
 
+        /**
+         * Get available inventory for a list of SKU codes.
+         * Available inventory is calculated as: OnHand - Reserved
+         * Endpoint: GET /api/inventory?skuCode=...
+         */
         @GetMapping
         @ResponseStatus(HttpStatus.OK)
         @ApiResponses(value = {
@@ -63,32 +66,10 @@ public class InventoryController {
                 return inventoryAvailabilityService.getAvailableInventory(skuCode);
         }
 
-        @PostMapping("/reserve")
-        @ResponseStatus(HttpStatus.OK)
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "OK - Products reserved successfully", content = {
-                                        @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = AvailableInventoryResponse.class)))
-                        }),
-                        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input", content = {
-                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
-                        }),
-                        @ApiResponse(responseCode = "409", description = "errorCode:"
-                                        + ErrorComponent.NOT_ENOUGH_ITEM_ERROR_CODE + " errorMessage:"
-                                        + ErrorComponent.notEnoughStockMsg, content = {
-                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
-                                        }),
-                        @ApiResponse(responseCode = "500", description = "errorCode:"
-                                        + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:"
-                                        + ErrorComponent.somethingWentWrongMsg, content = {
-                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
-                                        })
-        })
-        public List<AvailableInventoryResponse> reserveProducts(@Valid @RequestBody OrderReservationRequest request)
-                        throws InternalServerException {
-                log.info("POST:/api/inventory/reserve - Reserving products for order: {}", request.orderNumber());
-                return reservationManagementService.reserveProductsIfAvailable(request);
-        }
-
+        /**
+         * Create a new inventory record for a SKU code.
+         * Endpoint: POST /api/inventory
+         */
         @PostMapping
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "201", description = "Created", content = {
@@ -123,6 +104,10 @@ public class InventoryController {
                                 .body(response);
         }
 
+        /**
+         * Delete an inventory record for a SKU code.
+         * Endpoint: DELETE /api/inventory/{sku-code}
+         */
         @DeleteMapping("/{sku-code}")
         @ResponseStatus(HttpStatus.NO_CONTENT)
         @ApiResponses(value = {

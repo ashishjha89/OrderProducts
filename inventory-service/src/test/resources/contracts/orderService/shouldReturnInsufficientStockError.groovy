@@ -7,7 +7,7 @@ Contract.make {
         description 'should return insufficient items error when requested quantity exceeds available'
 
         request {
-                url '/api/inventory/reserve'
+                url '/api/reservations'
                 method POST()
                 headers {
                         contentType applicationJson()

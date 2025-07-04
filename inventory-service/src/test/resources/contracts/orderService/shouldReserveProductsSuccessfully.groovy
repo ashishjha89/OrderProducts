@@ -7,7 +7,7 @@ Contract.make {
         description 'should reserve products successfully and return available quantities'
 
         request {
-                url '/api/inventory/reserve'
+                url '/api/reservations'
                 method POST()
                 headers {
                         contentType applicationJson()

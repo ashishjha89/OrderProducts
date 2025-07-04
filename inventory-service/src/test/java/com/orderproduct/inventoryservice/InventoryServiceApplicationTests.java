@@ -128,7 +128,7 @@ class InventoryServiceApplicationTests {
         }
 
         @Test
-        @DisplayName("POST:/api/inventory/reserve should return 200 when reserving products successfully")
+        @DisplayName("POST:/api/reservations should return 200 when reserving products successfully")
         void reserveProducts_Success() throws Exception {
                 // Given
                 final var reservationRequest = """
@@ -150,7 +150,7 @@ class InventoryServiceApplicationTests {
                 // Make Api call
                 MvcResult result = mockMvc.perform(
                                 MockMvcRequestBuilders
-                                                .post("/api/inventory/reserve")
+                                                .post("/api/reservations")
                                                 .contentType("application/json")
                                                 .content(reservationRequest))
                                 .andExpect(status().isOk())
@@ -165,19 +165,19 @@ class InventoryServiceApplicationTests {
                 // Assert response contains available quantities before reservation
                 assertEquals(2, response.size());
 
-                // skuCode1: onHands=10, reserved=1, so available=9
+                // skuCode1: onHands=10, reserved=1, requested=5, so available=4
                 var skuCode1Response = response.stream()
                                 .filter(r -> "skuCode1".equals(r.skuCode()))
                                 .findFirst()
                                 .orElseThrow();
-                assertEquals(9, skuCode1Response.quantity());
+                assertEquals(4, skuCode1Response.quantity());
 
-                // skuCode2: onHands=5, reserved=0, so available=5
+                // skuCode2: onHands=5, reserved=0, requested=3, so available=2
                 var skuCode2Response = response.stream()
                                 .filter(r -> "skuCode2".equals(r.skuCode()))
                                 .findFirst()
                                 .orElseThrow();
-                assertEquals(5, skuCode2Response.quantity());
+                assertEquals(2, skuCode2Response.quantity());
 
                 // Verify reservations were created in database
                 final var newReservations = reservationRepository.findByOrderNumberAndSkuCodeIn("ORDER-123",
@@ -200,7 +200,7 @@ class InventoryServiceApplicationTests {
         }
 
         @Test
-        @DisplayName("POST:/api/inventory/reserve should return 409 when insufficient available items")
+        @DisplayName("POST:/api/reservations should return 409 when insufficient available items")
         void reserveProducts_InsufficientItems() throws Exception {
                 // Given - onHands=10, reserved=1, so available=9
                 // But we're requesting 15 which exceeds available quantity
@@ -219,7 +219,7 @@ class InventoryServiceApplicationTests {
                 // Make Api call
                 MvcResult result = mockMvc.perform(
                                 MockMvcRequestBuilders
-                                                .post("/api/inventory/reserve")
+                                                .post("/api/reservations")
                                                 .contentType("application/json")
                                                 .content(reservationRequest))
                                 .andExpect(status().isConflict())

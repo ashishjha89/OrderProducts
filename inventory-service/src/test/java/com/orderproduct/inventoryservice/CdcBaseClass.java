@@ -14,6 +14,7 @@ import com.orderproduct.inventoryservice.common.exception.InternalServerExceptio
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
 import com.orderproduct.inventoryservice.controller.ControllerExceptionHandler;
 import com.orderproduct.inventoryservice.controller.InventoryController;
+import com.orderproduct.inventoryservice.controller.ReservationController;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
@@ -31,6 +32,9 @@ public abstract class CdcBaseClass {
         @Autowired
         private InventoryController inventoryController;
 
+        @Autowired
+        private ReservationController reservationController;
+
         @MockBean
         private InventoryAvailabilityService inventoryAvailabilityService;
 
@@ -42,7 +46,8 @@ public abstract class CdcBaseClass {
 
         @BeforeEach
         public void setup() throws InternalServerException, NotEnoughItemException {
-                RestAssuredMockMvc.standaloneSetup(inventoryController, new ControllerExceptionHandler());
+                RestAssuredMockMvc.standaloneSetup(inventoryController, reservationController,
+                                new ControllerExceptionHandler());
 
                 // Mock for GET /api/inventory
                 // iPhone12 = 5, iPhone13 = 10, iPhone14 = 0
@@ -55,7 +60,7 @@ public abstract class CdcBaseClass {
                                                 new AvailableInventoryResponse("iphone_13", 10),
                                                 new AvailableInventoryResponse("iphone_14", 0)));
 
-                // Mock for successful POST /api/inventory/reserve
+                // Mock for successful POST /api/reservations
                 final var successfulRequest = new OrderReservationRequest("ORDER-123",
                                 List.of(
                                                 new ItemReservationRequest("iphone_12", 3),
@@ -66,7 +71,7 @@ public abstract class CdcBaseClass {
                                                 new AvailableInventoryResponse("iphone_13", 5) // 10 - 5 = 5
                                 ));
 
-                // Mock for failed POST /api/inventory/reserve (insufficient item)
+                // Mock for failed POST /api/reservations (insufficient item)
                 final var failedRequest = new OrderReservationRequest("ORDER-456",
                                 List.of(new ItemReservationRequest("iphone_12", 10)));
                 when(reservationManagementService.reserveProductsIfAvailable(failedRequest))
