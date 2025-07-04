@@ -26,7 +26,7 @@ Before running the service, ensure the following dependencies are set up:
 
 The API documentation is available at:
 ```
-http://localhost:8080/api/inventory/swagger-ui/index.html
+http://localhost:<port-number>/api/inventory/swagger-ui/index.html
 ```
 
 ## Supported Endpoints
