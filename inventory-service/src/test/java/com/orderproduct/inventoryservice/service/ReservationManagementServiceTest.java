@@ -37,8 +37,8 @@ public class ReservationManagementServiceTest {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(
-                                new ItemReservationRequest("skuCode1", 5),
-                                new ItemReservationRequest("skuCode2", 10));
+                                new ItemReservationRequest("skuCode1", 5), // requesting 5
+                                new ItemReservationRequest("skuCode2", 10)); // requesting 10
                 final var request = new OrderReservationRequest(orderNumber, itemRequests);
 
                 final var itemOnHandQuantities = List.of(
@@ -50,8 +50,12 @@ public class ReservationManagementServiceTest {
                                 new ReservedItemQuantity("skuCode2", 5)); // 5 reserved
 
                 final var expectedResponses = List.of(
-                                new AvailableInventoryResponse("skuCode1", 12), // 15 - 3 = 12 available
-                                new AvailableInventoryResponse("skuCode2", 15)); // 20 - 5 = 15 available
+                                // 15 - 3 - 5 = 7 available after reservation (OnHand - Reserved -
+                                // ReservationRequest)
+                                new AvailableInventoryResponse("skuCode1", 7),
+                                // 20 - 5 - 10 = 5 available after reservation (OnHand - Reserved -
+                                // ReservationRequest)
+                                new AvailableInventoryResponse("skuCode2", 5));
 
                 when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(itemOnHandQuantities);
@@ -244,8 +248,10 @@ public class ReservationManagementServiceTest {
                                 new ReservedItemQuantity("skuCode2", 0)); // 0 reserved
 
                 final var expectedResponses = List.of(
-                                new AvailableInventoryResponse("skuCode1", 0), // 0 - 0 = 0 available
-                                new AvailableInventoryResponse("skuCode2", 10)); // 10 - 0 = 10 available
+                                // 0 - 0 = 0 available after reservation
+                                new AvailableInventoryResponse("skuCode1", 0),
+                                // 10 - 10 = 0 available after
+                                new AvailableInventoryResponse("skuCode2", 0));
 
                 when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(itemOnHandQuantities);
