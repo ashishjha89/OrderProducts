@@ -1,4 +1,4 @@
-package com.orderproduct.inventoryservice.service;
+package com.orderproduct.inventoryservice.service.inventory;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatNoException;
@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.sql.SQLException;
 import java.util.List;
 
 import org.hibernate.exception.ConstraintViolationException;
@@ -83,16 +82,16 @@ public class ItemOnHandServiceTest {
         }
 
         @Test
-        @DisplayName("`createInventory()` should throw DuplicateSkuCodeException when repository throws DataIntegrityViolationException")
+        @DisplayName("`createInventory()` should throw DuplicateSkuCodeException when duplicate SKU code is attempted")
         void createInventory_DuplicateSkuCode_ThrowsDuplicateSkuCodeException() {
                 // Given
                 var inventory = Inventory.createInventory("SKU-123", 10);
+                var constraintViolationException = new ConstraintViolationException(
+                                "Duplicate entry", null, "inventory");
+                var dataIntegrityViolationException = new DataIntegrityViolationException("Duplicate entry",
+                                constraintViolationException);
                 when(inventoryRepository.save(inventory))
-                                .thenThrow(
-                                                new DataIntegrityViolationException(
-                                                                "some msg",
-                                                                new ConstraintViolationException("", new SQLException(),
-                                                                                "inventory_pkey")));
+                                .thenThrow(dataIntegrityViolationException);
 
                 // Then
                 assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))

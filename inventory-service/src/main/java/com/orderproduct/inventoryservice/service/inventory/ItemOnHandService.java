@@ -1,11 +1,10 @@
-package com.orderproduct.inventoryservice.service;
+package com.orderproduct.inventoryservice.service.inventory;
 
 import java.util.List;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
@@ -23,13 +22,12 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @AllArgsConstructor
-class ItemOnHandService {
+public class ItemOnHandService {
 
     private final InventoryRepository inventoryRepository;
 
-    @Transactional(readOnly = true)
     @NonNull
-    List<ItemOnHandQuantity> itemAvailabilities(@NonNull List<String> skuCodes) throws InternalServerException {
+    public List<ItemOnHandQuantity> itemAvailabilities(@NonNull List<String> skuCodes) throws InternalServerException {
         log.debug("Fetching item availabilities for {} SKU codes", skuCodes.size());
 
         List<Inventory> availableInventories = getAvailableInventories(skuCodes);
@@ -39,9 +37,8 @@ class ItemOnHandService {
         return result;
     }
 
-    @Transactional
     @NonNull
-    CreateInventoryResponse createInventory(@NonNull Inventory inventory)
+    public CreateInventoryResponse createInventory(@NonNull Inventory inventory)
             throws InternalServerException, DuplicateSkuCodeException {
         log.debug("Creating inventory for SKU: {} with quantity: {}",
                 inventory.getSkuCode(), inventory.getOnHandQuantity());
@@ -53,8 +50,7 @@ class ItemOnHandService {
         return response;
     }
 
-    @Transactional
-    void deleteInventory(@NonNull String skuCode) throws InternalServerException, NotFoundException {
+    public void deleteInventory(@NonNull String skuCode) throws InternalServerException, NotFoundException {
         log.debug("Deleting inventory for SKU: {}", skuCode);
 
         int deletedCount = deleteItem(skuCode);
@@ -128,5 +124,4 @@ class ItemOnHandService {
         log.debug("Mapped {} SKU codes to on-hand quantities", result.size());
         return result;
     }
-
 }

@@ -15,6 +15,8 @@ import com.orderproduct.inventoryservice.common.exception.InternalServerExceptio
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
+import com.orderproduct.inventoryservice.service.reservation.ReservationService;
 
 public class InventoryAvailabilityServiceTest {
 

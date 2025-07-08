@@ -9,6 +9,7 @@ import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
+import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
 
 import lombok.AllArgsConstructor;
 import lombok.NonNull;

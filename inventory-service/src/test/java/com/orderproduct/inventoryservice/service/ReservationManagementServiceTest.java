@@ -22,6 +22,8 @@ import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
+import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
+import com.orderproduct.inventoryservice.service.reservation.ReservationService;
 
 public class ReservationManagementServiceTest {
 
