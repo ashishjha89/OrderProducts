@@ -28,7 +28,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotFoundException;
@@ -52,9 +51,6 @@ public class InventoryControllerTest {
 
         @Autowired
         private InventoryManagementService inventoryManagementService;
-
-        @Autowired
-        private ObjectMapper objectMapper;
 
         @BeforeEach
         void setUp() {
