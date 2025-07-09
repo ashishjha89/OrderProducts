@@ -3,12 +3,12 @@ package com.orderproduct.inventoryservice.service;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -20,8 +20,12 @@ import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
+import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
 import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
+import com.orderproduct.inventoryservice.entity.Reservation;
+import com.orderproduct.inventoryservice.entity.ReservationState;
 import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
 import com.orderproduct.inventoryservice.service.reservation.ReservationService;
 
@@ -52,11 +56,9 @@ public class ReservationManagementServiceTest {
                                 new ReservedItemQuantity("skuCode2", 5)); // 5 reserved
 
                 final var expectedResponses = List.of(
-                                // 15 - 3 - 5 = 7 available after reservation (OnHand - Reserved -
-                                // ReservationRequest)
+                                // 15 - 3 - 5 = 7 available after reservation
                                 new AvailableInventoryResponse("skuCode1", 7),
-                                // 20 - 5 - 10 = 5 available after reservation (OnHand - Reserved -
-                                // ReservationRequest)
+                                // 20 - 5 - 10 = 5 available after reservation
                                 new AvailableInventoryResponse("skuCode2", 5));
 
                 when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
@@ -169,7 +171,7 @@ public class ReservationManagementServiceTest {
                                 new ItemReservationRequest("skuCode2", 10));
                 final var request = new OrderReservationRequest(orderNumber, itemRequests);
 
-                when(itemOnHandService.itemAvailabilities(any()))
+                when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
                                 .thenThrow(new InternalServerException());
 
                 // Then
@@ -191,9 +193,9 @@ public class ReservationManagementServiceTest {
                                 new ItemOnHandQuantity("skuCode1", 15),
                                 new ItemOnHandQuantity("skuCode2", 20));
 
-                when(itemOnHandService.itemAvailabilities(any()))
+                when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(itemOnHandQuantities);
-                when(reservationService.findPendingReservedQuantities(any()))
+                when(reservationService.findPendingReservedQuantities(List.of("skuCode1", "skuCode2")))
                                 .thenThrow(new InternalServerException());
 
                 // Then
@@ -219,9 +221,9 @@ public class ReservationManagementServiceTest {
                                 new ReservedItemQuantity("skuCode1", 3),
                                 new ReservedItemQuantity("skuCode2", 5));
 
-                when(itemOnHandService.itemAvailabilities(any()))
+                when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(itemOnHandQuantities);
-                when(reservationService.findPendingReservedQuantities(any()))
+                when(reservationService.findPendingReservedQuantities(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(reservedQuantities);
                 doThrow(new InternalServerException()).when(reservationService).reserveProducts(request);
 
@@ -304,5 +306,93 @@ public class ReservationManagementServiceTest {
                 // Then
                 assertEquals(expectedResponses, result);
                 verify(reservationService).reserveProducts(request);
+        }
+
+        @Test
+        @DisplayName("`updateReservationState()` should successfully update reservation state and return response")
+        public void updateReservationState_SuccessfulUpdate_ReturnsResponse() throws InternalServerException {
+                // Given
+                final var currentTime = LocalDateTime.now();
+                final var orderNumber = "ORDER-001";
+                final var skuCodes = List.of("skuCode1", "skuCode2");
+                final var newState = ReservationState.FULFILLED;
+                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+
+                final var updatedReservations = List.of(
+                                Reservation.builder()
+                                                .id(1L)
+                                                .orderNumber(orderNumber)
+                                                .skuCode("skuCode1")
+                                                .reservedQuantity(5)
+                                                .reservedAt(currentTime.minusHours(1))
+                                                .status(newState)
+                                                .build(),
+                                Reservation.builder()
+                                                .id(2L)
+                                                .orderNumber(orderNumber)
+                                                .skuCode("skuCode2")
+                                                .reservedQuantity(10)
+                                                .reservedAt(currentTime.minusHours(1))
+                                                .status(newState)
+                                                .build());
+
+                final var expectedResponse = new ReservationStateUpdateResponse(
+                                orderNumber,
+                                newState,
+                                List.of(
+                                                new ReservationStateUpdateResponse.ReservationItemResponse("skuCode1",
+                                                                5, newState),
+                                                new ReservationStateUpdateResponse.ReservationItemResponse("skuCode2",
+                                                                10, newState)));
+
+                when(reservationService.updateReservationState(request)).thenReturn(updatedReservations);
+
+                // When
+                ReservationStateUpdateResponse result = reservationManagementService.updateReservationState(request);
+
+                // Then
+                assertEquals(expectedResponse, result);
+                verify(reservationService).updateReservationState(request);
+        }
+
+        @Test
+        @DisplayName("`updateReservationState()` should handle empty result when no reservations found")
+        public void updateReservationState_NoReservationsFound_ReturnsEmptyResponse() throws InternalServerException {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var skuCodes = List.of("skuCode1", "skuCode2");
+                final var newState = ReservationState.CANCELLED;
+                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+
+                final var expectedResponse = new ReservationStateUpdateResponse(
+                                orderNumber,
+                                newState,
+                                List.of());
+
+                when(reservationService.updateReservationState(request)).thenReturn(List.of());
+
+                // When
+                ReservationStateUpdateResponse result = reservationManagementService.updateReservationState(request);
+
+                // Then
+                assertEquals(expectedResponse, result);
+                verify(reservationService).updateReservationState(request);
+        }
+
+        @Test
+        @DisplayName("`updateReservationState()` should throw InternalServerException when ReservationService throws error")
+        public void updateReservationState_ReservationServiceError_ThrowsInternalServerException() {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var skuCodes = List.of("skuCode1", "skuCode2");
+                final var newState = ReservationState.FULFILLED;
+                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+
+                when(reservationService.updateReservationState(request))
+                                .thenThrow(new InternalServerException());
+
+                // Then
+                assertThrows(InternalServerException.class,
+                                () -> reservationManagementService.updateReservationState(request));
         }
 }

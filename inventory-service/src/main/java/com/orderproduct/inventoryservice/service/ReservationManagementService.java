@@ -12,8 +12,11 @@ import com.orderproduct.inventoryservice.common.util.InventoryCalculationUtils;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
+import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
 import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
+import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
 import com.orderproduct.inventoryservice.service.reservation.ReservationService;
 
@@ -88,6 +91,29 @@ public class ReservationManagementService {
                 return request.itemReservationRequests().stream()
                                 .map(requestedItem -> requestedItem.skuCode())
                                 .toList();
+        }
+
+        @Transactional
+        public ReservationStateUpdateResponse updateReservationState(ReservationStateUpdateRequest request)
+                        throws InternalServerException {
+                log.info("Updating reservation state to {} for order: {} with {} SKU codes",
+                                request.state(), request.orderNumber(), request.skuCodes().size());
+
+                // Update the reservation state
+                List<Reservation> updatedReservations = reservationService.updateReservationState(request);
+
+                // Transform to response DTO
+                List<ReservationStateUpdateResponse.ReservationItemResponse> updatedItems = updatedReservations.stream()
+                                .map(reservation -> new ReservationStateUpdateResponse.ReservationItemResponse(
+                                                reservation.getSkuCode(),
+                                                reservation.getReservedQuantity(),
+                                                reservation.getStatus()))
+                                .toList();
+
+                return new ReservationStateUpdateResponse(
+                                request.orderNumber(),
+                                request.state(),
+                                updatedItems);
         }
 
         private Map<String, Integer> skuCodeToOnHandsQuantityMap(List<String> skuCodes)

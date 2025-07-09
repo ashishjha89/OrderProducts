@@ -3,7 +3,9 @@ package com.orderproduct.inventoryservice.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -13,7 +15,9 @@ import com.orderproduct.inventoryservice.common.exception.ErrorBody;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
+import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
 import com.orderproduct.inventoryservice.service.ReservationManagementService;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -62,5 +66,40 @@ public class ReservationController {
                         throws InternalServerException {
                 log.info("POST:/api/reservations - Reserving products for order: {}", request.orderNumber());
                 return reservationManagementService.reserveProductsIfAvailable(request);
+        }
+
+        /**
+         * Update reservation state for an order.
+         * Endpoint: PUT /api/reservations/{orderNumber}/state
+         */
+        @PutMapping("/{orderNumber}/state")
+        @ResponseStatus(HttpStatus.OK)
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "OK - Reservation state updated successfully", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ReservationStateUpdateResponse.class))
+                        }),
+                        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                        }),
+                        @ApiResponse(responseCode = "404", description = "Not Found - Reservations not found", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                        }),
+                        @ApiResponse(responseCode = "500", description = "Internal Server Error", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                        })
+        })
+        public ReservationStateUpdateResponse updateReservationState(
+                        @PathVariable String orderNumber,
+                        @Valid @RequestBody ReservationStateUpdateRequest request) throws InternalServerException {
+                log.info("PUT:/api/reservations/{}/state - Updating reservation state to: {}", orderNumber,
+                                request.state());
+
+                // Validate that orderNumber in path matches the one in request
+                if (!orderNumber.equals(request.orderNumber())) {
+                        throw new IllegalArgumentException(
+                                        "Order number in path must match order number in request body");
+                }
+
+                return reservationManagementService.updateReservationState(request);
         }
 }

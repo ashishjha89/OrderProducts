@@ -29,9 +29,11 @@ public class ReservationServiceFindPendingReservationsTest {
                         reservationRepository);
         private final ReservationBuilder reservationBuilder = new ReservationBuilder(reservationRepository,
                         timeProvider);
+        private final ReservationStateManager reservationStateManager = new ReservationStateManager(
+                        reservationRepository);
 
         private final ReservationService reservationService = new ReservationService(reservationRepository,
-                        reservedQuantityService, reservationBuilder);
+                        reservedQuantityService, reservationBuilder, reservationStateManager);
 
         @Test
         @DisplayName("`findPendingReservedQuantities()` should return `List<ReservedItemQuantity>` for passed skuCodes")

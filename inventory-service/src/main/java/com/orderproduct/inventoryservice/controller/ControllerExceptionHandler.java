@@ -45,4 +45,11 @@ public class ControllerExceptionHandler {
                 HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorBody> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ResponseEntity<>(
+                new ErrorBody(ErrorComponent.BAD_REQUEST_ERROR_CODE, ex.getMessage()),
+                HttpStatus.BAD_REQUEST);
+    }
+
 }

@@ -83,17 +83,21 @@ class ReservationBuilder {
             @Nullable Reservation reservation) {
         if (reservation == null) {
             log.debug("Creating new reservation for SKU: {} in order: {}", skuCode, orderNumber);
-            reservation = Reservation.builder()
+            return Reservation.builder()
                     .orderNumber(orderNumber)
                     .skuCode(skuCode)
+                    .reservedQuantity(quantityToReserve)
+                    .reservedAt(timeProvider.getCurrentTimestamp())
+                    .status(ReservationState.PENDING)
                     .build();
         } else {
             log.debug("Updating existing reservation for SKU: {} in order: {}", skuCode, orderNumber);
+            return reservation.toBuilder()
+                    .reservedQuantity(quantityToReserve)
+                    .reservedAt(timeProvider.getCurrentTimestamp())
+                    .status(ReservationState.PENDING)
+                    .build();
         }
-        reservation.setReservedQuantity(quantityToReserve);
-        reservation.setReservedAt(timeProvider.getCurrentTimestamp());
-        reservation.setStatus(ReservationState.PENDING);
-        return reservation;
     }
 
     @Nullable

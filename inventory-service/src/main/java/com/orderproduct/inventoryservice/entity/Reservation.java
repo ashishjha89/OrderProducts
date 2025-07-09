@@ -30,7 +30,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class Reservation {
 
         @Id
@@ -70,8 +70,3 @@ public class Reservation {
         }
 
 }
-
-                                
-                                
-                                
-                                

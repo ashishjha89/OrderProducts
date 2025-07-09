@@ -3,6 +3,7 @@ package com.orderproduct.inventoryservice.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,8 +23,11 @@ import com.orderproduct.inventoryservice.common.exception.InternalServerExceptio
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
+import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
 import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
+import com.orderproduct.inventoryservice.entity.ReservationState;
 import com.orderproduct.inventoryservice.service.ReservationManagementService;
 
 @WebMvcTest(ReservationController.class)
@@ -121,6 +125,100 @@ class ReservationControllerTest {
 
                 // When & Then
                 mockMvc.perform(post("/api/reservations")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(invalidRequest))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("PUT /api/reservations/{orderNumber}/state should update reservation state successfully")
+        public void updateReservationState_Success() throws Exception {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var skuCodes = List.of("skuCode1", "skuCode2");
+                final var newState = ReservationState.FULFILLED;
+                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+
+                final var expectedResponse = new ReservationStateUpdateResponse(
+                                orderNumber,
+                                newState,
+                                List.of(
+                                                new ReservationStateUpdateResponse.ReservationItemResponse("skuCode1",
+                                                                5, newState),
+                                                new ReservationStateUpdateResponse.ReservationItemResponse("skuCode2",
+                                                                10, newState)));
+
+                when(reservationManagementService.updateReservationState(any(ReservationStateUpdateRequest.class)))
+                                .thenReturn(expectedResponse);
+
+                // When & Then
+                mockMvc.perform(put("/api/reservations/{orderNumber}/state", orderNumber)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$.orderNumber").value(orderNumber))
+                                .andExpect(jsonPath("$.state").value(newState.toString()))
+                                .andExpect(jsonPath("$.updatedItems").isArray())
+                                .andExpect(jsonPath("$.updatedItems[0].skuCode").value("skuCode1"))
+                                .andExpect(jsonPath("$.updatedItems[0].reservedQuantity").value(5))
+                                .andExpect(jsonPath("$.updatedItems[0].status").value(newState.toString()))
+                                .andExpect(jsonPath("$.updatedItems[1].skuCode").value("skuCode2"))
+                                .andExpect(jsonPath("$.updatedItems[1].reservedQuantity").value(10))
+                                .andExpect(jsonPath("$.updatedItems[1].status").value(newState.toString()));
+        }
+
+        @Test
+        @DisplayName("PUT /api/reservations/{orderNumber}/state should return 400 when order number mismatch")
+        public void updateReservationState_OrderNumberMismatch_Returns400() throws Exception {
+                // Given
+                final var pathOrderNumber = "ORDER-001";
+                final var requestOrderNumber = "ORDER-002";
+                final var skuCodes = List.of("skuCode1", "skuCode2");
+                final var newState = ReservationState.FULFILLED;
+                final var request = new ReservationStateUpdateRequest(requestOrderNumber, skuCodes, newState);
+
+                // When & Then
+                mockMvc.perform(put("/api/reservations/{orderNumber}/state", pathOrderNumber)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"))
+                                .andExpect(jsonPath("$.errorMessage")
+                                                .value("Order number in path must match order number in request body"));
+        }
+
+        @Test
+        @DisplayName("PUT /api/reservations/{orderNumber}/state should return 500 when internal server error")
+        public void updateReservationState_InternalServerError_Returns500() throws Exception {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var skuCodes = List.of("skuCode1", "skuCode2");
+                final var newState = ReservationState.CANCELLED;
+                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+
+                when(reservationManagementService.updateReservationState(any(ReservationStateUpdateRequest.class)))
+                                .thenThrow(new InternalServerException());
+
+                // When & Then
+                mockMvc.perform(put("/api/reservations/{orderNumber}/state", orderNumber)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isInternalServerError())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$.errorCode").value("SOMETHING_WENT_WRONG"));
+        }
+
+        @Test
+        @DisplayName("PUT /api/reservations/{orderNumber}/state should return 400 when invalid request")
+        public void updateReservationState_InvalidRequest_Returns400() throws Exception {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var invalidRequest = "{\"orderNumber\":\"\",\"skuCodes\":[],\"state\":\"INVALID_STATE\"}";
+
+                // When & Then
+                mockMvc.perform(put("/api/reservations/{orderNumber}/state", orderNumber)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(invalidRequest))
                                 .andExpect(status().isBadRequest());

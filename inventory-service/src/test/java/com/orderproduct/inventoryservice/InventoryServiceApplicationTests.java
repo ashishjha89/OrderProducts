@@ -30,6 +30,7 @@ import org.testcontainers.utility.DockerImageName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderproduct.inventoryservice.common.exception.ErrorBodyWithUnavailableProducts;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.entity.ReservationState;
@@ -245,6 +246,86 @@ class InventoryServiceApplicationTests {
                 final var newReservations = reservationRepository.findByOrderNumberAndSkuCodeIn("ORDER-456",
                                 List.of("skuCode1"));
                 assertEquals(0, newReservations.size());
+        }
+
+        @Test
+        @DisplayName("PUT:/api/reservations/{orderNumber}/state should return 200 when updating reservation state successfully")
+        void updateReservationState_Success() throws Exception {
+                // Given - we have existing reservations from setup
+                final var orderNumber = "orderNumber1";
+                final var updateRequest = """
+                                {
+                                    "orderNumber": "orderNumber1",
+                                    "skuCodes": ["skuCode1"],
+                                    "state": "FULFILLED"
+                                }
+                                """;
+
+                // Make Api call
+                MvcResult result = mockMvc.perform(
+                                MockMvcRequestBuilders
+                                                .put("/api/reservations/{orderNumber}/state", orderNumber)
+                                                .contentType("application/json")
+                                                .content(updateRequest))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var response = objectMapper.readValue(jsonStr, ReservationStateUpdateResponse.class);
+
+                // Assert response structure
+                assertEquals(orderNumber, response.orderNumber());
+                assertEquals(ReservationState.FULFILLED, response.state());
+                assertEquals(1, response.updatedItems().size());
+
+                // Assert updated item details
+                var updatedItem = response.updatedItems().get(0);
+                assertEquals("skuCode1", updatedItem.skuCode());
+                assertEquals(1, updatedItem.reservedQuantity());
+                assertEquals(ReservationState.FULFILLED, updatedItem.status());
+
+                // Verify reservation was updated in database
+                final var updatedReservations = reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber,
+                                List.of("skuCode1"));
+                assertEquals(1, updatedReservations.size());
+
+                var updatedReservation = updatedReservations.get(0);
+                assertEquals(ReservationState.FULFILLED, updatedReservation.getStatus());
+                assertEquals(1, updatedReservation.getReservedQuantity());
+                assertEquals("skuCode1", updatedReservation.getSkuCode());
+        }
+
+        @Test
+        @DisplayName("PUT:/api/reservations/{orderNumber}/state should return 200 when no reservations found")
+        void updateReservationState_NoReservationsFound() throws Exception {
+                // Given - order number that doesn't exist
+                final var orderNumber = "nonExistentOrder";
+                final var updateRequest = """
+                                {
+                                    "orderNumber": "nonExistentOrder",
+                                    "skuCodes": ["skuCode1", "skuCode2"],
+                                    "state": "CANCELLED"
+                                }
+                                """;
+
+                // Make Api call
+                MvcResult result = mockMvc.perform(
+                                MockMvcRequestBuilders
+                                                .put("/api/reservations/{orderNumber}/state", orderNumber)
+                                                .contentType("application/json")
+                                                .content(updateRequest))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var response = objectMapper.readValue(jsonStr, ReservationStateUpdateResponse.class);
+
+                // Assert response structure
+                assertEquals(orderNumber, response.orderNumber());
+                assertEquals(ReservationState.CANCELLED, response.state());
+                assertEquals(0, response.updatedItems().size()); // No items updated
         }
 
         @Test
