@@ -75,7 +75,6 @@ mvn test
 - Integration with Eureka Discovery Server and Api Gateway
 
 ## Next Steps
-- Add endpoints to update SKU quantities.
 - Add pagination to get all SKUs.
 - Update `application.properties` to make it production-ready.
 - Implement authorizations according to different operations.

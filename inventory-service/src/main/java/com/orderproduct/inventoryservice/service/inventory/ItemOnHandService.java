@@ -11,6 +11,7 @@ import com.orderproduct.inventoryservice.common.exception.InternalServerExceptio
 import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.UpdateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
 
@@ -40,26 +41,28 @@ public class ItemOnHandService {
     @NonNull
     public CreateInventoryResponse createInventory(@NonNull Inventory inventory)
             throws InternalServerException, DuplicateSkuCodeException {
-        log.debug("Creating inventory for SKU: {} with quantity: {}",
-                inventory.getSkuCode(), inventory.getOnHandQuantity());
-
         saveInventory(inventory);
-        CreateInventoryResponse response = CreateInventoryResponse.success(inventory.getSkuCode());
+        return CreateInventoryResponse.success(inventory.getSkuCode());
+    }
 
-        log.debug("Successfully created inventory for SKU: {}", response.skuCode());
-        return response;
+    @NonNull
+    public UpdateInventoryResponse updateInventory(@NonNull String skuCode, int quantity)
+            throws InternalServerException, NotFoundException {
+        int updatedCount = updateItemQuantity(skuCode, quantity);
+        if (updatedCount == 0) {
+            log.warn("No inventory found to update for SKU: {}", skuCode);
+            throw new NotFoundException();
+        }
+
+        return UpdateInventoryResponse.success(skuCode, quantity);
     }
 
     public void deleteInventory(@NonNull String skuCode) throws InternalServerException, NotFoundException {
-        log.debug("Deleting inventory for SKU: {}", skuCode);
-
         int deletedCount = deleteItem(skuCode);
         if (deletedCount == 0) {
             log.warn("No inventory found to delete for SKU: {}", skuCode);
             throw new NotFoundException();
         }
-
-        log.debug("Successfully deleted inventory for SKU: {}", skuCode);
     }
 
     private List<Inventory> getAvailableInventories(List<String> skuCodes) throws InternalServerException {
@@ -95,6 +98,22 @@ public class ItemOnHandService {
                     e.getMessage());
 
             throw new InternalServerException();
+        } catch (Exception e) {
+            log.error("Exception when creating inventory with skuCode:{} and errorMsg:{}", inventory.getSkuCode(),
+                    e.getMessage());
+            throw new InternalServerException();
+        }
+    }
+
+    private int updateItemQuantity(@NonNull String skuCode, int quantity) throws InternalServerException {
+        try {
+            log.debug("Updating inventory quantity for SKU: {} to {}", skuCode, quantity);
+            int result = inventoryRepository.updateQuantityBySkuCode(skuCode, quantity);
+            log.debug("Updated {} inventory records for SKU: {}", result, skuCode);
+            return result;
+        } catch (DataAccessException e) {
+            log.error("Error when updating inventory with skuCode:{} and errorMsg:{}", skuCode, e.getMessage());
+            throw new InternalServerException();
         }
     }
 
@@ -112,8 +131,7 @@ public class ItemOnHandService {
 
     private List<ItemOnHandQuantity> getItemOnHandQuantity(List<String> skuCodes, List<Inventory> inventoryList)
             throws InternalServerException {
-        log.debug("Mapping {} SKU codes to on-hand quantities", skuCodes.size());
-        List<ItemOnHandQuantity> result = skuCodes.stream()
+        return skuCodes.stream()
                 .map(skuCode -> new ItemOnHandQuantity(skuCode,
                         inventoryList.stream()
                                 .filter(inv -> inv.getSkuCode().equals(skuCode))
@@ -121,7 +139,5 @@ public class ItemOnHandService {
                                 .map(Inventory::getOnHandQuantity)
                                 .orElse(0)))
                 .toList();
-        log.debug("Mapped {} SKU codes to on-hand quantities", result.size());
-        return result;
     }
 }

@@ -15,7 +15,9 @@ import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeExcept
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
+import com.orderproduct.inventoryservice.dto.request.UpdateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.UpdateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
 
@@ -69,6 +71,52 @@ public class InventoryManagementServiceTest {
 
                 // Then
                 assertThrows(InternalServerException.class, () -> inventoryManagementService.createInventory(request));
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should successfully update inventory")
+        public void updateInventory_ValidRequest_UpdatesSuccessfully()
+                        throws InternalServerException, NotFoundException {
+                // Given
+                final var request = new UpdateInventoryRequest("skuCode1", 150);
+                final var expectedResponse = UpdateInventoryResponse.success("skuCode1", 150);
+
+                when(itemOnHandService.updateInventory("skuCode1", 150))
+                                .thenReturn(expectedResponse);
+
+                // When
+                UpdateInventoryResponse result = inventoryManagementService.updateInventory(request);
+
+                // Then
+                assertEquals(expectedResponse, result);
+                verify(itemOnHandService).updateInventory("skuCode1", 150);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw NotFoundException when ItemOnHandService throws it")
+        public void updateInventory_NonExistentSkuCode_ThrowsNotFoundException() {
+                // Given
+                final var request = new UpdateInventoryRequest("nonExistentSku", 50);
+
+                doThrow(new NotFoundException())
+                                .when(itemOnHandService).updateInventory("nonExistentSku", 50);
+
+                // When & Then
+                assertThrows(NotFoundException.class, () -> inventoryManagementService.updateInventory(request));
+                verify(itemOnHandService).updateInventory("nonExistentSku", 50);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw InternalServerException when ItemOnHandService throws it")
+        public void updateInventory_ItemOnHandServiceError_ThrowsInternalServerException() {
+                // Given
+                final var request = new UpdateInventoryRequest("skuCode1", 150);
+
+                doThrow(new InternalServerException())
+                                .when(itemOnHandService).updateInventory("skuCode1", 150);
+
+                // Then
+                assertThrows(InternalServerException.class, () -> inventoryManagementService.updateInventory(request));
         }
 
         @Test

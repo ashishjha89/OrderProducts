@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,8 +20,10 @@ import com.orderproduct.inventoryservice.common.exception.ErrorBody;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.dto.request.CreateInventoryRequest;
+import com.orderproduct.inventoryservice.dto.request.UpdateInventoryRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.UpdateInventoryResponse;
 import com.orderproduct.inventoryservice.service.InventoryAvailabilityService;
 import com.orderproduct.inventoryservice.service.InventoryManagementService;
 
@@ -102,6 +105,36 @@ public class InventoryController {
                 return ResponseEntity
                                 .created(location)
                                 .body(response);
+        }
+
+        /**
+         * Update an inventory record for a SKU code.
+         * Endpoint: PUT /api/inventory/{sku-code}
+         */
+        @PutMapping("/{sku-code}")
+        @ResponseStatus(HttpStatus.OK)
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "OK - Updated successfully", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = UpdateInventoryResponse.class))
+                        }),
+                        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input", content = {
+                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                        }),
+                        @ApiResponse(responseCode = "404", description = "errorCode:"
+                                        + ErrorComponent.NOT_FOUND_ERROR_CODE + " errorMessage:"
+                                        + ErrorComponent.notFoundMsg, content = {
+                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                                        }),
+                        @ApiResponse(responseCode = "500", description = "errorCode:"
+                                        + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:"
+                                        + ErrorComponent.somethingWentWrongMsg, content = {
+                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                                        })
+        })
+        public UpdateInventoryResponse updateInventory(@PathVariable("sku-code") String skuCode,
+                        @Valid @RequestBody UpdateInventoryRequest request) throws InternalServerException {
+                log.info("PUT:/api/inventory/{} - Updating inventory with quantity: {}", skuCode, request.quantity());
+                return inventoryManagementService.updateInventory(request);
         }
 
         /**

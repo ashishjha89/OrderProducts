@@ -22,6 +22,7 @@ import com.orderproduct.inventoryservice.common.exception.InternalServerExceptio
 import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.UpdateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
 
@@ -126,6 +127,44 @@ public class ItemOnHandServiceTest {
 
                 // Then
                 assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should return UpdateInventoryResponse when inventory is updated")
+        void updateInventory_ValidSkuCodeAndQuantity_ReturnsSuccessResponse() throws Exception {
+                // Given
+                when(inventoryRepository.updateQuantityBySkuCode("SKU-123", 50)).thenReturn(1);
+
+                // When
+                UpdateInventoryResponse response = itemOnHandService.updateInventory("SKU-123", 50);
+
+                // Then
+                assertThat(response.skuCode()).isEqualTo("SKU-123");
+                assertThat(response.quantity()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw NotFoundException when inventory does not exist")
+        void updateInventory_NonExistentSkuCode_ThrowsNotFoundException() {
+                // Given
+                when(inventoryRepository.updateQuantityBySkuCode("NON-EXISTENT", 50)).thenReturn(0);
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.updateInventory("NON-EXISTENT", 50))
+                                .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw InternalServerException when repository throws DataAccessException")
+        void updateInventory_DatabaseError_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.updateQuantityBySkuCode("SKU-123", 50))
+                                .thenThrow(new DataAccessException("Database connection failed") {
+                                });
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.updateInventory("SKU-123", 50))
                                 .isInstanceOf(InternalServerException.class);
         }
 
