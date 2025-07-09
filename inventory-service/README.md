@@ -29,15 +29,6 @@ The API documentation is available at:
 http://localhost:<port-number>/api/inventory/swagger-ui/index.html
 ```
 
-## Supported Endpoints
-
-The service supports the following REST endpoints:
-
-- **GET** `/api/inventory?skuCode=<code1>&skuCode=<code2>`: Return available quantities for multiple SKUs.
-- **POST** `/api/inventory/reserve`: Reserve multiple items if they are available.
-- **POST** `/api/inventory`: Create new inventory item.
-- **DELETE** `/api/inventory/{sku-code}`: Delete an inventory item.
-
 ## Running the Application
 
 To run the application, use:
