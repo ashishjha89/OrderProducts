@@ -12,7 +12,6 @@ import com.orderproduct.orderservice.dto.InventoryStockStatus;
 import com.orderproduct.orderservice.dto.OrderLineItemsDto;
 import com.orderproduct.orderservice.dto.OrderRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
-import com.orderproduct.orderservice.repository.InventoryStatusRepository;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
@@ -26,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OrderService {
 
     private final OrderTransactionService orderTransactionService;
-    private final InventoryStatusRepository inventoryStatusRepository;
+    private final InventoryStatusService inventoryStatusService;
     private final ObservationRegistry observationRegistry;
 
     @NonNull
@@ -47,7 +46,7 @@ public class OrderService {
         final List<String> skuCodesInOrder = orderRequest.orderLineItemsList().stream()
                 .map(OrderLineItemsDto::skuCode).toList();
         return inventoryServiceObservation()
-                .observe(() -> inventoryStatusRepository.getInventoryAvailabilityFuture(skuCodesInOrder)
+                .observe(() -> inventoryStatusService.getInventoryAvailabilityFuture(skuCodesInOrder)
                         .handle((stocks, exception) -> {
                             if (exception instanceof RuntimeException)
                                 throw (RuntimeException) exception;

@@ -1,4 +1,4 @@
-package com.orderproduct.orderservice.repository;
+package com.orderproduct.orderservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.orderproduct.orderservice.common.InternalServerException;
@@ -12,7 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.codec.DecodingException;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -22,10 +22,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-@Repository
+@Service
 @Slf4j
 @AllArgsConstructor
-public class InventoryStatusRepository {
+public class InventoryStatusService {
 
     private static final String API_PATH = "api/inventory";
     private static final String PARAM_SKU_CODE = "skuCode";

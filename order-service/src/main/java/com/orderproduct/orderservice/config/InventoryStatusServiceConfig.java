@@ -5,16 +5,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.orderproduct.orderservice.repository.InventoryStatusRepository;
+import com.orderproduct.orderservice.service.InventoryStatusService;
 
 @Configuration
-public class InventoryStatusRepoConfig {
+public class InventoryStatusServiceConfig {
 
     @Value("${inventory.api.base-url}")
     private String inventoryApiBaseUrl;
 
     @Bean
-    public InventoryStatusRepository inventoryStatusRepository(WebClient.Builder webClientBuilder) {
-        return new InventoryStatusRepository(webClientBuilder, inventoryApiBaseUrl);
+    public InventoryStatusService inventoryStatusService(WebClient.Builder webClientBuilder) {
+        return new InventoryStatusService(webClientBuilder, inventoryApiBaseUrl);
     }
 }

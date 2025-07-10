@@ -89,7 +89,6 @@ It should show RUNNING.
 
 ## Next Steps
 
-- Implement logic to allow posting order if SKU quantities are in the inventory.
 - Implement logic to manage SKU quantities in the inventory.
 - Use outbox-pattern to ensure that order creation and related updates are atomic.
 - Update `application.properties` to make it production-ready.

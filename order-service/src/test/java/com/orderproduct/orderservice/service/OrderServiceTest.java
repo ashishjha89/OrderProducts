@@ -23,7 +23,6 @@ import com.orderproduct.orderservice.dto.InventoryStockStatus;
 import com.orderproduct.orderservice.dto.OrderLineItemsDto;
 import com.orderproduct.orderservice.dto.OrderRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
-import com.orderproduct.orderservice.repository.InventoryStatusRepository;
 
 import io.micrometer.observation.ObservationRegistry;
 
@@ -31,13 +30,13 @@ public class OrderServiceTest {
 
         private final OrderTransactionService orderTransactionService = mock(OrderTransactionService.class);
 
-        private final InventoryStatusRepository inventoryStatusRepository = mock(InventoryStatusRepository.class);
+        private final InventoryStatusService inventoryStatusService = mock(InventoryStatusService.class);
 
         private final ObservationRegistry observationRegistry = ObservationRegistry.create();
 
         private final OrderService orderService = new OrderService(
                         orderTransactionService,
-                        inventoryStatusRepository,
+                        inventoryStatusService,
                         observationRegistry);
 
         private final String orderNumber = "ThisIsUniqueOrderNumber";
@@ -53,7 +52,7 @@ public class OrderServiceTest {
         public void placeOrder_SavesOrderToRepo_WhenStockIsAvailable() throws InternalServerException,
                         InventoryNotInStockException, ExecutionException, InterruptedException {
                 // Given
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 new InventoryStockStatus("skuCode1", 10),
@@ -77,7 +76,7 @@ public class OrderServiceTest {
         public void placeOrder_ThrowsInventoryNotInStockException_WhenNoneStockWasPresent()
                         throws InternalServerException {
                 // Mock availability of stock
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 // Not available
@@ -93,7 +92,7 @@ public class OrderServiceTest {
         public void placeOrder_ThrowsInventoryNotInStockException_WhenSomeStockIsNotAvailable()
                         throws InternalServerException {
                 // Mock availability of stock
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 // Not available
@@ -109,7 +108,7 @@ public class OrderServiceTest {
         public void placeOrder_ThrowsInventoryNotInStockException_WhenStatusForSomeStockIsMissing()
                         throws InternalServerException {
                 // Mock availability of stock - Note entry for skuCode1 is missing
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 new InventoryStockStatus("skuCode2", 20))));
@@ -121,7 +120,7 @@ public class OrderServiceTest {
         @DisplayName("`placeOrder()` forwards InternalServerException from InventoryStatusRepository")
         public void placeOrder_ForwardsInternalServerException_FromInventoryStatusRepository()
                         throws InternalServerException {
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(CompletableFuture.failedFuture(new InternalServerException()));
                 // Assert
                 assertInternalServerExceptionIsThrown();
@@ -131,7 +130,7 @@ public class OrderServiceTest {
         @DisplayName("`placeOrder()` forwards InvalidInventoryException from InventoryStatusRepository")
         public void placeOrder_ForwardsInvalidInventoryException_FromInventoryStatusRepository()
                         throws InvalidInventoryException {
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(CompletableFuture.failedFuture(new InvalidInventoryException()));
                 // Assert
                 assertInvalidInventoryExceptionIsThrown();
@@ -141,7 +140,7 @@ public class OrderServiceTest {
         @DisplayName("`placeOrder()` forwards InvalidInputException from InventoryStatusRepository")
         public void placeOrder_ForwardsInvalidInputException_FromInventoryStatusRepository()
                         throws InvalidInputException {
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(CompletableFuture.failedFuture(new InvalidInputException()));
                 // Assert
                 assertInvalidInputExceptionIsThrown();
@@ -150,7 +149,7 @@ public class OrderServiceTest {
         @Test
         @DisplayName("`placeOrder()` throws InternalServerException when OrderTransactionService throws InternalServerException")
         public void placeOrder_ThrowsInternalServerException_WhenOrderTransactionServiceThrowsError() {
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 new InventoryStockStatus("skuCode1", 10),
@@ -167,7 +166,7 @@ public class OrderServiceTest {
         public void placeOrder_ThrowsInventoryNotInStockException_WhenRequestedQuantityExceedsAvailable()
                         throws InternalServerException {
                 // Mock availability of stock with insufficient quantity
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 // Available: 3, Requested: 10
@@ -183,7 +182,7 @@ public class OrderServiceTest {
         public void placeOrder_ThrowsInventoryNotInStockException_WhenAnyItemHasZeroQuantity()
                         throws InternalServerException {
                 // Mock availability of stock with zero quantity
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 // Available:0, Requested: 10
@@ -198,7 +197,7 @@ public class OrderServiceTest {
         @DisplayName("`placeOrder()` succeeds when all items have sufficient quantity")
         public void placeOrder_Succeeds_WhenAllItemsHaveSufficientQuantity() throws InternalServerException,
                         InventoryNotInStockException, ExecutionException, InterruptedException {
-                when(inventoryStatusRepository.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
                                                                 // Available:20, Requested: 10
