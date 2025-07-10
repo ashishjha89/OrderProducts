@@ -4,6 +4,14 @@
 
 This is a Spring MVC project designed to manage orders with thorough unit and integration tests.
 
+## Running the Application
+
+To run the application, use:
+
+```bash
+mvn spring-boot:run
+```
+
 ## Prerequisites
 
 Before running the service, ensure the following dependencies are set up:
@@ -30,14 +38,6 @@ The API documentation is available at:
 
 ```
 http://localhost:8080/api/order/swagger-ui/index.html
-```
-
-## Running the Application
-
-To run the application, use:
-
-```bash
-mvn spring-boot:run
 ```
 
 ## Supported Endpoints

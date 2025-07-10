@@ -3,6 +3,7 @@ package com.orderproduct.orderservice.service;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import com.orderproduct.orderservice.common.InternalServerException;
@@ -31,8 +32,8 @@ public class OrderService {
     @NonNull
     public CompletableFuture<SavedOrder> placeOrder(
             @NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
-        return isAnyLineItemMissing(orderRequest).thenCompose(isAnyLineItemMissing -> {
-            if (isAnyLineItemMissing) {
+        return isAnyLineItemMissing(orderRequest).thenCompose(isMissing -> {
+            if (isMissing) {
                 log.info("InventoryNotInStock orderRequest:{}", orderRequest);
                 return CompletableFuture.failedFuture(new InventoryNotInStockException());
             }
@@ -43,36 +44,35 @@ public class OrderService {
 
     private CompletableFuture<Boolean> isAnyLineItemMissing(
             @NonNull OrderRequest orderRequest) throws InternalServerException {
-        final List<String> skuCodesInOrder = orderRequest.orderLineItemsList().stream().map(OrderLineItemsDto::skuCode)
-                .toList();
-        final Observation inventoryServiceObservation = Observation.createNotStarted(
-                "inventory-service-lookup",
-                this.observationRegistry);
-        inventoryServiceObservation.lowCardinalityKeyValue("call", "inventory-service");
-        return inventoryServiceObservation.observe(() -> inventoryStatusRepository
-                .getInventoryAvailabilityFuture(skuCodesInOrder)
-                .handle((stocksStatus, exception) -> {
-                    if (exception instanceof RuntimeException)
-                        throw (RuntimeException) exception;
-                    if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocksStatus)) {
-                        log.error("StockStatus not returned for all LineItems in Order");
-                        throw new InternalServerException();
-                    }
-                    return orderRequest.orderLineItemsList().stream()
-                            .anyMatch(orderRequestItem -> {
-                                InventoryStockStatus stockStatus = stocksStatus.stream()
-                                        .filter(status -> status.skuCode().equals(orderRequestItem.skuCode()))
-                                        .findFirst()
-                                        .orElseThrow(() -> new InternalServerException());
-                                boolean insufficientQuantity = stockStatus.quantity() < orderRequestItem.quantity();
-                                if (insufficientQuantity) {
-                                    log.info("Insufficient quantity for skuCode:{} - Available:{}, Requested:{}",
-                                            orderRequestItem.skuCode(), stockStatus.quantity(),
-                                            orderRequestItem.quantity());
-                                }
-                                return insufficientQuantity;
-                            });
-                }));
+        final List<String> skuCodesInOrder = orderRequest.orderLineItemsList().stream()
+                .map(OrderLineItemsDto::skuCode).toList();
+        return inventoryServiceObservation()
+                .observe(() -> inventoryStatusRepository.getInventoryAvailabilityFuture(skuCodesInOrder)
+                        .handle((stocks, exception) -> {
+                            if (exception instanceof RuntimeException)
+                                throw (RuntimeException) exception;
+                            if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocks)) {
+                                log.error("StockStatus not returned for all LineItems in Order");
+                                throw new InternalServerException();
+                            }
+                            return orderRequest.orderLineItemsList().stream()
+                                    .anyMatch(requestedItem -> {
+                                        String skuCode = requestedItem.skuCode();
+                                        InventoryStockStatus stock = findStock(skuCode, stocks);
+                                        if (stock == null) {
+                                            throw new InternalServerException();
+                                        }
+                                        int availableQuantity = stock.quantity();
+                                        int requestedQuantity = requestedItem.quantity();
+                                        boolean insufficientQuantity = availableQuantity < requestedQuantity;
+                                        if (insufficientQuantity) {
+                                            log.info(
+                                                    "Insufficient quantity for skuCode:{} - Available:{}, Requested:{}",
+                                                    skuCode, availableQuantity, requestedQuantity);
+                                        }
+                                        return insufficientQuantity;
+                                    });
+                        }));
     }
 
     private boolean isStockAvailableForAllSkuCodes(List<String> skuCodeList,
@@ -82,6 +82,22 @@ public class OrderService {
 
     private boolean isStockStatusAvailable(String skuCode, List<InventoryStockStatus> stockStatusList) {
         return stockStatusList.stream().anyMatch(stockStatus -> stockStatus.skuCode().equals(skuCode));
+    }
+
+    @Nullable
+    private InventoryStockStatus findStock(String skuCode, List<InventoryStockStatus> stockStatusList) {
+        return stockStatusList.stream()
+                .filter(stockStatus -> stockStatus.skuCode().equals(skuCode))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Observation inventoryServiceObservation() {
+        final Observation inventoryServiceObservation = Observation.createNotStarted(
+                "inventory-service-lookup",
+                this.observationRegistry);
+        inventoryServiceObservation.lowCardinalityKeyValue("call", "inventory-service");
+        return inventoryServiceObservation;
     }
 
 }

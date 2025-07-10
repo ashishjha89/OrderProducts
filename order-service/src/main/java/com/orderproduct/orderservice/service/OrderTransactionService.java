@@ -2,7 +2,6 @@ package com.orderproduct.orderservice.service;
 
 import java.util.List;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @AllArgsConstructor
-public class OrderTransactionService {
+class OrderTransactionService {
 
     private final OrderDataGenerator orderDataGenerator;
     private final OrderRepository orderRepository;
@@ -35,15 +34,15 @@ public class OrderTransactionService {
     // TODO: Implement thread pool for order placement.
 
     @Transactional
-    public SavedOrder executeTransactionalOrderPlacement(@NonNull OrderRequest orderRequest)
+    SavedOrder executeTransactionalOrderPlacement(@NonNull OrderRequest orderRequest)
             throws InternalServerException {
-        Order order = getOrder(orderRequest);
+        Order order = buildOrder(orderRequest);
         SavedOrder savedOrder = saveOrder(order);
         saveOrderPlacedEventToOutbox(savedOrder);
         return savedOrder;
     }
 
-    private Order getOrder(OrderRequest orderRequest) {
+    private Order buildOrder(OrderRequest orderRequest) {
         Order order = Order.builder()
                 .orderNumber(orderDataGenerator.getUniqueOrderNumber())
                 .build();
@@ -56,10 +55,11 @@ public class OrderTransactionService {
 
     private SavedOrder saveOrder(Order order) throws InternalServerException {
         try {
+            log.debug("Saving Order id:{} orderNumber:{}", order.getId(), order.getOrderNumber());
             Order savedOrder = orderRepository.save(order);
             log.debug("Order is saved Id:{} orderNumber:{}", savedOrder.getId(), savedOrder.getOrderNumber());
             return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
-        } catch (DataAccessException e) {
+        } catch (Exception e) {
             log.error("Error when saving Order:{}", e.getMessage());
             throw new InternalServerException();
         }
@@ -77,6 +77,7 @@ public class OrderTransactionService {
                     .payload(payload)
                     .createdAt(orderDataGenerator.getCurrentTimestamp())
                     .build();
+            log.debug("Saving OrderPlacedEvent to outbox for orderNumber:{}", savedOrder.orderNumber());
             outboxEventRepository.save(outboxEvent);
             log.debug("OrderPlacedEvent saved to outbox for orderNumber:{}", savedOrder.orderNumber());
         } catch (Exception ex) {

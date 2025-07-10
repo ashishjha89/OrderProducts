@@ -5,6 +5,14 @@
 This is a Spring MVC project designed to manage product inventory.
 This service is intended for internal use only and is not exposed through the API Gateway.
 
+## Running the Application
+
+To run the application, use:
+
+```bash
+mvn spring-boot:run
+```
+
 ## Prerequisites
 
 Before running the service, ensure the following dependencies are set up:
@@ -29,13 +37,19 @@ The API documentation is available at:
 http://localhost:<port-number>/api/inventory/swagger-ui/index.html
 ```
 
-## Running the Application
+## Supported Endpoints
 
-To run the application, use:
+The service supports the following REST endpoints:
 
-```bash
-mvn spring-boot:run
-```
+### /inventory endpoints:
+- **GET** `/api/inventory?skuCode=<skuCode1>,<skuCode2>`: Get available inventory for a list of SKU codes.
+- **POST** `/api/inventory`: Create a new inventory record for a SKU code.
+- **PUT** `/api/inventory/{sku-code}`: Update an inventory record for a SKU code.
+- **DELETE** `/api/inventory/{sku-code}`: Delete an inventory record for a SKU code.
+
+### /reservations endpoints:
+- **POST** `/api/reservations`: Reserve products for an order if available.
+- **PUT** `/api/reservations/{orderNumber}/state`: Update reservation state for an order.
 
 ## Testing
 
