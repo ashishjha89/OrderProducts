@@ -18,9 +18,9 @@ Contract.make {
         }
         body([
                 ['skuCode'  : 'iphone_12',
-                 'quantity': 5],
+                 'availableQuantity': 5],
                 ['skuCode'  : 'iphone_13',
-                 'quantity': 10]
+                 'availableQuantity': 10]
         ])
     }
 }

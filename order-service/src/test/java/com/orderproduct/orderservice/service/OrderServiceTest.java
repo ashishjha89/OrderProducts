@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,9 +20,11 @@ import com.orderproduct.orderservice.common.InternalServerException;
 import com.orderproduct.orderservice.common.InvalidInputException;
 import com.orderproduct.orderservice.common.InvalidInventoryException;
 import com.orderproduct.orderservice.common.InventoryNotInStockException;
-import com.orderproduct.orderservice.dto.InventoryStockStatus;
+import com.orderproduct.orderservice.dto.InventoryAvailabilityStatus;
+import com.orderproduct.orderservice.dto.ItemReservationRequest;
 import com.orderproduct.orderservice.dto.OrderLineItemsDto;
 import com.orderproduct.orderservice.dto.OrderRequest;
+import com.orderproduct.orderservice.dto.OrderReservationRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
 
 import io.micrometer.observation.ObservationRegistry;
@@ -30,14 +33,17 @@ public class OrderServiceTest {
 
         private final OrderTransactionService orderTransactionService = mock(OrderTransactionService.class);
 
-        private final InventoryStatusService inventoryStatusService = mock(InventoryStatusService.class);
+        private final InventoryReservationService inventoryReservationService = mock(InventoryReservationService.class);
 
         private final ObservationRegistry observationRegistry = ObservationRegistry.create();
 
+        private final OrderDataGenerator orderDataGenerator = mock(OrderDataGenerator.class);
+
         private final OrderService orderService = new OrderService(
                         orderTransactionService,
-                        inventoryStatusService,
-                        observationRegistry);
+                        inventoryReservationService,
+                        observationRegistry,
+                        orderDataGenerator);
 
         private final String orderNumber = "ThisIsUniqueOrderNumber";
 
@@ -47,114 +53,116 @@ public class OrderServiceTest {
 
         private final OrderRequest orderRequest = new OrderRequest(lineItemDtoList);
 
+        private final List<ItemReservationRequest> itemReservationRequests = List.of(
+                        new ItemReservationRequest("skuCode1", 10),
+                        new ItemReservationRequest("skuCode2", 20));
+
+        private final OrderReservationRequest orderReservationRequest = new OrderReservationRequest(orderNumber,
+                        itemReservationRequests);
+
+        @BeforeEach
+        public void setUp() {
+                when(orderDataGenerator.getUniqueOrderNumber()).thenReturn(orderNumber);
+        }
+
         @Test
-        @DisplayName("`placeOrder()` converts OrderRequest to Order and saves it to repo if all lineItems are available")
-        public void placeOrder_SavesOrderToRepo_WhenStockIsAvailable() throws InternalServerException,
+        @DisplayName("`placeOrder()` converts OrderRequest to Order and saves it to repo when all items have sufficient available quantity")
+        public void placeOrder_Succeeds_WhenAllItemsHaveSufficientAvailableQuantity() throws InternalServerException,
                         InventoryNotInStockException, ExecutionException, InterruptedException {
-                // Given
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
-                                                                new InventoryStockStatus("skuCode1", 10),
-                                                                new InventoryStockStatus("skuCode2", 20))));
+                                                                // Available: 15, Requested: 10
+                                                                new InventoryAvailabilityStatus("skuCode1", 15),
+                                                                // Available: 25, Requested: 20
+                                                                new InventoryAvailabilityStatus("skuCode2", 25))));
 
                 final SavedOrder expectedSavedOrder = new SavedOrder("1", orderNumber);
-                when(orderTransactionService.executeTransactionalOrderPlacement(orderRequest))
-                                .thenReturn(expectedSavedOrder);
+                when(orderTransactionService.saveOrder(orderNumber, orderRequest)).thenReturn(expectedSavedOrder);
 
                 // Call method to test
                 final var savedOrder = orderService.placeOrder(orderRequest).get();
 
                 // Assert value
-                verify(orderTransactionService).executeTransactionalOrderPlacement(orderRequest);
+                verify(orderTransactionService).saveOrder(orderNumber, orderRequest);
                 assertEquals(orderNumber, savedOrder.orderNumber());
                 assertEquals("1", savedOrder.orderId());
         }
 
         @Test
-        @DisplayName("`placeOrder()` throws InventoryNotInStockException if none of the stocks are found")
-        public void placeOrder_ThrowsInventoryNotInStockException_WhenNoneStockWasPresent()
+        @DisplayName("`placeOrder()` forwards InvalidInventoryException if product reservation fails")
+        public void placeOrder_ThrowsInventoryNotInStockException_WhenProductReservationFails()
                         throws InternalServerException {
-                // Mock availability of stock
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
-                                .thenReturn(
-                                                CompletableFuture.completedFuture(List.of(
-                                                                // Not available
-                                                                new InventoryStockStatus("skuCode1", 0),
-                                                                // Not available
-                                                                new InventoryStockStatus("skuCode2", 0))));
+                // Mock product reservation failure
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
+                                .thenReturn(CompletableFuture.failedFuture(new InvalidInventoryException()));
+
                 // Assert
-                assertInventoryNotInStockExceptionIsThrown();
+                assertInvalidInventoryExceptionIsThrown();
         }
 
         @Test
-        @DisplayName("`placeOrder()` throws InventoryNotInStockException if some of the stock was not available")
-        public void placeOrder_ThrowsInventoryNotInStockException_WhenSomeStockIsNotAvailable()
+        @DisplayName("`placeOrder()` forwards InternalServerException from InventoryReservationService")
+        public void placeOrder_ForwardsInternalServerException_FromInventoryReservationService()
                         throws InternalServerException {
-                // Mock availability of stock
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
-                                .thenReturn(
-                                                CompletableFuture.completedFuture(List.of(
-                                                                // Not available
-                                                                new InventoryStockStatus("skuCode1", 0),
-                                                                // Available
-                                                                new InventoryStockStatus("skuCode2", 20))));
-                // Assert
-                assertInventoryNotInStockExceptionIsThrown();
-        }
-
-        @Test
-        @DisplayName("`placeOrder()` throws InternalServerException if some of the stock's entry was not found")
-        public void placeOrder_ThrowsInventoryNotInStockException_WhenStatusForSomeStockIsMissing()
-                        throws InternalServerException {
-                // Mock availability of stock - Note entry for skuCode1 is missing
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
-                                .thenReturn(
-                                                CompletableFuture.completedFuture(List.of(
-                                                                new InventoryStockStatus("skuCode2", 20))));
-                // Assert
-                assertInternalServerExceptionIsThrown();
-        }
-
-        @Test
-        @DisplayName("`placeOrder()` forwards InternalServerException from InventoryStatusRepository")
-        public void placeOrder_ForwardsInternalServerException_FromInventoryStatusRepository()
-                        throws InternalServerException {
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
                                 .thenReturn(CompletableFuture.failedFuture(new InternalServerException()));
                 // Assert
                 assertInternalServerExceptionIsThrown();
         }
 
         @Test
-        @DisplayName("`placeOrder()` forwards InvalidInventoryException from InventoryStatusRepository")
-        public void placeOrder_ForwardsInvalidInventoryException_FromInventoryStatusRepository()
+        @DisplayName("`placeOrder()` forwards InvalidInventoryException from InventoryReservationService")
+        public void placeOrder_ForwardsInvalidInventoryException_FromInventoryReservationService()
                         throws InvalidInventoryException {
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
                                 .thenReturn(CompletableFuture.failedFuture(new InvalidInventoryException()));
                 // Assert
                 assertInvalidInventoryExceptionIsThrown();
         }
 
         @Test
-        @DisplayName("`placeOrder()` forwards InvalidInputException from InventoryStatusRepository")
-        public void placeOrder_ForwardsInvalidInputException_FromInventoryStatusRepository()
+        @DisplayName("`placeOrder()` forwards InvalidInputException from InventoryReservationService")
+        public void placeOrder_ForwardsInvalidInputException_FromInventoryReservationService()
                         throws InvalidInputException {
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
                                 .thenReturn(CompletableFuture.failedFuture(new InvalidInputException()));
                 // Assert
                 assertInvalidInputExceptionIsThrown();
         }
 
         @Test
-        @DisplayName("`placeOrder()` throws InternalServerException when OrderTransactionService throws InternalServerException")
-        public void placeOrder_ThrowsInternalServerException_WhenOrderTransactionServiceThrowsError() {
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+        @DisplayName("`placeOrder()` forwards InventoryNotInStockException from InventoryReservationService")
+        public void placeOrder_ForwardsInventoryNotInStockException_FromInventoryReservationService()
+                        throws InventoryNotInStockException {
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
+                                .thenReturn(CompletableFuture.failedFuture(new InventoryNotInStockException()));
+                // Assert
+                assertInventoryNotInStockExceptionIsThrown();
+        }
+
+        @Test
+        @DisplayName("`placeOrder()` throws InternalServerException if reservation response is incomplete")
+        public void placeOrder_ThrowsInternalServerException_WhenReservationResponseIsIncomplete()
+                        throws InternalServerException {
+                // Mock incomplete reservation response - missing skuCode1
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
-                                                                new InventoryStockStatus("skuCode1", 10),
-                                                                new InventoryStockStatus("skuCode2", 20))));
-                when(orderTransactionService.executeTransactionalOrderPlacement(orderRequest))
+                                                                new InventoryAvailabilityStatus("skuCode2", 20))));
+                // Assert
+                assertInternalServerExceptionIsThrown();
+        }
+
+        @Test
+        @DisplayName("`placeOrder()` throws InternalServerException when OrderTransactionService throws InternalServerException")
+        public void placeOrder_ThrowsInternalServerException_WhenOrderTransactionServiceThrowsError() {
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
+                                .thenReturn(
+                                                CompletableFuture.completedFuture(List.of(
+                                                                new InventoryAvailabilityStatus("skuCode1", 10),
+                                                                new InventoryAvailabilityStatus("skuCode2", 20))));
+                when(orderTransactionService.saveOrder(orderNumber, orderRequest))
                                 .thenThrow(new InternalServerException());
 
                 // Assert
@@ -162,60 +170,19 @@ public class OrderServiceTest {
         }
 
         @Test
-        @DisplayName("`placeOrder()` throws InventoryNotInStockException when requested quantity is more than available quantity")
-        public void placeOrder_ThrowsInventoryNotInStockException_WhenRequestedQuantityExceedsAvailable()
+        @DisplayName("`placeOrder()` throws InventoryNotInStockException when any item has zero available quantity")
+        public void placeOrder_ThrowsInventoryNotInStockException_WhenAnyItemHasZeroAvailableQuantity()
                         throws InternalServerException {
-                // Mock availability of stock with insufficient quantity
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
+                // Mock reservation with zero quantity
+                when(inventoryReservationService.reserveProducts(orderReservationRequest))
                                 .thenReturn(
                                                 CompletableFuture.completedFuture(List.of(
-                                                                // Available: 3, Requested: 10
-                                                                new InventoryStockStatus("skuCode1", 3),
-                                                                // Available: 15, Requested: 20
-                                                                new InventoryStockStatus("skuCode2", 15))));
+                                                                // Available: 0, Requested: 10
+                                                                new InventoryAvailabilityStatus("skuCode1", 0),
+                                                                // Available: 20, Requested: 20
+                                                                new InventoryAvailabilityStatus("skuCode2", 20))));
                 // Assert
                 assertInventoryNotInStockExceptionIsThrown();
-        }
-
-        @Test
-        @DisplayName("`placeOrder()` throws InventoryNotInStockException when any item has zero quantity")
-        public void placeOrder_ThrowsInventoryNotInStockException_WhenAnyItemHasZeroQuantity()
-                        throws InternalServerException {
-                // Mock availability of stock with zero quantity
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
-                                .thenReturn(
-                                                CompletableFuture.completedFuture(List.of(
-                                                                // Available:0, Requested: 10
-                                                                new InventoryStockStatus("skuCode1", 0),
-                                                                // Available:20, Requested: 20
-                                                                new InventoryStockStatus("skuCode2", 20))));
-                // Assert
-                assertInventoryNotInStockExceptionIsThrown();
-        }
-
-        @Test
-        @DisplayName("`placeOrder()` succeeds when all items have sufficient quantity")
-        public void placeOrder_Succeeds_WhenAllItemsHaveSufficientQuantity() throws InternalServerException,
-                        InventoryNotInStockException, ExecutionException, InterruptedException {
-                when(inventoryStatusService.getInventoryAvailabilityFuture(List.of("skuCode1", "skuCode2")))
-                                .thenReturn(
-                                                CompletableFuture.completedFuture(List.of(
-                                                                // Available:20, Requested: 10
-                                                                new InventoryStockStatus("skuCode1", 15),
-                                                                // Available:25, Requested: 20
-                                                                new InventoryStockStatus("skuCode2", 25))));
-
-                final SavedOrder expectedSavedOrder = new SavedOrder("1", orderNumber);
-                when(orderTransactionService.executeTransactionalOrderPlacement(orderRequest))
-                                .thenReturn(expectedSavedOrder);
-
-                // Call method to test
-                final var savedOrder = orderService.placeOrder(orderRequest).get();
-
-                // Assert value
-                verify(orderTransactionService).executeTransactionalOrderPlacement(orderRequest);
-                assertEquals(orderNumber, savedOrder.orderNumber());
-                assertEquals("1", savedOrder.orderId());
         }
 
         private void assertInventoryNotInStockExceptionIsThrown() {

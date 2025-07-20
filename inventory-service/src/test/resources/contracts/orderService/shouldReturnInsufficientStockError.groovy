@@ -13,11 +13,11 @@ Contract.make {
                         contentType applicationJson()
                 }
                 body([
-                'orderNumber': 'ORDER-456',
+                'orderNumber': 'ORDER-123',
                 'itemReservationRequests': [
                         [
                                 'skuCode': 'iphone_12',
-                                'quantity': 10
+                                'quantity': 100
                         ]
                 ]
         ])
@@ -30,10 +30,11 @@ Contract.make {
                 }
                 body([
                 'errorCode': 'NOT_ENOUGH_ITEM_ERROR_CODE',
+                'errorMessage': 'Not enough stock for some products',
                 'unavailableProducts': [
                         [
                                 'skuCode': 'iphone_12',
-                                'requestedQuantity': 10,
+                                'requestedQuantity': 100,
                                 'availableQuantity': 5
                         ]
                 ]

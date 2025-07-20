@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.orderproduct.inventoryservice.common.exception.ErrorBody;
+import com.orderproduct.inventoryservice.common.exception.ErrorBodyWithUnavailableProducts;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
@@ -52,9 +53,9 @@ public class ReservationController {
                                         @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
                         }),
                         @ApiResponse(responseCode = "409", description = "errorCode:"
-                                        + ErrorComponent.NOT_ENOUGH_ITEM_ERROR_CODE + " errorMessage:"
-                                        + ErrorComponent.notEnoughStockMsg, content = {
-                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBody.class))
+                                        + ErrorComponent.NOT_ENOUGH_ITEM_ERROR_CODE
+                                        + " errorMessage:" + ErrorComponent.notEnoughStockMsg, content = {
+                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBodyWithUnavailableProducts.class))
                                         }),
                         @ApiResponse(responseCode = "500", description = "errorCode:"
                                         + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:"

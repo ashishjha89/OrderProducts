@@ -3,6 +3,11 @@ package contracts.orderService
 
 import org.springframework.cloud.contract.spec.Contract
 
+/* 
+* Before making reservations: iPhone12 = 5, iPhone13 = 10, iPhone14 = 0.
+* See CdcBaseClass.java for more details.
+*/
+
 Contract.make {
         description 'should reserve products successfully and return available quantities'
 
@@ -35,11 +40,11 @@ Contract.make {
                 body([
                 [
                         'skuCode': 'iphone_12',
-                        'quantity': 2
+                        'availableQuantity': 2
                 ],
                 [
                         'skuCode': 'iphone_13',
-                        'quantity': 5
+                        'availableQuantity': 5
                 ]
         ])
         }

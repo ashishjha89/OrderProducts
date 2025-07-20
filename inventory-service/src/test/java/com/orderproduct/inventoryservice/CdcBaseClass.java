@@ -47,6 +47,10 @@ public abstract class CdcBaseClass {
         @MockBean
         private ReservationManagementService reservationManagementService;
 
+        private final int iphone12AvailableQuantityIs5 = 5;
+        private final int iphone13AvailableQuantityIs10 = 10;
+        private final int iphone14AvailableQuantityIs0 = 0;
+
         @BeforeEach
         public void setup() throws InternalServerException, NotEnoughItemException {
                 RestAssuredMockMvc.standaloneSetup(inventoryController, reservationController,
@@ -56,12 +60,16 @@ public abstract class CdcBaseClass {
                 // iPhone12 = 5, iPhone13 = 10, iPhone14 = 0
                 when(inventoryAvailabilityService.getAvailableInventory(List.of("iphone_12", "iphone_13")))
                                 .thenReturn(List.of(
-                                                new AvailableInventoryResponse("iphone_12", 5),
-                                                new AvailableInventoryResponse("iphone_13", 10)));
+                                                new AvailableInventoryResponse("iphone_12",
+                                                                iphone12AvailableQuantityIs5),
+                                                new AvailableInventoryResponse("iphone_13",
+                                                                iphone13AvailableQuantityIs10)));
                 when(inventoryAvailabilityService.getAvailableInventory(List.of("iphone_13", "iphone_14")))
                                 .thenReturn(List.of(
-                                                new AvailableInventoryResponse("iphone_13", 10),
-                                                new AvailableInventoryResponse("iphone_14", 0)));
+                                                new AvailableInventoryResponse("iphone_13",
+                                                                iphone13AvailableQuantityIs10),
+                                                new AvailableInventoryResponse("iphone_14",
+                                                                iphone14AvailableQuantityIs0)));
 
                 // Mock for successful POST /api/reservations
                 final var successfulRequest = new OrderReservationRequest("ORDER-123",
@@ -75,11 +83,11 @@ public abstract class CdcBaseClass {
                                 ));
 
                 // Mock for failed POST /api/reservations (insufficient item)
-                final var failedRequest = new OrderReservationRequest("ORDER-456",
-                                List.of(new ItemReservationRequest("iphone_12", 10)));
+                final var failedRequest = new OrderReservationRequest("ORDER-123",
+                                List.of(new ItemReservationRequest("iphone_12", 100)));
                 when(reservationManagementService.reserveProductsIfAvailable(failedRequest))
                                 .thenThrow(new NotEnoughItemException(List.of(
-                                                new UnavailableProduct("iphone_12", 10, 5))));
+                                                new UnavailableProduct("iphone_12", 100, 5))));
 
                 // Mock for successful PUT /api/reservations/{orderNumber}/state
                 final var successfulUpdateRequest = new ReservationStateUpdateRequest("ORDER-123",
@@ -96,10 +104,10 @@ public abstract class CdcBaseClass {
                                 .thenReturn(successfulUpdateResponse);
 
                 // Mock for PUT /api/reservations/{orderNumber}/state with no reservations found
-                final var noReservationsRequest = new ReservationStateUpdateRequest("ORDER-999",
+                final var noReservationsRequest = new ReservationStateUpdateRequest("ORDER-123",
                                 List.of("iphone_12", "iphone_13"), ReservationState.CANCELLED);
                 final var noReservationsResponse = new ReservationStateUpdateResponse(
-                                "ORDER-999",
+                                "ORDER-123",
                                 ReservationState.CANCELLED,
                                 List.of()); // Empty list - no reservations found
                 when(reservationManagementService.updateReservationState(noReservationsRequest))

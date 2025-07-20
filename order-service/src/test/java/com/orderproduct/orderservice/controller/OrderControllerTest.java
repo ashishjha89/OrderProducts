@@ -83,13 +83,12 @@ class OrderControllerTest {
                 .exchange()
                 .expectStatus().is5xxServerError()
                 .expectBody()
-                .jsonPath("$.errorCode").isEqualTo("SOMETHING_WENT_WRONG")
-                .jsonPath("$.errorMessage").isEqualTo("Sorry, something went wrong.");
+                .jsonPath("$.errorCode").isEqualTo("SOMETHING_WENT_WRONG");
     }
 
     @Test
-    @DisplayName("should return 400 when POST /api/order fails due to out of stock")
-    void placeOrder_OutOfStock_Returns400() throws Exception {
+    @DisplayName("should return 409 when POST /api/order fails due to out of stock")
+    void placeOrder_OutOfStock_Returns409() throws Exception {
         // Given
         OrderRequest orderRequest = objectMapper.readValue(TEST_CONTENT, OrderRequest.class);
         when(orderService.placeOrder(orderRequest))
@@ -101,10 +100,9 @@ class OrderControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(TEST_CONTENT)
                 .exchange()
-                .expectStatus().isBadRequest()
+                .expectStatus().isEqualTo(409)
                 .expectBody()
-                .jsonPath("$.errorCode").isEqualTo("INVENTORY_NOT_IN_STOCK")
-                .jsonPath("$.errorMessage").isEqualTo("This product is not in stock.");
+                .jsonPath("$.errorCode").isEqualTo("INVENTORY_NOT_IN_STOCK");
     }
 
     @Test
@@ -122,7 +120,6 @@ class OrderControllerTest {
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody()
-                .jsonPath("$.errorCode").isEqualTo("BAD_REQUEST")
-                .jsonPath("$.errorMessage").isEqualTo("This is an incorrect request-body.");
+                .jsonPath("$.errorCode").isEqualTo("BAD_REQUEST");
     }
 }

@@ -84,9 +84,9 @@ public class InventoryControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(jsonPath("$[0].skuCode").value("sku1"))
-                                .andExpect(jsonPath("$[0].quantity").value(10))
+                                .andExpect(jsonPath("$[0].availableQuantity").value(10))
                                 .andExpect(jsonPath("$[1].skuCode").value("sku2"))
-                                .andExpect(jsonPath("$[1].quantity").value(0));
+                                .andExpect(jsonPath("$[1].availableQuantity").value(0));
         }
 
         @Test

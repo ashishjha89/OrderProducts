@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.orderproduct.orderservice.service.InventoryStatusService;
+import com.orderproduct.orderservice.service.InventoryReservationService;
 
 @Configuration
 public class InventoryStatusServiceConfig {
@@ -14,7 +14,7 @@ public class InventoryStatusServiceConfig {
     private String inventoryApiBaseUrl;
 
     @Bean
-    public InventoryStatusService inventoryStatusService(WebClient.Builder webClientBuilder) {
-        return new InventoryStatusService(webClientBuilder, inventoryApiBaseUrl);
+    public InventoryReservationService inventoryStatusService(WebClient.Builder webClientBuilder) {
+        return new InventoryReservationService(webClientBuilder, inventoryApiBaseUrl);
     }
 }

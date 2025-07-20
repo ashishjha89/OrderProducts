@@ -66,9 +66,9 @@ class ReservationControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(jsonPath("$[0].skuCode").value("skuCode1"))
-                                .andExpect(jsonPath("$[0].quantity").value(7))
+                                .andExpect(jsonPath("$[0].availableQuantity").value(7))
                                 .andExpect(jsonPath("$[1].skuCode").value("skuCode2"))
-                                .andExpect(jsonPath("$[1].quantity").value(5));
+                                .andExpect(jsonPath("$[1].availableQuantity").value(5));
         }
 
         @Test

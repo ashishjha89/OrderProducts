@@ -34,17 +34,17 @@ class OrderTransactionService {
     // TODO: Implement thread pool for order placement.
 
     @Transactional
-    SavedOrder executeTransactionalOrderPlacement(@NonNull OrderRequest orderRequest)
+    SavedOrder saveOrder(@NonNull String orderNumber, @NonNull OrderRequest orderRequest)
             throws InternalServerException {
-        Order order = buildOrder(orderRequest);
-        SavedOrder savedOrder = saveOrder(order);
+        Order order = buildOrder(orderNumber, orderRequest);
+        SavedOrder savedOrder = persistOrder(order);
         saveOrderPlacedEventToOutbox(savedOrder);
         return savedOrder;
     }
 
-    private Order buildOrder(OrderRequest orderRequest) {
+    private Order buildOrder(String orderNumber, OrderRequest orderRequest) {
         Order order = Order.builder()
-                .orderNumber(orderDataGenerator.getUniqueOrderNumber())
+                .orderNumber(orderNumber)
                 .build();
         List<OrderLineItems> orderLineItems = orderRequest.orderLineItemsList().stream()
                 .map(dto -> toOrderLineItemEntity(dto, order))
@@ -53,14 +53,15 @@ class OrderTransactionService {
         return order;
     }
 
-    private SavedOrder saveOrder(Order order) throws InternalServerException {
+    private SavedOrder persistOrder(Order order) throws InternalServerException {
         try {
-            log.debug("Saving Order id:{} orderNumber:{}", order.getId(), order.getOrderNumber());
+            log.debug("Saving order with ID: {} and order number: {}", order.getId(), order.getOrderNumber());
             Order savedOrder = orderRepository.save(order);
-            log.debug("Order is saved Id:{} orderNumber:{}", savedOrder.getId(), savedOrder.getOrderNumber());
+            log.debug("Order saved successfully with ID: {} and order number: {}", savedOrder.getId(),
+                    savedOrder.getOrderNumber());
             return new SavedOrder(savedOrder.getId() + "", savedOrder.getOrderNumber());
         } catch (Exception e) {
-            log.error("Error when saving Order:{}", e.getMessage());
+            log.error("Error saving order with order number: {}. Error: {}", order.getOrderNumber(), e.getMessage());
             throw new InternalServerException();
         }
     }
@@ -77,11 +78,11 @@ class OrderTransactionService {
                     .payload(payload)
                     .createdAt(orderDataGenerator.getCurrentTimestamp())
                     .build();
-            log.debug("Saving OrderPlacedEvent to outbox for orderNumber:{}", savedOrder.orderNumber());
+            log.debug("Saving OrderPlacedEvent to outbox for order: {}", savedOrder.orderNumber());
             outboxEventRepository.save(outboxEvent);
-            log.debug("OrderPlacedEvent saved to outbox for orderNumber:{}", savedOrder.orderNumber());
+            log.debug("OrderPlacedEvent saved to outbox for order: {}", savedOrder.orderNumber());
         } catch (Exception ex) {
-            log.error("Exception while saving OrderPlacedEvent to outbox for orderNumber:{} - {}",
+            log.error("Error saving OrderPlacedEvent to outbox for order: {}. Error: {}",
                     savedOrder.orderNumber(), ex.getMessage());
             throw new InternalServerException();
         }

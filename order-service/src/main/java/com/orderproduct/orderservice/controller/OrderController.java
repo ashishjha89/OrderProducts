@@ -64,8 +64,7 @@ public class OrderController {
                 if (orderRequest == null
                                 || orderRequest.orderLineItemsList() == null
                                 || orderRequest.orderLineItemsList().isEmpty()) {
-                        log.info("BadRequestException because POST:/api/order is called with invalid OrderRequest orderRequest:{}",
-                                        orderRequest);
+                        log.warn("Bad request: Invalid order request received. Order request: {}", orderRequest);
                         throw new BadRequestException();
                 }
                 return orderService.placeOrder(orderRequest);

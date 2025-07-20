@@ -7,10 +7,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import com.orderproduct.orderservice.common.InternalServerException;
+import com.orderproduct.orderservice.common.InvalidInputException;
+import com.orderproduct.orderservice.common.InvalidInventoryException;
 import com.orderproduct.orderservice.common.InventoryNotInStockException;
-import com.orderproduct.orderservice.dto.InventoryStockStatus;
-import com.orderproduct.orderservice.dto.OrderLineItemsDto;
+import com.orderproduct.orderservice.dto.InventoryAvailabilityStatus;
+import com.orderproduct.orderservice.dto.ItemReservationRequest;
 import com.orderproduct.orderservice.dto.OrderRequest;
+import com.orderproduct.orderservice.dto.OrderReservationRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
 
 import io.micrometer.observation.Observation;
@@ -25,67 +28,84 @@ import lombok.extern.slf4j.Slf4j;
 public class OrderService {
 
     private final OrderTransactionService orderTransactionService;
-    private final InventoryStatusService inventoryStatusService;
+    private final InventoryReservationService inventoryReservationService;
     private final ObservationRegistry observationRegistry;
+    private final OrderDataGenerator orderDataGenerator;
 
     @NonNull
     public CompletableFuture<SavedOrder> placeOrder(
             @NonNull OrderRequest orderRequest) throws InternalServerException, InventoryNotInStockException {
-        return isAnyLineItemMissing(orderRequest).thenCompose(isMissing -> {
-            if (isMissing) {
-                log.info("InventoryNotInStock orderRequest:{}", orderRequest);
+        String orderNumber = orderDataGenerator.getUniqueOrderNumber();
+        return attemptProductReservation(orderNumber, orderRequest).thenCompose(reservationFailed -> {
+            if (reservationFailed) {
+                log.info("Inventory not in stock for order request: {}", orderRequest);
                 return CompletableFuture.failedFuture(new InventoryNotInStockException());
             }
             return CompletableFuture
-                    .supplyAsync(() -> orderTransactionService.executeTransactionalOrderPlacement(orderRequest));
+                    .supplyAsync(() -> orderTransactionService.saveOrder(orderNumber, orderRequest));
         });
     }
 
-    private CompletableFuture<Boolean> isAnyLineItemMissing(
-            @NonNull OrderRequest orderRequest) throws InternalServerException {
-        final List<String> skuCodesInOrder = orderRequest.orderLineItemsList().stream()
-                .map(OrderLineItemsDto::skuCode).toList();
+    private CompletableFuture<Boolean> attemptProductReservation(
+            @NonNull String orderNumber,
+            @NonNull OrderRequest orderRequest)
+            throws InternalServerException, InvalidInventoryException,
+            InvalidInputException, InventoryNotInStockException {
+        List<ItemReservationRequest> reservationRequests = orderRequest.orderLineItemsList().stream()
+                .map(item -> new ItemReservationRequest(item.skuCode(), item.quantity()))
+                .toList();
+        OrderReservationRequest orderReservationRequest = new OrderReservationRequest(orderNumber, reservationRequests);
+
         return inventoryServiceObservation()
-                .observe(() -> inventoryStatusService.getInventoryAvailabilityFuture(skuCodesInOrder)
-                        .handle((stocks, exception) -> {
-                            if (exception instanceof RuntimeException)
+                .observe(() -> inventoryReservationService.reserveProducts(orderReservationRequest)
+                        .handle((availableStocks, exception) -> {
+                            if (exception instanceof RuntimeException) {
                                 throw (RuntimeException) exception;
-                            if (!isStockAvailableForAllSkuCodes(skuCodesInOrder, stocks)) {
-                                log.error("StockStatus not returned for all LineItems in Order");
+                            }
+                            if (availableStocks == null) {
+                                log.error("Received null response from inventory service for order: {}", orderNumber);
                                 throw new InternalServerException();
                             }
-                            return orderRequest.orderLineItemsList().stream()
-                                    .anyMatch(requestedItem -> {
-                                        String skuCode = requestedItem.skuCode();
-                                        InventoryStockStatus stock = findStock(skuCode, stocks);
-                                        if (stock == null) {
-                                            throw new InternalServerException();
-                                        }
-                                        int availableQuantity = stock.quantity();
-                                        int requestedQuantity = requestedItem.quantity();
-                                        boolean insufficientQuantity = availableQuantity < requestedQuantity;
-                                        if (insufficientQuantity) {
-                                            log.info(
-                                                    "Insufficient quantity for skuCode:{} - Available:{}, Requested:{}",
-                                                    skuCode, availableQuantity, requestedQuantity);
-                                        }
-                                        return insufficientQuantity;
-                                    });
+                            if (!isReservationResponseComplete(reservationRequests, availableStocks)) {
+                                log.error("Reservation response incomplete for all line items in order: {}",
+                                        orderNumber);
+                                throw new InternalServerException();
+                            }
+                            if (!isReservationSuccessfulForAllItems(reservationRequests, availableStocks)) {
+                                log.error(
+                                        "Reservation failed due to insufficient quantities for all line items in order: {}",
+                                        orderNumber);
+                                return true;
+                            }
+                            log.info("Product reservation successful for order: {}", orderNumber);
+                            return false;
                         }));
     }
 
-    private boolean isStockAvailableForAllSkuCodes(List<String> skuCodeList,
-            List<InventoryStockStatus> stockStatusList) {
-        return skuCodeList.stream().allMatch(skuCode -> isStockStatusAvailable(skuCode, stockStatusList));
+    private boolean isReservationResponseComplete(
+            @NonNull List<ItemReservationRequest> requestedItems,
+            @NonNull List<InventoryAvailabilityStatus> availableStocks) {
+        return requestedItems.stream().allMatch(requestedItem -> {
+            String skuCode = requestedItem.skuCode();
+            InventoryAvailabilityStatus reservedStock = getFirstMatchingStock(skuCode, availableStocks);
+            return reservedStock != null;
+        });
     }
 
-    private boolean isStockStatusAvailable(String skuCode, List<InventoryStockStatus> stockStatusList) {
-        return stockStatusList.stream().anyMatch(stockStatus -> stockStatus.skuCode().equals(skuCode));
+    private boolean isReservationSuccessfulForAllItems(
+            @NonNull List<ItemReservationRequest> requestedItems,
+            @NonNull List<InventoryAvailabilityStatus> availableStocks) {
+        return requestedItems.stream().allMatch(requestedItem -> {
+            String skuCode = requestedItem.skuCode();
+            InventoryAvailabilityStatus reservedStock = getFirstMatchingStock(skuCode, availableStocks);
+            return reservedStock != null && reservedStock.availableQuantity() > 0;
+        });
     }
 
     @Nullable
-    private InventoryStockStatus findStock(String skuCode, List<InventoryStockStatus> stockStatusList) {
-        return stockStatusList.stream()
+    private InventoryAvailabilityStatus getFirstMatchingStock(String skuCode,
+            List<InventoryAvailabilityStatus> availableStocks) {
+        return availableStocks.stream()
                 .filter(stockStatus -> stockStatus.skuCode().equals(skuCode))
                 .findFirst()
                 .orElse(null);
@@ -93,7 +113,7 @@ public class OrderService {
 
     private Observation inventoryServiceObservation() {
         final Observation inventoryServiceObservation = Observation.createNotStarted(
-                "inventory-service-lookup",
+                "inventory-service-reservation",
                 this.observationRegistry);
         inventoryServiceObservation.lowCardinalityKeyValue("call", "inventory-service");
         return inventoryServiceObservation;

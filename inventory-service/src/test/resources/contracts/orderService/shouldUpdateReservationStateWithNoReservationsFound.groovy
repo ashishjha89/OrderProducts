@@ -7,13 +7,13 @@ Contract.make {
         description 'should return empty list when no reservations found for order and SKUs'
 
         request {
-                url '/api/reservations/ORDER-999/state'
+                url '/api/reservations/ORDER-123/state'
                 method PUT()
                 headers {
                         contentType applicationJson()
                 }
                 body([
-                'orderNumber': 'ORDER-999',
+                'orderNumber': 'ORDER-123',
                 'skuCodes': [
                         'iphone_12',
                         'iphone_13'
@@ -28,7 +28,7 @@ Contract.make {
                         contentType applicationJson()
                 }
                 body([
-                'orderNumber': 'ORDER-999',
+                'orderNumber': 'ORDER-123',
                 'state': 'CANCELLED',
                 'updatedItems': []
         ])

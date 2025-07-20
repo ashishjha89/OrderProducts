@@ -49,8 +49,8 @@ public class OrderTransactionServiceTest {
         private final OrderRequest orderRequest = new OrderRequest(lineItemDtoList);
 
         @Test
-        @DisplayName("`executeTransactionalOrderPlacement()` successfully saves order and creates outbox event")
-        public void executeTransactionalOrderPlacement_SuccessfullySavesOrderAndCreatesOutboxEvent() throws Exception {
+        @DisplayName("`saveOrder()` successfully saves order and creates outbox event")
+        public void saveOrder_SuccessfullySavesOrderAndCreatesOutboxEvent() throws Exception {
                 // Setup order to save
                 Long now = Instant.now().toEpochMilli();
                 Order orderToSave = Order.builder().orderNumber(orderNumber).build();
@@ -67,7 +67,6 @@ public class OrderTransactionServiceTest {
                 SavedOrder savedOrder = new SavedOrder(orderEntity.getId() + "", orderEntity.getOrderNumber());
 
                 // Given
-                when(orderDataGenerator.getUniqueOrderNumber()).thenReturn(orderNumber);
                 when(orderDataGenerator.getUniqueOutboxEventId()).thenReturn("uniqueOutboxEventId");
                 when(orderDataGenerator.getCurrentTimestamp()).thenReturn(now);
 
@@ -77,7 +76,8 @@ public class OrderTransactionServiceTest {
                 // when(outboxEventRepository.save(savedOrder)).thenReturn(outboxEvent);
 
                 // When
-                SavedOrder result = orderTransactionService.executeTransactionalOrderPlacement(orderRequest);
+                SavedOrder result = orderTransactionService.saveOrder(orderNumber,
+                                orderRequest);
 
                 // Then
                 assertNotNull(result);
@@ -88,23 +88,21 @@ public class OrderTransactionServiceTest {
         }
 
         @Test
-        @DisplayName("`executeTransactionalOrderPlacement()` throws InternalServerException when order save fails")
-        public void executeTransactionalOrderPlacement_ThrowsInternalServerException_WhenOrderSaveFails() {
+        @DisplayName("`saveOrder()` throws InternalServerException when order save fails")
+        public void saveOrder_ThrowsInternalServerException_WhenOrderSaveFails() {
                 // Arrange
-                when(orderDataGenerator.getUniqueOrderNumber()).thenReturn(orderNumber);
                 when(orderRepository.save(any(Order.class))).thenThrow(mock(DataAccessException.class));
 
                 // Act & Assert
                 assertThrows(InternalServerException.class,
-                                () -> orderTransactionService.executeTransactionalOrderPlacement(orderRequest));
+                                () -> orderTransactionService.saveOrder(orderNumber, orderRequest));
         }
 
         @Test
-        @DisplayName("`executeTransactionalOrderPlacement()` throws InternalServerException when outbox event save fails")
-        public void executeTransactionalOrderPlacement_ThrowsInternalServerException_WhenOutboxEventSaveFails()
+        @DisplayName("`saveOrder()` throws InternalServerException when outbox event save fails")
+        public void saveOrder_ThrowsInternalServerException_WhenOutboxEventSaveFails()
                         throws Exception {
                 // Arrange
-                when(orderDataGenerator.getUniqueOrderNumber()).thenReturn(orderNumber);
                 Order savedOrder = Order.builder()
                                 .id(1L)
                                 .orderNumber(orderNumber)
@@ -115,15 +113,14 @@ public class OrderTransactionServiceTest {
 
                 // Act & Assert
                 assertThrows(InternalServerException.class,
-                                () -> orderTransactionService.executeTransactionalOrderPlacement(orderRequest));
+                                () -> orderTransactionService.saveOrder(orderNumber, orderRequest));
         }
 
         @Test
-        @DisplayName("`executeTransactionalOrderPlacement()` throws InternalServerException when JSON serialization fails")
-        public void executeTransactionalOrderPlacement_ThrowsInternalServerException_WhenJsonSerializationFails()
+        @DisplayName("`saveOrder()` throws InternalServerException when JSON serialization fails")
+        public void saveOrder_ThrowsInternalServerException_WhenJsonSerializationFails()
                         throws Exception {
                 // Arrange
-                when(orderDataGenerator.getUniqueOrderNumber()).thenReturn(orderNumber);
                 Order savedOrder = Order.builder()
                                 .id(1L)
                                 .orderNumber(orderNumber)
@@ -141,7 +138,7 @@ public class OrderTransactionServiceTest {
 
                 // Act & Assert
                 assertThrows(InternalServerException.class,
-                                () -> serviceWithFailingMapper.executeTransactionalOrderPlacement(orderRequest));
+                                () -> serviceWithFailingMapper.saveOrder(orderNumber, orderRequest));
         }
 
         private OrderLineItems toOrderLineItemEntity(OrderLineItemsDto orderLineItemsDto, Order order) {
