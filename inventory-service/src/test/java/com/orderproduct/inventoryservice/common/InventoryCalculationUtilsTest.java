@@ -123,16 +123,19 @@ class InventoryCalculationUtilsTest {
     }
 
     @Test
-    @DisplayName("`createSkuCodeToReservedQuantityMap()` should throw exception for duplicate SKU codes")
-    void createSkuCodeToReservedQuantityMap_DuplicateSkuCodes_ThrowsException() {
+    @DisplayName("`createSkuCodeToReservedQuantityMap()` should sum quantities for duplicate SKU codes")
+    void createSkuCodeToReservedQuantityMap_DuplicateSkuCodes_SumsQuantities() {
         // Given
         List<ReservedItemQuantity> reservedQuantities = List.of(
                 new ReservedItemQuantity("SKU-001", 3),
                 new ReservedItemQuantity("SKU-001", 7)); // Duplicate SKU code
 
+        // When
+        Map<String, Integer> result = InventoryCalculationUtils.createSkuCodeToReservedQuantityMap(reservedQuantities);
+
         // Then
-        assertThrows(IllegalStateException.class,
-                () -> InventoryCalculationUtils.createSkuCodeToReservedQuantityMap(reservedQuantities));
+        assertEquals(1, result.size());
+        assertEquals(10, result.get("SKU-001")); // 3 + 7 = 10
     }
 
     @Test

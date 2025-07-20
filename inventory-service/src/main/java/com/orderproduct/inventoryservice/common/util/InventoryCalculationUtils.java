@@ -37,7 +37,9 @@ public final class InventoryCalculationUtils {
     public static Map<String, Integer> createSkuCodeToReservedQuantityMap(
             List<ReservedItemQuantity> reservedQuantityList) {
         return reservedQuantityList.stream()
-                .collect(Collectors.toMap(ReservedItemQuantity::skuCode, ReservedItemQuantity::quantity));
+                .collect(Collectors.groupingBy(
+                        ReservedItemQuantity::skuCode,
+                        Collectors.summingInt(ReservedItemQuantity::quantity)));
     }
 
     /**
