@@ -4,10 +4,10 @@ package contracts.orderService
 import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
-        description 'should fulfill order successfully and return updated items'
+        description 'should cancel order successfully and return updated items'
 
         request {
-                url '/api/reservations/ORDER-123/fulfill'
+                url '/api/reservations/ORDER-123/cancel'
                 method POST()
                 headers {
                         contentType applicationJson()
@@ -21,19 +21,19 @@ Contract.make {
                 }
                 body([
                 'orderNumber': 'ORDER-123',
-                'state': 'FULFILLED',
+                'state': 'CANCELLED',
                 'updatedItems': [
                         [
                                 'skuCode': 'iphone_12',
                                 'reservedQuantity': 3,
-                                'status': 'FULFILLED'
+                                'status': 'CANCELLED'
                         ],
                         [
                                 'skuCode': 'iphone_13',
                                 'reservedQuantity': 5,
-                                'status': 'FULFILLED'
+                                'status': 'CANCELLED'
                         ]
                 ]
         ])
         }
-} 
+}

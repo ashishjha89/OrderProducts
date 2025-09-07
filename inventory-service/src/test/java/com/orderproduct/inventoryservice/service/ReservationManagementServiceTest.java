@@ -22,8 +22,8 @@ import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ItemAvailability;
 import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
-import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
 import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.entity.ReservationState;
 import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
@@ -103,18 +103,18 @@ public class ReservationManagementServiceTest {
                                 .isInstanceOf(NotEnoughItemException.class)
                                 .satisfies(exception -> {
                                         NotEnoughItemException notEnoughItemException = (NotEnoughItemException) exception;
-                                        List<UnavailableProduct> unavailableProducts = notEnoughItemException
+                                        List<ItemAvailability> unavailableProducts = notEnoughItemException
                                                         .getUnavailableProducts();
                                         assertEquals(2, unavailableProducts.size());
 
                                         // Check first unavailable product
-                                        UnavailableProduct first = unavailableProducts.get(0);
+                                        ItemAvailability first = unavailableProducts.get(0);
                                         assertEquals("skuCode1", first.skuCode());
                                         assertEquals(10, first.requestedQuantity());
                                         assertEquals(6, first.availableQuantity()); // 8 - 2 = 6
 
                                         // Check second unavailable product
-                                        UnavailableProduct second = unavailableProducts.get(1);
+                                        ItemAvailability second = unavailableProducts.get(1);
                                         assertEquals("skuCode2", second.skuCode());
                                         assertEquals(20, second.requestedQuantity());
                                         assertEquals(12, second.availableQuantity()); // 15 - 3 = 12
@@ -149,12 +149,12 @@ public class ReservationManagementServiceTest {
                                 .isInstanceOf(NotEnoughItemException.class)
                                 .satisfies(exception -> {
                                         NotEnoughItemException notEnoughItemException = (NotEnoughItemException) exception;
-                                        List<UnavailableProduct> unavailableProducts = notEnoughItemException
+                                        List<ItemAvailability> unavailableProducts = notEnoughItemException
                                                         .getUnavailableProducts();
                                         assertEquals(1, unavailableProducts.size());
 
                                         // Check the unavailable product
-                                        UnavailableProduct unavailable = unavailableProducts.get(0);
+                                        ItemAvailability unavailable = unavailableProducts.get(0);
                                         assertEquals("skuCode2", unavailable.skuCode());
                                         assertEquals(20, unavailable.requestedQuantity());
                                         assertEquals(12, unavailable.availableQuantity()); // 15 - 3 = 12
@@ -314,9 +314,8 @@ public class ReservationManagementServiceTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2");
                 final var newState = ReservationState.FULFILLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var updatedReservations = List.of(
                                 Reservation.builder()
@@ -360,9 +359,8 @@ public class ReservationManagementServiceTest {
         public void updateReservationState_NoReservationsFound_ReturnsEmptyResponse() throws InternalServerException {
                 // Given
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2");
                 final var newState = ReservationState.CANCELLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var expectedResponse = new ReservationStateUpdateResponse(
                                 orderNumber,
@@ -384,9 +382,8 @@ public class ReservationManagementServiceTest {
         public void updateReservationState_ReservationServiceError_ThrowsInternalServerException() {
                 // Given
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2");
                 final var newState = ReservationState.FULFILLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 when(reservationService.updateReservationState(request))
                                 .thenThrow(new InternalServerException());

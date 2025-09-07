@@ -27,7 +27,7 @@ public class ReservationServiceFindPendingReservationsTest {
 
         private final ReservedQuantityService reservedQuantityService = new ReservedQuantityService(
                         reservationRepository);
-        private final ReservationBuilder reservationBuilder = new ReservationBuilder(reservationRepository,
+        private final ReservationOrchestrator reservationBuilder = new ReservationOrchestrator(reservationRepository,
                         timeProvider);
         private final ReservationStateManager reservationStateManager = new ReservationStateManager(
                         reservationRepository);

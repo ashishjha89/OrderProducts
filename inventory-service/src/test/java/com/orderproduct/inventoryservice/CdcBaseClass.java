@@ -19,8 +19,8 @@ import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ItemAvailability;
 import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
-import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
 import com.orderproduct.inventoryservice.entity.ReservationState;
 import com.orderproduct.inventoryservice.service.InventoryAvailabilityService;
 import com.orderproduct.inventoryservice.service.InventoryManagementService;
@@ -87,12 +87,11 @@ public abstract class CdcBaseClass {
                                 List.of(new ItemReservationRequest("iphone_12", 100)));
                 when(reservationManagementService.reserveProductsIfAvailable(failedRequest))
                                 .thenThrow(new NotEnoughItemException(List.of(
-                                                new UnavailableProduct("iphone_12", 100, 5))));
+                                                new ItemAvailability("iphone_12", 100, 5))));
 
-                // Mock for successful PUT /api/reservations/{orderNumber}/state
-                final var successfulUpdateRequest = new ReservationStateUpdateRequest("ORDER-123",
-                                List.of("iphone_12", "iphone_13"), ReservationState.FULFILLED);
-                final var successfulUpdateResponse = new ReservationStateUpdateResponse(
+                // Mock for successful POST /api/reservations/{orderNumber}/fulfill
+                final var fulfillRequest = new ReservationStateUpdateRequest("ORDER-123", ReservationState.FULFILLED);
+                final var successfulFulfillResponse = new ReservationStateUpdateResponse(
                                 "ORDER-123",
                                 ReservationState.FULFILLED,
                                 List.of(
@@ -100,18 +99,31 @@ public abstract class CdcBaseClass {
                                                                 3, ReservationState.FULFILLED),
                                                 new ReservationStateUpdateResponse.ReservationItemResponse("iphone_13",
                                                                 5, ReservationState.FULFILLED)));
-                when(reservationManagementService.updateReservationState(successfulUpdateRequest))
-                                .thenReturn(successfulUpdateResponse);
+                when(reservationManagementService.updateReservationState(fulfillRequest))
+                                .thenReturn(successfulFulfillResponse);
 
-                // Mock for PUT /api/reservations/{orderNumber}/state with no reservations found
-                final var noReservationsRequest = new ReservationStateUpdateRequest("ORDER-123",
-                                List.of("iphone_12", "iphone_13"), ReservationState.CANCELLED);
-                final var noReservationsResponse = new ReservationStateUpdateResponse(
+                // Mock for POST /api/reservations/{orderNumber}/fulfill with no reservations
+                final var noReservationsFulfillRequest = new ReservationStateUpdateRequest("ORDER-NO-RESERVATIONS",
+                                ReservationState.FULFILLED);
+                final var noReservationsFulfillResponse = new ReservationStateUpdateResponse(
+                                "ORDER-NO-RESERVATIONS",
+                                ReservationState.FULFILLED,
+                                List.of()); // Empty list - no reservations found
+                when(reservationManagementService.updateReservationState(noReservationsFulfillRequest))
+                                .thenReturn(noReservationsFulfillResponse);
+
+                // Mock for successful POST /api/reservations/{orderNumber}/cancel
+                final var cancelRequest = new ReservationStateUpdateRequest("ORDER-123", ReservationState.CANCELLED);
+                final var successfulCancelResponse = new ReservationStateUpdateResponse(
                                 "ORDER-123",
                                 ReservationState.CANCELLED,
-                                List.of()); // Empty list - no reservations found
-                when(reservationManagementService.updateReservationState(noReservationsRequest))
-                                .thenReturn(noReservationsResponse);
+                                List.of(
+                                                new ReservationStateUpdateResponse.ReservationItemResponse("iphone_12",
+                                                                3, ReservationState.CANCELLED),
+                                                new ReservationStateUpdateResponse.ReservationItemResponse("iphone_13",
+                                                                5, ReservationState.CANCELLED)));
+                when(reservationManagementService.updateReservationState(cancelRequest))
+                                .thenReturn(successfulCancelResponse);
         }
 
 }

@@ -4,22 +4,14 @@ package contracts.orderService
 import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
-        description 'should return empty list when no reservations found for order and SKUs'
+        description 'should return empty list when no reservations found for order to fulfill'
 
         request {
-                url '/api/reservations/ORDER-123/state'
-                method PUT()
+                url '/api/reservations/ORDER-NO-RESERVATIONS/fulfill'
+                method POST()
                 headers {
                         contentType applicationJson()
                 }
-                body([
-                'orderNumber': 'ORDER-123',
-                'skuCodes': [
-                        'iphone_12',
-                        'iphone_13'
-                ],
-                'state': 'CANCELLED'
-        ])
         }
 
         response {
@@ -28,8 +20,8 @@ Contract.make {
                         contentType applicationJson()
                 }
                 body([
-                'orderNumber': 'ORDER-123',
-                'state': 'CANCELLED',
+                'orderNumber': 'ORDER-NO-RESERVATIONS',
+                'state': 'FULFILLED',
                 'updatedItems': []
         ])
         }

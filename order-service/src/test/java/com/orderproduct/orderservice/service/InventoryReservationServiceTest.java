@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -22,6 +23,7 @@ import com.orderproduct.orderservice.common.InternalServerException;
 import com.orderproduct.orderservice.common.InvalidInputException;
 import com.orderproduct.orderservice.common.InvalidInventoryException;
 import com.orderproduct.orderservice.common.InventoryNotInStockException;
+import com.orderproduct.orderservice.common.OrderReservationNotAllowedException;
 import com.orderproduct.orderservice.dto.InventoryAvailabilityStatus;
 import com.orderproduct.orderservice.dto.ItemReservationRequest;
 import com.orderproduct.orderservice.dto.OrderReservationRequest;
@@ -53,399 +55,419 @@ public class InventoryReservationServiceTest {
                 mockWebServer.shutdown();
         }
 
-        @Test
-        @DisplayName("should successfully reserve products and return InventoryAvailabilityStatus")
-        void reserveProductsSuccessTest() throws Exception {
-                // Given
-                final var mockStatuses = List.of(
-                                new InventoryAvailabilityStatus("sku1", 10),
-                                new InventoryAvailabilityStatus("sku2", 5));
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(
-                                                new ItemReservationRequest("sku1", 5),
-                                                new ItemReservationRequest("sku2", 3)));
+        @Nested
+        @DisplayName("Successful Operations")
+        class SuccessfulOperations {
 
-                mockWebServer.enqueue(new MockResponse()
-                                .setBody(objectMapper.writeValueAsString(mockStatuses))
-                                .addHeader("Content-Type", "application/json"));
+                @Test
+                @DisplayName("reserveOrder should successfully reserve products and return InventoryAvailabilityStatus")
+                void reserveOrderSuccessTest() throws Exception {
+                        // Given
+                        final var mockStatuses = List.of(
+                                        new InventoryAvailabilityStatus("sku1", 10),
+                                        new InventoryAvailabilityStatus("sku2", 5));
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(
+                                                        new ItemReservationRequest("sku1", 5),
+                                                        new ItemReservationRequest("sku2", 3)));
 
-                // When
-                final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
-                                .reserveProducts(orderReservationRequest).get();
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setBody(objectMapper.writeValueAsString(mockStatuses))
+                                        .addHeader("Content-Type", "application/json"));
 
-                // Then
-                assertEquals(mockStatuses, responseStatuses);
+                        // When
+                        final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
+                                        .reserveOrder(orderReservationRequest).get();
+
+                        // Then
+                        assertEquals(mockStatuses, responseStatuses);
+                }
+
+                @Test
+                @DisplayName("reserveOrder should handle multiple item reservations successfully")
+                void reserveOrderShouldHandleMultipleItemReservationsSuccessfully() throws Exception {
+                        // Given
+                        final var mockStatuses = List.of(
+                                        new InventoryAvailabilityStatus("sku1", 15),
+                                        new InventoryAvailabilityStatus("sku2", 8),
+                                        new InventoryAvailabilityStatus("sku3", 0));
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-456",
+                                        List.of(
+                                                        new ItemReservationRequest("sku1", 10),
+                                                        new ItemReservationRequest("sku2", 5),
+                                                        new ItemReservationRequest("sku3", 2)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setBody(objectMapper.writeValueAsString(mockStatuses))
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
+                                        .reserveOrder(orderReservationRequest).get();
+
+                        // Then
+                        assertEquals(mockStatuses, responseStatuses);
+                }
         }
 
-        @Test
-        @DisplayName("should throw InvalidInputException when reservation requests is empty")
-        void shouldThrowInvalidInputExceptionWhenItemReservationRequestsEmpty() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest("ORDER-123", List.of());
+        @Nested
+        @DisplayName("Input Validation")
+        class InputValidation {
 
-                // When & Then
-                assertThrows(
-                                InvalidInputException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest));
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInputException when reservation request is empty")
+                void reserveOrderShouldThrowInvalidInputExceptionWhenItemReservationRequestsEmpty() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest("ORDER-123", List.of());
+
+                        // When & Then
+                        assertThrows(
+                                        InvalidInputException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest));
+                }
         }
 
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns 4xx (not 429 and 409)")
-        void shouldThrowInvalidInventoryExceptionWhenHttp4xx() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
+        @Nested
+        @DisplayName("HTTP Error Handling")
+        class HttpErrorHandling {
 
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(404)
-                                .setBody("Not Found")
-                                .addHeader("Content-Type", "text/plain"));
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns 4xx (not 429 and 409)")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenHttp4xx() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
 
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(404)
+                                        .setBody("Not Found")
+                                        .addHeader("Content-Type", "text/plain"));
 
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InternalServerException when server returns 429")
+                void reserveOrderShouldThrowInternalServerExceptionWhenHttp429() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(429)
+                                        .setBody("Too Many Requests")
+                                        .addHeader("Content-Type", "text/plain"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InternalServerException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InternalServerException when server returns HTTP 500 error")
+                void reserveOrderShouldThrowInternalServerExceptionWhenHttpError() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(500)
+                                        .setBody("Internal Server Error")
+                                        .addHeader("Content-Type", "text/plain"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InternalServerException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InternalServerException when connection fails")
+                void reserveOrderShouldThrowInternalServerExceptionWhenConnectionFails() throws IOException {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        // Shutdown the server to simulate connection failure
+                        mockWebServer.shutdown();
+
+                        // When & Then
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InternalServerException.class, exception.getCause());
+                }
         }
 
-        @Test
-        @DisplayName("should throw InternalServerException when server returns 429")
-        void shouldThrowInternalServerExceptionWhenHttp429() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
+        @Nested
+        @DisplayName("Response Validation")
+        class ResponseValidation {
 
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(429)
-                                .setBody("Too Many Requests")
-                                .addHeader("Content-Type", "text/plain"));
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns null response")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenResponseNull() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
 
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setBody("null")
+                                        .addHeader("Content-Type", "application/json"));
 
-                // Then
-                assertInstanceOf(InternalServerException.class, exception.getCause());
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns empty array")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenResponseEmpty()
+                                throws JsonProcessingException {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setBody(objectMapper.writeValueAsString(List.of()))
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns malformed JSON")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenMalformedJson() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setBody("{ malformed json }")
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
         }
 
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns null response")
-        void shouldThrowInvalidInventoryExceptionWhenResponseNull() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
+        @Nested
+        @DisplayName("Conflict Error Handling (HTTP 409)")
+        class ConflictErrorHandling {
 
-                mockWebServer.enqueue(new MockResponse()
-                                .setBody("null")
-                                .addHeader("Content-Type", "application/json"));
+                @Test
+                @DisplayName("reserveOrder should throw InventoryNotInStockException when server returns 409 with NOT_ENOUGH_ITEM_ERROR_CODE")
+                void reserveOrderShouldThrowInventoryNotInStockExceptionWhenHttp409WithNotEnoughItemError()
+                                throws JsonProcessingException {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("iphone_12", 10)));
 
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns empty array")
-        void shouldThrowInvalidInventoryExceptionWhenResponseEmpty() throws JsonProcessingException {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setBody(objectMapper.writeValueAsString(List.of()))
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should throw InternalServerException when server returns HTTP 500 error")
-        void shouldThrowInternalServerExceptionWhenHttpError() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(500)
-                                .setBody("Internal Server Error")
-                                .addHeader("Content-Type", "text/plain"));
-
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InternalServerException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should throw InternalServerException when connection fails")
-        void shouldThrowInternalServerExceptionWhenConnectionFails() throws IOException {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                // Shutdown the server to simulate connection failure
-                mockWebServer.shutdown();
-
-                // When & Then
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InternalServerException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns malformed JSON")
-        void shouldThrowInvalidInventoryExceptionWhenMalformedJson() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setBody("{ malformed json }")
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should have resilience4j annotations on reserveProducts")
-        void shouldHaveResilience4jAnnotations() throws NoSuchMethodException {
-                Method method = InventoryReservationService.class.getMethod(
-                                "reserveProducts", OrderReservationRequest.class);
-                assertNotNull(method.getAnnotation(CircuitBreaker.class), "@CircuitBreaker should be present");
-                assertNotNull(method.getAnnotation(TimeLimiter.class), "@TimeLimiter should be present");
-                assertNotNull(method.getAnnotation(Retry.class), "@Retry should be present");
-                assertEquals("inventory", method.getAnnotation(CircuitBreaker.class).name());
-                assertEquals("inventory", method.getAnnotation(TimeLimiter.class).name());
-                assertEquals("inventory", method.getAnnotation(Retry.class).name());
-        }
-
-        @Test
-        @DisplayName("should trigger fallback and return failed future with InternalServerException")
-        void shouldTriggerFallbackOnException() throws IOException {
-                // Given - Shutdown the server to simulate connection failure
-                mockWebServer.shutdown();
-
-                var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("test-sku-1", 5)));
-
-                // When
-                var future = inventoryReservationService.reserveProducts(orderReservationRequest);
-
-                // Then
-                var exception = assertThrows(Exception.class, future::get);
-                assertInstanceOf(InternalServerException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should handle multiple item reservations successfully")
-        void shouldHandleMultipleItemReservationsSuccessfully() throws Exception {
-                // Given
-                final var mockStatuses = List.of(
-                                new InventoryAvailabilityStatus("sku1", 15),
-                                new InventoryAvailabilityStatus("sku2", 8),
-                                new InventoryAvailabilityStatus("sku3", 0));
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-456",
-                                List.of(
-                                                new ItemReservationRequest("sku1", 10),
-                                                new ItemReservationRequest("sku2", 5),
-                                                new ItemReservationRequest("sku3", 2)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setBody(objectMapper.writeValueAsString(mockStatuses))
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
-                                .reserveProducts(orderReservationRequest).get();
-
-                // Then
-                assertEquals(mockStatuses, responseStatuses);
-        }
-
-        @Test
-        @DisplayName("should handle single item reservation successfully")
-        void shouldHandleSingleItemReservationSuccessfully() throws Exception {
-                // Given
-                final var mockStatuses = List.of(new InventoryAvailabilityStatus("sku1", 10));
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-789",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setBody(objectMapper.writeValueAsString(mockStatuses))
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
-                                .reserveProducts(orderReservationRequest).get();
-
-                // Then
-                assertEquals(mockStatuses, responseStatuses);
-        }
-
-        @Test
-        @DisplayName("should throw InventoryNotInStockException when server returns 409 with NOT_ENOUGH_ITEM_ERROR_CODE")
-        void shouldThrowInventoryNotInStockExceptionWhenHttp409WithNotEnoughItemError() throws JsonProcessingException {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("iphone_12", 10)));
-
-                final var conflictResponse = """
-                                {
-                                    "errorCode": "NOT_ENOUGH_ITEM_ERROR_CODE",
-                                    "errorMessage": "Not enough stock for some products",
-                                    "unavailableProducts": [
+                        final var conflictResponse = """
                                         {
-                                            "skuCode": "iphone_12",
-                                            "requestedQuantity": 10,
-                                            "availableQuantity": 5
+                                            "errorCode": "NOT_ENOUGH_ITEM_ERROR_CODE",
+                                            "errorMessage": "Not enough stock for some products",
+                                            "unavailableProducts": [
+                                                {
+                                                    "skuCode": "iphone_12",
+                                                    "requestedQuantity": 10,
+                                                    "availableQuantity": 5
+                                                }
+                                            ]
                                         }
-                                    ]
-                                }
-                                """;
+                                        """;
 
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(409)
-                                .setBody(conflictResponse)
-                                .addHeader("Content-Type", "application/json"));
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(409)
+                                        .setBody(conflictResponse)
+                                        .addHeader("Content-Type", "application/json"));
 
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
 
-                // Then
-                assertInstanceOf(InventoryNotInStockException.class, exception.getCause());
+                        // Then
+                        assertInstanceOf(InventoryNotInStockException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw OrderReservationNotAllowedException when server returns 409 with ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE")
+                void reserveOrderShouldThrowOrderReservationNotAllowedExceptionWhenHttp409WithReservationNotAllowedError()
+                                throws JsonProcessingException {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("iphone_12", 10)));
+
+                        final var conflictResponse = """
+                                        {
+                                            "errorCode": "ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE",
+                                            "errorMessage": "Cannot create reservations for order with non Pending states"
+                                        }
+                                        """;
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(409)
+                                        .setBody(conflictResponse)
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(OrderReservationNotAllowedException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns 409 with unknown error code")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenHttp409WithUnknownErrorCode()
+                                throws JsonProcessingException {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        final var conflictResponse = """
+                                        {
+                                            "errorCode": "SOME_OTHER_ERROR_CODE",
+                                            "message": "Some other conflict error"
+                                        }
+                                        """;
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(409)
+                                        .setBody(conflictResponse)
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns 409 with malformed JSON")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenHttp409WithMalformedJson() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(409)
+                                        .setBody("{ invalid json structure")
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
+
+                @Test
+                @DisplayName("reserveOrder should throw InvalidInventoryException when server returns 409 with empty body")
+                void reserveOrderShouldThrowInvalidInventoryExceptionWhenHttp409WithEmptyBody() {
+                        // Given
+                        final var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("sku1", 5)));
+
+                        mockWebServer.enqueue(new MockResponse()
+                                        .setResponseCode(409)
+                                        .setBody("")
+                                        .addHeader("Content-Type", "application/json"));
+
+                        // When
+                        ExecutionException exception = assertThrows(
+                                        ExecutionException.class,
+                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+
+                        // Then
+                        assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                }
         }
 
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns 409 without NOT_ENOUGH_ITEM_ERROR_CODE")
-        void shouldThrowInvalidInventoryExceptionWhenHttp409WithoutNotEnoughItemError() throws JsonProcessingException {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
+        @Nested
+        @DisplayName("Resilience4j Configuration")
+        class Resilience4jConfiguration {
 
-                final var conflictResponse = """
-                                {
-                                    "errorCode": "SOME_OTHER_ERROR_CODE",
-                                    "message": "Some other conflict error"
-                                }
-                                """;
+                @Test
+                @DisplayName("reserveOrder should have resilience4j annotations")
+                void reserveOrderShouldHaveResilience4jAnnotations() throws NoSuchMethodException {
+                        Method method = InventoryReservationService.class.getMethod(
+                                        "reserveOrder", OrderReservationRequest.class);
+                        assertNotNull(method.getAnnotation(CircuitBreaker.class), "@CircuitBreaker should be present");
+                        assertNotNull(method.getAnnotation(TimeLimiter.class), "@TimeLimiter should be present");
+                        assertNotNull(method.getAnnotation(Retry.class), "@Retry should be present");
+                        assertEquals("inventory", method.getAnnotation(CircuitBreaker.class).name());
+                        assertEquals("inventory", method.getAnnotation(TimeLimiter.class).name());
+                        assertEquals("inventory", method.getAnnotation(Retry.class).name());
+                }
 
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(409)
-                                .setBody(conflictResponse)
-                                .addHeader("Content-Type", "application/json"));
+                @Test
+                @DisplayName("reserveOrder should trigger fallback and return failed future with InternalServerException")
+                void reserveOrderShouldTriggerFallbackOnException() throws IOException {
+                        // Given - Shutdown the server to simulate connection failure
+                        mockWebServer.shutdown();
 
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
+                        var orderReservationRequest = new OrderReservationRequest(
+                                        "ORDER-123",
+                                        List.of(new ItemReservationRequest("test-sku-1", 5)));
 
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
-        }
+                        // When
+                        var future = inventoryReservationService.reserveOrder(orderReservationRequest);
 
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns 409 with malformed JSON")
-        void shouldThrowInvalidInventoryExceptionWhenHttp409WithMalformedJson() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(409)
-                                .setBody("{ invalid json structure")
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns 409 with null body")
-        void shouldThrowInvalidInventoryExceptionWhenHttp409WithNullBody() {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(409)
-                                .setBody("")
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
-        }
-
-        @Test
-        @DisplayName("should throw InvalidInventoryException when server returns 409 with empty JSON object")
-        void shouldThrowInvalidInventoryExceptionWhenHttp409WithEmptyJson() throws JsonProcessingException {
-                // Given
-                final var orderReservationRequest = new OrderReservationRequest(
-                                "ORDER-123",
-                                List.of(new ItemReservationRequest("sku1", 5)));
-
-                mockWebServer.enqueue(new MockResponse()
-                                .setResponseCode(409)
-                                .setBody("{}")
-                                .addHeader("Content-Type", "application/json"));
-
-                // When
-                ExecutionException exception = assertThrows(
-                                ExecutionException.class,
-                                () -> inventoryReservationService.reserveProducts(orderReservationRequest).get());
-
-                // Then
-                assertInstanceOf(InvalidInventoryException.class, exception.getCause());
+                        // Then
+                        var exception = assertThrows(Exception.class, future::get);
+                        assertInstanceOf(InternalServerException.class, exception.getCause());
+                }
         }
 }

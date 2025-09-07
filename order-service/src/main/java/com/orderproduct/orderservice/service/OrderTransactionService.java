@@ -12,6 +12,7 @@ import com.orderproduct.orderservice.dto.SavedOrder;
 import com.orderproduct.orderservice.entity.Order;
 import com.orderproduct.orderservice.entity.OrderLineItems;
 import com.orderproduct.orderservice.entity.OutboxEvent;
+import com.orderproduct.orderservice.event.OrderCancelledEvent;
 import com.orderproduct.orderservice.event.OrderPlacedEvent;
 import com.orderproduct.orderservice.repository.OrderRepository;
 import com.orderproduct.orderservice.repository.OutboxEventRepository;
@@ -42,6 +43,14 @@ class OrderTransactionService {
         return savedOrder;
     }
 
+    @Transactional
+    public void saveOrderCancelledEvent(@NonNull String orderNumber, @NonNull OrderRequest orderRequest,
+            @NonNull Throwable cause)
+            throws InternalServerException {
+        OrderCancelledEvent event = new OrderCancelledEvent(orderNumber);
+        saveEventToOutbox(event, "OrderCancelledEvent", orderNumber);
+    }
+
     private Order buildOrder(String orderNumber, OrderRequest orderRequest) {
         Order order = Order.builder()
                 .orderNumber(orderNumber)
@@ -67,25 +76,8 @@ class OrderTransactionService {
     }
 
     private void saveOrderPlacedEventToOutbox(SavedOrder savedOrder) throws InternalServerException {
-        try {
-            OrderPlacedEvent event = new OrderPlacedEvent(savedOrder.orderNumber());
-            String payload = objectMapper.writeValueAsString(event);
-            OutboxEvent outboxEvent = OutboxEvent.builder()
-                    .eventId(orderDataGenerator.getUniqueOutboxEventId())
-                    .eventType("OrderPlacedEvent")
-                    .aggregateType("Order")
-                    .aggregateId(savedOrder.orderNumber())
-                    .payload(payload)
-                    .createdAt(orderDataGenerator.getCurrentTimestamp())
-                    .build();
-            log.debug("Saving OrderPlacedEvent to outbox for order: {}", savedOrder.orderNumber());
-            outboxEventRepository.save(outboxEvent);
-            log.debug("OrderPlacedEvent saved to outbox for order: {}", savedOrder.orderNumber());
-        } catch (Exception ex) {
-            log.error("Error saving OrderPlacedEvent to outbox for order: {}. Error: {}",
-                    savedOrder.orderNumber(), ex.getMessage());
-            throw new InternalServerException();
-        }
+        OrderPlacedEvent event = new OrderPlacedEvent(savedOrder.orderNumber());
+        saveEventToOutbox(event, "OrderPlacedEvent", savedOrder.orderNumber());
     }
 
     private OrderLineItems toOrderLineItemEntity(OrderLineItemsDto orderLineItemsDto, Order order) {
@@ -97,4 +89,23 @@ class OrderTransactionService {
                 .build();
     }
 
+    private void saveEventToOutbox(Object event, String eventType, String orderNumber) throws InternalServerException {
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            OutboxEvent outboxEvent = OutboxEvent.builder()
+                    .eventId(orderDataGenerator.getUniqueOutboxEventId())
+                    .eventType(eventType)
+                    .aggregateType("Order")
+                    .aggregateId(orderNumber)
+                    .payload(payload)
+                    .createdAt(orderDataGenerator.getCurrentTimestamp())
+                    .build();
+            log.debug("Saving {} to outbox for order: {}", eventType, orderNumber);
+            outboxEventRepository.save(outboxEvent);
+            log.debug("{} saved to outbox for order: {}", eventType, orderNumber);
+        } catch (Exception ex) {
+            log.error("Error saving {} to outbox for order: {}. Error: {}", eventType, orderNumber, ex.getMessage());
+            throw new InternalServerException();
+        }
+    }
 }

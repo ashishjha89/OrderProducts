@@ -15,6 +15,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findBySkuCodeInAndStatus(List<String> skuCodes, ReservationState status);
 
     @NonNull
+    List<Reservation> findByOrderNumber(String orderNumber);
+
+    @NonNull
     List<Reservation> findByOrderNumberAndSkuCodeIn(String orderNumber, List<String> skuCodes);
+
+    void deleteByOrderNumberAndSkuCodeIn(String orderNumber, List<String> skuCodes);
 
 }

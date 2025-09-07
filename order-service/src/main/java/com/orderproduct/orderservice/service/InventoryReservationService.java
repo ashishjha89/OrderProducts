@@ -17,6 +17,7 @@ import com.orderproduct.orderservice.common.InternalServerException;
 import com.orderproduct.orderservice.common.InvalidInputException;
 import com.orderproduct.orderservice.common.InvalidInventoryException;
 import com.orderproduct.orderservice.common.InventoryNotInStockException;
+import com.orderproduct.orderservice.common.OrderReservationNotAllowedException;
 import com.orderproduct.orderservice.dto.InventoryAvailabilityStatus;
 import com.orderproduct.orderservice.dto.InventoryServiceErrorBody;
 import com.orderproduct.orderservice.dto.OrderReservationRequest;
@@ -45,6 +46,15 @@ public class InventoryReservationService {
                 .toUri();
     }
 
+    private WebClient.RequestHeadersSpec<?> buildOrderReservationWebClient(
+            OrderReservationRequest orderReservationRequest) {
+        return webClientBuilder
+                .build()
+                .post()
+                .uri(buildReservationsUri())
+                .bodyValue(orderReservationRequest);
+    }
+
     /**
      * Circuit breaking and retry will only be triggered for
      * {@link InternalServerException}.
@@ -54,10 +64,14 @@ public class InventoryReservationService {
      * <li>{@code InventoryNotInStockException} is thrown for HTTP 409 conflicts
      * with error code 'NOT_ENOUGH_ITEM_ERROR_CODE' indicating insufficient
      * inventory.</li>
+     * <li>{@code OrderReservationNotAllowedException} is thrown for HTTP 409
+     * conflicts
+     * with error code 'ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE' indicating that
+     * the
+     * order reservation is not allowed.</li>
      * <li>{@code InvalidInventoryException} is thrown for all other HTTP errors
      * (4xx except 429 and 409), as well as for null/empty inventory responses and
-     * 409 conflicts
-     * without the expected error code.</li>
+     * 409 conflicts without the expected error code.</li>
      * <li>{@code InvalidInputException} is thrown for empty input.</li>
      * <li>Only {@code InternalServerException} participates in circuit breaker and
      * retry logic. {@code InventoryNotInStockException},
@@ -69,16 +83,16 @@ public class InventoryReservationService {
      * This behavior is enforced by both the code and the resilience4j
      * configuration.
      */
-    @CircuitBreaker(name = "inventory", fallbackMethod = "onReserveProductsFailure")
+    @CircuitBreaker(name = "inventory", fallbackMethod = "onReserveOrderFailure")
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     @NonNull
-    public CompletableFuture<List<InventoryAvailabilityStatus>> reserveProducts(
+    public CompletableFuture<List<InventoryAvailabilityStatus>> reserveOrder(
             @NonNull OrderReservationRequest orderReservationRequest)
             throws InternalServerException, InvalidInventoryException, InvalidInputException,
             InventoryNotInStockException {
-        validateReservationRequest(orderReservationRequest);
-        return buildReservationWebClient(orderReservationRequest)
+        validateOrderReservationRequest(orderReservationRequest);
+        return buildOrderReservationWebClient(orderReservationRequest)
                 .retrieve()
                 .onStatus(this::isServerError,
                         response -> handleServerError(orderReservationRequest.orderNumber()))
@@ -89,12 +103,13 @@ public class InventoryReservationService {
                 .bodyToMono(InventoryAvailabilityStatus[].class)
                 .switchIfEmpty(Mono.error(new InvalidInventoryException()))
                 .flatMap(
-                        stockStatus -> validateAndTransformResponse(stockStatus, orderReservationRequest.orderNumber()))
+                        stockStatus -> validateAndTransformReserveOrderResponse(stockStatus,
+                                orderReservationRequest.orderNumber()))
                 .onErrorMap(ex -> mapToAppropriateException(ex, orderReservationRequest.orderNumber()))
                 .toFuture();
     }
 
-    private void validateReservationRequest(OrderReservationRequest orderReservationRequest) {
+    private void validateOrderReservationRequest(OrderReservationRequest orderReservationRequest) {
         if (orderReservationRequest.itemReservationRequests().isEmpty()) {
             log.warn("Attempted to reserve products with empty item reservation requests for order: {}",
                     orderReservationRequest.orderNumber());
@@ -102,13 +117,32 @@ public class InventoryReservationService {
         }
     }
 
-    private WebClient.RequestHeadersSpec<?> buildReservationWebClient(
-            OrderReservationRequest orderReservationRequest) {
-        return webClientBuilder
-                .build()
-                .post()
-                .uri(buildReservationsUri())
-                .bodyValue(orderReservationRequest);
+    private Mono<List<InventoryAvailabilityStatus>> validateAndTransformReserveOrderResponse(
+            InventoryAvailabilityStatus[] stockStatus, String orderNumber) {
+        if (stockStatus == null) {
+            log.error("Received null response from inventory service for order: {}", orderNumber);
+            return Mono.error(new InvalidInventoryException());
+        }
+        if (stockStatus.length == 0) {
+            log.error("Received empty response from inventory service for order: {}", orderNumber);
+            return Mono.error(new InvalidInventoryException());
+        }
+        return Mono.just(Arrays.stream(stockStatus).toList());
+    }
+
+    @SuppressWarnings("unused")
+    private CompletableFuture<List<InventoryAvailabilityStatus>> onReserveOrderFailure(
+            @NonNull OrderReservationRequest orderReservationRequest,
+            Throwable throwable) {
+        log.error("Circuit breaker fallback triggered for order: {}. Error: {}", orderReservationRequest.orderNumber(),
+                throwable.getMessage());
+        CompletableFuture<List<InventoryAvailabilityStatus>> failedFuture = new CompletableFuture<>();
+        if (throwable instanceof ApiException) {
+            failedFuture.completeExceptionally(throwable);
+        } else {
+            failedFuture.completeExceptionally(new InternalServerException());
+        }
+        return failedFuture;
     }
 
     private boolean isServerError(HttpStatusCode status) {
@@ -127,19 +161,24 @@ public class InventoryReservationService {
     private Mono<? extends Throwable> handleConflictError(ClientResponse response, String orderNumber) {
         log.error("Received conflict (409) from inventory service for order: {}", orderNumber);
         return response.bodyToMono(InventoryServiceErrorBody.class)
-                .flatMap(errorBody -> {
+                .<Throwable>flatMap(errorBody -> {
                     if (errorBody != null && "NOT_ENOUGH_ITEM_ERROR_CODE".equals(errorBody.errorCode())) {
                         log.error("Inventory not in stock for order: {}", orderNumber);
                         return Mono.<Throwable>error(new InventoryNotInStockException(
                                 errorBody.errorMessage(),
                                 errorBody.unavailableProducts()));
+                    } else if (errorBody != null
+                            && "ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE".equals(errorBody.errorCode())) {
+                        log.error("Order reservation not allowed for order: {}", orderNumber);
+                        return Mono.<Throwable>error(new OrderReservationNotAllowedException());
                     } else {
                         log.error("Received unknown conflict error for order: {}", orderNumber);
                         return Mono.<Throwable>error(new InvalidInventoryException());
                     }
                 })
                 .onErrorResume(ex -> {
-                    if (ex instanceof InventoryNotInStockException || ex instanceof InvalidInventoryException) {
+                    if (ex instanceof InventoryNotInStockException || ex instanceof InvalidInventoryException
+                            || ex instanceof OrderReservationNotAllowedException) {
                         return Mono.error(ex);
                     }
                     log.error("Failed to parse conflict response body for order: {}", orderNumber);
@@ -152,26 +191,14 @@ public class InventoryReservationService {
         return Mono.error(new InvalidInventoryException());
     }
 
-    private Mono<List<InventoryAvailabilityStatus>> validateAndTransformResponse(
-            InventoryAvailabilityStatus[] stockStatus, String orderNumber) {
-        if (stockStatus == null) {
-            log.error("Received null response from inventory service for order: {}", orderNumber);
-            return Mono.error(new InvalidInventoryException());
-        }
-        if (stockStatus.length == 0) {
-            log.error("Received empty response from inventory service for order: {}", orderNumber);
-            return Mono.error(new InvalidInventoryException());
-        }
-        return Mono.just(Arrays.stream(stockStatus).toList());
-    }
-
     private Throwable mapToAppropriateException(Throwable ex, String orderNumber) {
         log.error("Error reserving products for order: {}: {}", orderNumber, ex.toString());
 
         if (ex instanceof InternalServerException
                 || ex instanceof InvalidInputException
                 || ex instanceof InvalidInventoryException
-                || ex instanceof InventoryNotInStockException) {
+                || ex instanceof InventoryNotInStockException
+                || ex instanceof OrderReservationNotAllowedException) {
             return ex;
         }
         if (ex instanceof JsonProcessingException || ex instanceof DecodingException) {
@@ -179,20 +206,5 @@ public class InventoryReservationService {
         }
         // For other errors (e.g., connection failures), return InternalServerException
         return new InternalServerException();
-    }
-
-    @SuppressWarnings("unused")
-    private CompletableFuture<List<InventoryAvailabilityStatus>> onReserveProductsFailure(
-            @NonNull OrderReservationRequest orderReservationRequest,
-            Throwable throwable) {
-        log.error("Circuit breaker fallback triggered for order: {}. Error: {}", orderReservationRequest.orderNumber(),
-                throwable.getMessage());
-        CompletableFuture<List<InventoryAvailabilityStatus>> failedFuture = new CompletableFuture<>();
-        if (throwable instanceof ApiException) {
-            failedFuture.completeExceptionally(throwable);
-        } else {
-            failedFuture.completeExceptionally(new InternalServerException());
-        }
-        return failedFuture;
     }
 }

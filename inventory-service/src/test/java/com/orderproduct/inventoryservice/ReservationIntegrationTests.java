@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -148,8 +147,7 @@ class ReservationIntegrationTests {
                 assertEquals(2, skuCode2Response.availableQuantity());
 
                 // Verify reservations were created in database
-                final var newReservations = reservationRepository.findByOrderNumberAndSkuCodeIn("ORDER-123",
-                                List.of("skuCode1", "skuCode2"));
+                final var newReservations = reservationRepository.findByOrderNumber("ORDER-123");
                 assertEquals(2, newReservations.size());
 
                 var skuCode1Reservation = newReservations.stream()
@@ -210,30 +208,20 @@ class ReservationIntegrationTests {
                 assertEquals(9, unavailableProduct.availableQuantity()); // 10 onHands - 1 existing pending
 
                 // Verify no reservations were created in database
-                final var newReservations = reservationRepository.findByOrderNumberAndSkuCodeIn("ORDER-456",
-                                List.of("skuCode1"));
+                final var newReservations = reservationRepository.findByOrderNumber("ORDER-456");
                 assertEquals(0, newReservations.size());
         }
 
         @Test
-        @DisplayName("PUT:/api/reservations/{orderNumber}/state should return 200 when updating reservation state successfully")
-        void updateReservationState_Success() throws Exception {
+        @DisplayName("POST:/api/reservations/{orderNumber}/fulfill should return 200 when fulfilling order successfully")
+        void fulfillOrder_Success() throws Exception {
                 // Given - we have existing reservations from setup
                 final var orderNumber = "orderNumber1";
-                final var updateRequest = """
-                                {
-                                    "orderNumber": "orderNumber1",
-                                    "skuCodes": ["skuCode1"],
-                                    "state": "FULFILLED"
-                                }
-                                """;
 
                 // Make Api call
                 MvcResult result = mockMvc.perform(
                                 MockMvcRequestBuilders
-                                                .put("/api/reservations/{orderNumber}/state", orderNumber)
-                                                .contentType("application/json")
-                                                .content(updateRequest))
+                                                .post("/api/reservations/{orderNumber}/fulfill", orderNumber))
                                 .andExpect(status().isOk())
                                 .andReturn();
 
@@ -253,8 +241,7 @@ class ReservationIntegrationTests {
                 assertEquals(ReservationState.FULFILLED, updatedItem.status());
 
                 // Verify reservation was updated in database
-                final var updatedReservations = reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber,
-                                List.of("skuCode1"));
+                final var updatedReservations = reservationRepository.findByOrderNumber(orderNumber);
                 assertEquals(1, updatedReservations.size());
 
                 var updatedReservation = updatedReservations.get(0);
@@ -264,24 +251,38 @@ class ReservationIntegrationTests {
         }
 
         @Test
-        @DisplayName("PUT:/api/reservations/{orderNumber}/state should return 200 when no reservations found")
-        void updateReservationState_NoReservationsFound() throws Exception {
+        @DisplayName("POST:/api/reservations/{orderNumber}/fulfill should return 200 when no reservations found")
+        void fulfillOrder_NoReservationsFound() throws Exception {
                 // Given - order number that doesn't exist
                 final var orderNumber = "nonExistentOrder";
-                final var updateRequest = """
-                                {
-                                    "orderNumber": "nonExistentOrder",
-                                    "skuCodes": ["skuCode1", "skuCode2"],
-                                    "state": "CANCELLED"
-                                }
-                                """;
 
                 // Make Api call
                 MvcResult result = mockMvc.perform(
                                 MockMvcRequestBuilders
-                                                .put("/api/reservations/{orderNumber}/state", orderNumber)
-                                                .contentType("application/json")
-                                                .content(updateRequest))
+                                                .post("/api/reservations/{orderNumber}/fulfill", orderNumber))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var response = objectMapper.readValue(jsonStr, ReservationStateUpdateResponse.class);
+
+                // Assert response structure
+                assertEquals(orderNumber, response.orderNumber());
+                assertEquals(ReservationState.FULFILLED, response.state());
+                assertEquals(0, response.updatedItems().size()); // No items updated
+        }
+
+        @Test
+        @DisplayName("POST:/api/reservations/{orderNumber}/cancel should return 200 when cancelling order successfully")
+        void cancelOrder_Success() throws Exception {
+                // Given - we have existing reservations from setup
+                final var orderNumber = "orderNumber1";
+
+                // Make Api call
+                MvcResult result = mockMvc.perform(
+                                MockMvcRequestBuilders
+                                                .post("/api/reservations/{orderNumber}/cancel", orderNumber))
                                 .andExpect(status().isOk())
                                 .andReturn();
 
@@ -292,6 +293,21 @@ class ReservationIntegrationTests {
                 // Assert response structure
                 assertEquals(orderNumber, response.orderNumber());
                 assertEquals(ReservationState.CANCELLED, response.state());
-                assertEquals(0, response.updatedItems().size()); // No items updated
+                assertEquals(1, response.updatedItems().size());
+
+                // Assert updated item details
+                var updatedItem = response.updatedItems().get(0);
+                assertEquals("skuCode1", updatedItem.skuCode());
+                assertEquals(1, updatedItem.reservedQuantity());
+                assertEquals(ReservationState.CANCELLED, updatedItem.status());
+
+                // Verify reservation was updated in database
+                final var updatedReservations = reservationRepository.findByOrderNumber(orderNumber);
+                assertEquals(1, updatedReservations.size());
+
+                var updatedReservation = updatedReservations.get(0);
+                assertEquals(ReservationState.CANCELLED, updatedReservation.getStatus());
+                assertEquals(1, updatedReservation.getReservedQuantity());
+                assertEquals("skuCode1", updatedReservation.getSkuCode());
         }
 }

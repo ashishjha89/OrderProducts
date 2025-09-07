@@ -27,7 +27,7 @@ public class ReservationServiceUpdateReservationStateTest {
 
         private final ReservedQuantityService reservedQuantityService = new ReservedQuantityService(
                         reservationRepository);
-        private final ReservationBuilder reservationBuilder = new ReservationBuilder(reservationRepository,
+        private final ReservationOrchestrator reservationBuilder = new ReservationOrchestrator(reservationRepository,
                         timeProvider);
         private final ReservationStateManager reservationStateManager = new ReservationStateManager(
                         reservationRepository);
@@ -51,9 +51,8 @@ public class ReservationServiceUpdateReservationStateTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2");
                 final var newState = ReservationState.FULFILLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var existingReservations = List.of(
                                 Reservation.builder()
@@ -77,8 +76,7 @@ public class ReservationServiceUpdateReservationStateTest {
                                 .map(reservation -> copy(reservation, newState))
                                 .toList();
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes))
-                                .thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
                 when(reservationRepository.saveAll(expectedReservations)).thenReturn(expectedReservations);
 
                 // When
@@ -93,13 +91,12 @@ public class ReservationServiceUpdateReservationStateTest {
         public void updateReservationState_NoReservations_ReturnsEmptyList() throws InternalServerException {
                 // Given
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2");
                 final var newState = ReservationState.CANCELLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var expectedReservations = List.<Reservation>of();
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes)).thenReturn(List.of());
+                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(List.of());
                 when(reservationRepository.saveAll(expectedReservations)).thenReturn(expectedReservations);
 
                 // When
@@ -115,9 +112,8 @@ public class ReservationServiceUpdateReservationStateTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1");
                 final var newState = ReservationState.CANCELLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var existingReservation = Reservation.builder()
                                 .id(1L)
@@ -130,7 +126,7 @@ public class ReservationServiceUpdateReservationStateTest {
 
                 final var expectedReservations = List.of(copy(existingReservation, newState));
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes))
+                when(reservationRepository.findByOrderNumber(orderNumber))
                                 .thenReturn(List.of(existingReservation));
                 when(reservationRepository.saveAll(expectedReservations)).thenReturn(expectedReservations);
 
@@ -147,9 +143,8 @@ public class ReservationServiceUpdateReservationStateTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2", "skuCode3");
                 final var newState = ReservationState.FULFILLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var existingReservations = List.of(
                                 Reservation.builder()
@@ -173,8 +168,7 @@ public class ReservationServiceUpdateReservationStateTest {
                                 .map(reservation -> copy(reservation, newState))
                                 .toList();
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes))
-                                .thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
                 when(reservationRepository.saveAll(expectedReservations)).thenReturn(expectedReservations);
 
                 // When
@@ -189,11 +183,10 @@ public class ReservationServiceUpdateReservationStateTest {
         public void updateReservationState_FindingReservationsThrowsError() {
                 // Given
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2");
                 final var newState = ReservationState.FULFILLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes))
+                when(reservationRepository.findByOrderNumber(orderNumber))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
 
@@ -208,9 +201,8 @@ public class ReservationServiceUpdateReservationStateTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1");
                 final var newState = ReservationState.CANCELLED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var existingReservation = Reservation.builder()
                                 .id(1L)
@@ -223,8 +215,7 @@ public class ReservationServiceUpdateReservationStateTest {
 
                 final var expectedReservations = List.of(copy(existingReservation, newState));
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes))
-                                .thenReturn(List.of(existingReservation));
+                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(List.of(existingReservation));
                 when(reservationRepository.saveAll(expectedReservations))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
@@ -240,9 +231,8 @@ public class ReservationServiceUpdateReservationStateTest {
                 // Given
                 final var currentTime = LocalDateTime.now();
                 final var orderNumber = "ORDER-001";
-                final var skuCodes = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
                 final var newState = ReservationState.EXPIRED;
-                final var request = new ReservationStateUpdateRequest(orderNumber, skuCodes, newState);
+                final var request = new ReservationStateUpdateRequest(orderNumber, newState);
 
                 final var existingReservations = List.of(
                                 Reservation.builder()
@@ -282,8 +272,7 @@ public class ReservationServiceUpdateReservationStateTest {
                                 .map(reservation -> copy(reservation, newState))
                                 .toList();
 
-                when(reservationRepository.findByOrderNumberAndSkuCodeIn(orderNumber, skuCodes))
-                                .thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
                 when(reservationRepository.saveAll(expectedReservations)).thenReturn(expectedReservations);
 
                 // When

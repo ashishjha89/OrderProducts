@@ -14,8 +14,8 @@ import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
+import com.orderproduct.inventoryservice.dto.response.ItemAvailability;
 import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
-import com.orderproduct.inventoryservice.dto.response.UnavailableProduct;
 import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.service.inventory.ItemOnHandService;
 import com.orderproduct.inventoryservice.service.reservation.ReservationService;
@@ -44,7 +44,7 @@ public class ReservationManagementService {
                 Map<String, Integer> skuCodeToReservedQuantityMap = skuCodeToReservedQuantityMap(skuCodes);
 
                 // Find unavailable products
-                List<UnavailableProduct> unavailableItems = request.itemReservationRequests().stream()
+                List<ItemAvailability> unavailableItems = request.itemReservationRequests().stream()
                                 .map(requestedItem -> {
                                         String skuCode = requestedItem.skuCode();
                                         int requestedQuantity = requestedItem.quantity();
@@ -52,11 +52,10 @@ public class ReservationManagementService {
                                                         skuCode,
                                                         skuCodeToOnHandsQuantityMap,
                                                         skuCodeToReservedQuantityMap);
-                                        return new UnavailableProduct(skuCode, requestedQuantity, availableQuantity);
+                                        return new ItemAvailability(skuCode, requestedQuantity, availableQuantity);
                                 })
-                                .filter(unavailableProduct -> unavailableProduct
-                                                .requestedQuantity() > unavailableProduct
-                                                                .availableQuantity())
+                                .filter(itemAvailability -> itemAvailability.requestedQuantity() > itemAvailability
+                                                .availableQuantity())
                                 .toList();
 
                 // If there are any unavailable products, throw NotEnoughItemException
@@ -87,17 +86,11 @@ public class ReservationManagementService {
                 return result;
         }
 
-        private List<String> extractSkuCodes(OrderReservationRequest request) {
-                return request.itemReservationRequests().stream()
-                                .map(requestedItem -> requestedItem.skuCode())
-                                .toList();
-        }
-
         @Transactional
         public ReservationStateUpdateResponse updateReservationState(ReservationStateUpdateRequest request)
                         throws InternalServerException {
-                log.info("Updating reservation state to {} for order: {} with {} SKU codes",
-                                request.state(), request.orderNumber(), request.skuCodes().size());
+                log.info("Updating reservation state to {} for order: {}",
+                                request.state(), request.orderNumber());
 
                 // Update the reservation state
                 List<Reservation> updatedReservations = reservationService.updateReservationState(request);
@@ -114,6 +107,12 @@ public class ReservationManagementService {
                                 request.orderNumber(),
                                 request.state(),
                                 updatedItems);
+        }
+
+        private List<String> extractSkuCodes(OrderReservationRequest request) {
+                return request.itemReservationRequests().stream()
+                                .map(requestedItem -> requestedItem.skuCode())
+                                .toList();
         }
 
         private Map<String, Integer> skuCodeToOnHandsQuantityMap(List<String> skuCodes)

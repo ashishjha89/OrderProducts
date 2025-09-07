@@ -42,7 +42,17 @@ public class OrderService {
                 return CompletableFuture.failedFuture(new InventoryNotInStockException());
             }
             return CompletableFuture
-                    .supplyAsync(() -> orderTransactionService.saveOrder(orderNumber, orderRequest));
+                    .supplyAsync(() -> orderTransactionService.saveOrder(orderNumber, orderRequest))
+                    .whenComplete((result, throwable) -> {
+                        if (throwable != null) {
+                            log.error("Order save failed for order: {}", orderNumber, throwable);
+                            try {
+                                orderTransactionService.saveOrderCancelledEvent(orderNumber, orderRequest, throwable);
+                            } catch (InternalServerException e) {
+                                log.error("Failed to save OrderCancelledEvent for order: {}", orderNumber, e);
+                            }
+                        }
+                    });
         });
     }
 
@@ -57,11 +67,8 @@ public class OrderService {
         OrderReservationRequest orderReservationRequest = new OrderReservationRequest(orderNumber, reservationRequests);
 
         return inventoryServiceObservation()
-                .observe(() -> inventoryReservationService.reserveProducts(orderReservationRequest)
-                        .handle((availableStocks, exception) -> {
-                            if (exception instanceof RuntimeException) {
-                                throw (RuntimeException) exception;
-                            }
+                .observe(() -> inventoryReservationService.reserveOrder(orderReservationRequest)
+                        .thenApply(availableStocks -> {
                             if (availableStocks == null) {
                                 log.error("Received null response from inventory service for order: {}", orderNumber);
                                 throw new InternalServerException();

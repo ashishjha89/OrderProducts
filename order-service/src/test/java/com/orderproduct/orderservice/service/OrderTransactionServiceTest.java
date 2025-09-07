@@ -25,6 +25,7 @@ import com.orderproduct.orderservice.dto.SavedOrder;
 import com.orderproduct.orderservice.entity.Order;
 import com.orderproduct.orderservice.entity.OrderLineItems;
 import com.orderproduct.orderservice.entity.OutboxEvent;
+import com.orderproduct.orderservice.event.OrderCancelledEvent;
 import com.orderproduct.orderservice.event.OrderPlacedEvent;
 import com.orderproduct.orderservice.repository.OrderRepository;
 import com.orderproduct.orderservice.repository.OutboxEventRepository;
@@ -117,28 +118,37 @@ public class OrderTransactionServiceTest {
         }
 
         @Test
-        @DisplayName("`saveOrder()` throws InternalServerException when JSON serialization fails")
-        public void saveOrder_ThrowsInternalServerException_WhenJsonSerializationFails()
-                        throws Exception {
-                // Arrange
-                Order savedOrder = Order.builder()
-                                .id(1L)
-                                .orderNumber(orderNumber)
-                                .build();
-                when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
-                ObjectMapper failingMapper = mock(ObjectMapper.class);
-                when(failingMapper.writeValueAsString(any()))
-                                .thenThrow(new RuntimeException("JSON serialization failed"));
+        @DisplayName("`saveOrderCancelledEvent()` successfully saves OrderCancelledEvent to outbox")
+        public void saveOrderCancelledEvent_SuccessfullySavesOrderCancelledEventToOutbox() throws Exception {
+                // Given
+                Long now = Instant.now().toEpochMilli();
+                Throwable cause = new RuntimeException("Order save failed");
+                OutboxEvent expectedOutboxEvent = toOrderCancelledOutboxEventEntity(orderNumber, now);
 
-                OrderTransactionService serviceWithFailingMapper = new OrderTransactionService(
-                                orderDataGenerator,
-                                orderRepository,
-                                outboxEventRepository,
-                                failingMapper);
+                when(orderDataGenerator.getUniqueOutboxEventId()).thenReturn("uniqueOutboxEventId");
+                when(orderDataGenerator.getCurrentTimestamp()).thenReturn(now);
 
-                // Act & Assert
+                // When
+                orderTransactionService.saveOrderCancelledEvent(orderNumber, orderRequest, cause);
+
+                // Then
+                verify(outboxEventRepository).save(expectedOutboxEvent);
+        }
+
+        @Test
+        @DisplayName("`saveOrderCancelledEvent()` throws InternalServerException when outbox event save fails")
+        public void saveOrderCancelledEvent_ThrowsInternalServerException_WhenOutboxEventSaveFails() {
+                // Given
+                Throwable cause = new RuntimeException("Order save failed");
+                when(orderDataGenerator.getUniqueOutboxEventId()).thenReturn("uniqueOutboxEventId");
+                when(orderDataGenerator.getCurrentTimestamp()).thenReturn(Instant.now().toEpochMilli());
+                when(outboxEventRepository.save(any(OutboxEvent.class)))
+                                .thenThrow(new RuntimeException("Outbox save failed"));
+
+                // When & Then
                 assertThrows(InternalServerException.class,
-                                () -> serviceWithFailingMapper.saveOrder(orderNumber, orderRequest));
+                                () -> orderTransactionService.saveOrderCancelledEvent(orderNumber, orderRequest,
+                                                cause));
         }
 
         private OrderLineItems toOrderLineItemEntity(OrderLineItemsDto orderLineItemsDto, Order order) {
@@ -161,6 +171,21 @@ public class OrderTransactionServiceTest {
                                 .aggregateId(savedOrder.orderNumber())
                                 .payload(payload)
                                 .createdAt(orderDataGenerator.getCurrentTimestamp())
+                                .build();
+        }
+
+        private OutboxEvent toOrderCancelledOutboxEventEntity(String orderNumber, Long timestamp)
+                        throws JsonProcessingException {
+                OrderCancelledEvent event = new OrderCancelledEvent(orderNumber);
+                String payload = objectMapper.writeValueAsString(event);
+
+                return OutboxEvent.builder()
+                                .eventId("uniqueOutboxEventId")
+                                .eventType("OrderCancelledEvent")
+                                .aggregateType("Order")
+                                .aggregateId(orderNumber)
+                                .payload(payload)
+                                .createdAt(timestamp)
                                 .build();
         }
 }

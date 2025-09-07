@@ -28,7 +28,7 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final ReservedQuantityService reservedQuantityService;
-    private final ReservationBuilder reservationBuilder;
+    private final ReservationOrchestrator reservationOrchestrator;
     private final ReservationStateManager reservationStateManager;
 
     @NonNull
@@ -47,7 +47,7 @@ public class ReservationService {
         log.debug("Reserving products for order: {} with {} items",
                 request.orderNumber(), request.itemReservationRequests().size());
 
-        List<Reservation> reservationsToSave = reservationBuilder.buildReservationsToSave(request);
+        List<Reservation> reservationsToSave = reservationOrchestrator.buildReservationsToSave(request);
         List<Reservation> result = saveItems(reservationsToSave);
 
         log.debug("Successfully reserved {} items for order: {}", result.size(), request.orderNumber());
@@ -57,8 +57,7 @@ public class ReservationService {
     @NonNull
     public List<Reservation> updateReservationState(@NonNull ReservationStateUpdateRequest request)
             throws InternalServerException {
-        log.debug("Updating reservation state to {} for order: {} with {} SKU codes",
-                request.state(), request.orderNumber(), request.skuCodes().size());
+        log.debug("Updating reservation state to {} for order: {}", request.state(), request.orderNumber());
 
         List<Reservation> updatedReservations = reservationStateManager.updateReservationState(request);
         List<Reservation> result = saveItems(updatedReservations);

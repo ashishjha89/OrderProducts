@@ -12,6 +12,8 @@ public class ErrorComponent {
 
     public static final String NOT_ENOUGH_ITEM_ERROR_CODE = "NOT_ENOUGH_ITEM_ERROR_CODE";
 
+    public static final String ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE = "ORDER_RESERVATION_NOT_ALLOWED";
+
     public static final String somethingWentWrongMsg = "Sorry, something went wrong.";
 
     public static final String badRequestMsg = "This is an incorrect request-body.";
@@ -21,5 +23,7 @@ public class ErrorComponent {
     public static final String notFoundMsg = "Resource not found.";
 
     public static final String notEnoughStockMsg = "Not enough stock for some products";
+
+    public static final String orderReservationNotAllowedMsg = "Cannot create reservations for order with non Pending states";
 
 }

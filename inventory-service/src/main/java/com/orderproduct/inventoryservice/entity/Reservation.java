@@ -22,6 +22,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "inventory_reservation", indexes = {
                 @Index(name = "idx_sku_code_status", columnList = "skuCode,status"),
+                @Index(name = "idx_order_number", columnList = "orderNumber"),
                 @Index(name = "idx_order_sku", columnList = "orderNumber,skuCode")
 }, uniqueConstraints = {
                 @UniqueConstraint(columnNames = { "orderNumber", "skuCode" })

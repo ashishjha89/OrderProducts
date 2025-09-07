@@ -37,14 +37,13 @@ public class ReservationStateManager {
     private List<Reservation> findReservations(@NonNull ReservationStateUpdateRequest request)
             throws InternalServerException {
         try {
-            List<Reservation> result = reservationRepository.findByOrderNumberAndSkuCodeIn(
-                    request.orderNumber(), request.skuCodes());
+            List<Reservation> result = reservationRepository.findByOrderNumber(request.orderNumber());
             log.debug("Found {} reservations for order: {}", result.size(), request.orderNumber());
             return result;
         } catch (DataAccessException e) {
             log.error(
-                    "DataAccessException when finding reservations for orderNumber:{} and skuCodes:{} and errorMsg:{}",
-                    request.orderNumber(), request.skuCodes(), e.getMessage());
+                    "DataAccessException when finding reservations for orderNumber:{} and errorMsg:{}",
+                    request.orderNumber(), e.getMessage());
             throw new InternalServerException();
         }
     }
