@@ -18,7 +18,7 @@ docker exec broker kafka-topics --bootstrap-server localhost:29092 --list
 echo -e "\n3. Testing manual event insertion..."
 docker exec mysql mysql -u order_product_user -p283656ff3b8e513f order_product_db -e "
 INSERT INTO outbox_event(eventid, eventtype, aggregatetype, aggregateid, payload, createdat) 
-VALUES (UUID(), 'OrderPlacedEvent', 'Order', 'test-order-123', '{\"orderNumber\":\"test-order-123\"}', UNIX_TIMESTAMP(NOW(3)) * 1000);
+VALUES (UUID(), 'OrderStatusChangedEvent', 'Order', 'test-order-123', '{\"orderNumber\":\"test-order-123\", \"status\":\"FULFILLED\"}', UNIX_TIMESTAMP(NOW(3)) * 1000);
 "
 
 # Wait a moment for processing

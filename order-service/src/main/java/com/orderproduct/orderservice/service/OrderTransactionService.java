@@ -8,12 +8,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderproduct.orderservice.common.InternalServerException;
 import com.orderproduct.orderservice.dto.OrderLineItemsDto;
 import com.orderproduct.orderservice.dto.OrderRequest;
+import com.orderproduct.orderservice.dto.ReservationState;
 import com.orderproduct.orderservice.dto.SavedOrder;
 import com.orderproduct.orderservice.entity.Order;
 import com.orderproduct.orderservice.entity.OrderLineItems;
 import com.orderproduct.orderservice.entity.OutboxEvent;
-import com.orderproduct.orderservice.event.OrderCancelledEvent;
-import com.orderproduct.orderservice.event.OrderPlacedEvent;
+import com.orderproduct.orderservice.event.OrderStatusChangedEvent;
 import com.orderproduct.orderservice.repository.OrderRepository;
 import com.orderproduct.orderservice.repository.OutboxEventRepository;
 
@@ -47,8 +47,8 @@ class OrderTransactionService {
     public void saveOrderCancelledEvent(@NonNull String orderNumber, @NonNull OrderRequest orderRequest,
             @NonNull Throwable cause)
             throws InternalServerException {
-        OrderCancelledEvent event = new OrderCancelledEvent(orderNumber);
-        saveEventToOutbox(event, "OrderCancelledEvent", orderNumber);
+        OrderStatusChangedEvent event = new OrderStatusChangedEvent(orderNumber, ReservationState.CANCELLED.name());
+        saveEventToOutbox(event, "OrderStatusChangedEvent", orderNumber);
     }
 
     private Order buildOrder(String orderNumber, OrderRequest orderRequest) {
@@ -76,8 +76,9 @@ class OrderTransactionService {
     }
 
     private void saveOrderPlacedEventToOutbox(SavedOrder savedOrder) throws InternalServerException {
-        OrderPlacedEvent event = new OrderPlacedEvent(savedOrder.orderNumber());
-        saveEventToOutbox(event, "OrderPlacedEvent", savedOrder.orderNumber());
+        OrderStatusChangedEvent event = new OrderStatusChangedEvent(savedOrder.orderNumber(),
+                ReservationState.FULFILLED.name());
+        saveEventToOutbox(event, "OrderStatusChangedEvent", savedOrder.orderNumber());
     }
 
     private OrderLineItems toOrderLineItemEntity(OrderLineItemsDto orderLineItemsDto, Order order) {

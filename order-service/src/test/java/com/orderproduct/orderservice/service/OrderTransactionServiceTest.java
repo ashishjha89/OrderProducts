@@ -25,8 +25,8 @@ import com.orderproduct.orderservice.dto.SavedOrder;
 import com.orderproduct.orderservice.entity.Order;
 import com.orderproduct.orderservice.entity.OrderLineItems;
 import com.orderproduct.orderservice.entity.OutboxEvent;
-import com.orderproduct.orderservice.event.OrderCancelledEvent;
-import com.orderproduct.orderservice.event.OrderPlacedEvent;
+import com.orderproduct.orderservice.event.OrderStatusChangedEvent;
+import com.orderproduct.orderservice.dto.ReservationState;
 import com.orderproduct.orderservice.repository.OrderRepository;
 import com.orderproduct.orderservice.repository.OutboxEventRepository;
 
@@ -50,7 +50,7 @@ public class OrderTransactionServiceTest {
         private final OrderRequest orderRequest = new OrderRequest(lineItemDtoList);
 
         @Test
-        @DisplayName("`saveOrder()` successfully saves order and creates outbox event")
+        @DisplayName("`saveOrder()` successfully saves order and creates OrderStatusChangedEvent with FULFILLED status")
         public void saveOrder_SuccessfullySavesOrderAndCreatesOutboxEvent() throws Exception {
                 // Setup order to save
                 Long now = Instant.now().toEpochMilli();
@@ -118,7 +118,7 @@ public class OrderTransactionServiceTest {
         }
 
         @Test
-        @DisplayName("`saveOrderCancelledEvent()` successfully saves OrderCancelledEvent to outbox")
+        @DisplayName("`saveOrderCancelledEvent()` successfully saves OrderStatusChangedEvent with CANCELLED status to outbox")
         public void saveOrderCancelledEvent_SuccessfullySavesOrderCancelledEventToOutbox() throws Exception {
                 // Given
                 Long now = Instant.now().toEpochMilli();
@@ -161,12 +161,12 @@ public class OrderTransactionServiceTest {
         }
 
         private OutboxEvent toOutboxEventEntity(SavedOrder savedOrder) throws JsonProcessingException {
-                OrderPlacedEvent event = new OrderPlacedEvent(savedOrder.orderNumber());
+                OrderStatusChangedEvent event = new OrderStatusChangedEvent(savedOrder.orderNumber(), ReservationState.FULFILLED.name());
                 String payload = objectMapper.writeValueAsString(event);
 
                 return OutboxEvent.builder()
                                 .eventId(orderDataGenerator.getUniqueOutboxEventId())
-                                .eventType("OrderPlacedEvent")
+                                .eventType("OrderStatusChangedEvent")
                                 .aggregateType("Order")
                                 .aggregateId(savedOrder.orderNumber())
                                 .payload(payload)
@@ -176,12 +176,12 @@ public class OrderTransactionServiceTest {
 
         private OutboxEvent toOrderCancelledOutboxEventEntity(String orderNumber, Long timestamp)
                         throws JsonProcessingException {
-                OrderCancelledEvent event = new OrderCancelledEvent(orderNumber);
+                OrderStatusChangedEvent event = new OrderStatusChangedEvent(orderNumber, ReservationState.CANCELLED.name());
                 String payload = objectMapper.writeValueAsString(event);
 
                 return OutboxEvent.builder()
                                 .eventId("uniqueOutboxEventId")
-                                .eventType("OrderCancelledEvent")
+                                .eventType("OrderStatusChangedEvent")
                                 .aggregateType("Order")
                                 .aggregateId(orderNumber)
                                 .payload(payload)

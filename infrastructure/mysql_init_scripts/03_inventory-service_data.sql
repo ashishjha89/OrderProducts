@@ -1,7 +1,7 @@
 USE order_product_db;
 
 -- 1. Insert initial data into the inventory table
-INSERT INTO inventory (sku_code, quantity) VALUES
+INSERT INTO inventory (sku_code, on_hand_quantity) VALUES
 ('samsung-s10', 50),
 ('samsung-s20', 70),
 ('samsung-s21', 120),

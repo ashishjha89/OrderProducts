@@ -49,7 +49,6 @@ The service supports the following REST endpoints:
 
 ### /reservations endpoints:
 - **POST** `/api/reservations`: Reserve products for an order if available.
-- **PUT** `/api/reservations/{orderNumber}/state`: Update reservation state for an order.
 
 ## Testing
 
@@ -80,6 +79,9 @@ mvn test
 - Integration with Eureka Discovery Server and Api Gateway
 
 ## Next Steps
+- Decrement onHandQuantity when order is fulfilled.
+- Commit to Kafka only when DB operations are successful.
+- Expose GRPC endpoint corresponding to POST /api/reservations.
 - Add pagination to get all SKUs.
 - Update `application.properties` to make it production-ready.
 - Implement authorizations according to different operations.
