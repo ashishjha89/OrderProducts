@@ -26,4 +26,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Modifying
     @Query("UPDATE Inventory i SET i.onHandQuantity = :quantity WHERE i.skuCode = :skuCode")
     int updateQuantityBySkuCode(@Param("skuCode") String skuCode, @Param("quantity") int quantity);
+
+    @Modifying
+    @Query("UPDATE Inventory i SET i.onHandQuantity = i.onHandQuantity - :deductionQuantity WHERE i.skuCode = :skuCode")
+    int deductQuantityBySkuCode(@Param("skuCode") String skuCode, @Param("deductionQuantity") int deductionQuantity);
 }

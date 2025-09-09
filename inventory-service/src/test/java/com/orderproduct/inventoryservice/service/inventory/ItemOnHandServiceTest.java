@@ -5,7 +5,11 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatNoException
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -18,21 +22,28 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
+import com.orderproduct.inventoryservice.common.exception.InsufficientQuantityException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.InventoryExceptionHandler;
+import com.orderproduct.inventoryservice.common.exception.NegativeQuantityException;
 import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.UpdateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
 import com.orderproduct.inventoryservice.repository.InventoryRepository;
+import com.orderproduct.inventoryservice.repository.InventoryRepositoryWrapper;
 
 import jakarta.persistence.PersistenceException;
 
 public class ItemOnHandServiceTest {
 
         private final InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        private final InventoryExceptionHandler inventoryExceptionHandler = new InventoryExceptionHandler();
+        private final InventoryRepositoryWrapper inventoryRepositoryWrapper = new InventoryRepositoryWrapper(
+                        inventoryRepository, inventoryExceptionHandler);
 
-        private final ItemOnHandService itemOnHandService = new ItemOnHandService(inventoryRepository);
+        private final ItemOnHandService itemOnHandService = new ItemOnHandService(inventoryRepositoryWrapper);
 
         @Test
         @DisplayName("`itemAvailabilities()` should return `List<ItemOnHandQuantity>` for passed skuCodes with their respective quantities")
@@ -57,12 +68,36 @@ public class ItemOnHandServiceTest {
 
         @Test
         @DisplayName("`itemAvailabilities()` should throw InternalServerException when Repo throws DataAccessException")
-        public void itemAvailabilities_WhenRepoThrowsError() {
+        public void itemAvailabilities_WhenRepoThrowsDataAccessException() {
                 // Given
                 final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
                 when(inventoryRepository.findBySkuCodeIn(skuCodeList))
                                 .thenThrow(new DataAccessResourceFailureException(
                                                 "Child class of DataAccessException"));
+
+                // Then
+                assertThrows(InternalServerException.class, () -> itemOnHandService.itemAvailabilities(skuCodeList));
+        }
+
+        @Test
+        @DisplayName("`itemAvailabilities()` should throw InternalServerException when Repo throws PersistenceException")
+        public void itemAvailabilities_WhenRepoThrowsPersistenceException() {
+                // Given
+                final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
+                when(inventoryRepository.findBySkuCodeIn(skuCodeList))
+                                .thenThrow(new PersistenceException("Database constraint violation"));
+
+                // Then
+                assertThrows(InternalServerException.class, () -> itemOnHandService.itemAvailabilities(skuCodeList));
+        }
+
+        @Test
+        @DisplayName("`itemAvailabilities()` should throw InternalServerException when Repo throws Exception")
+        public void itemAvailabilities_WhenRepoThrowsException() {
+                // Given
+                final var skuCodeList = List.of("skuCode1", "skuCode2", "skuCode3", "skuCode4");
+                when(inventoryRepository.findBySkuCodeIn(skuCodeList))
+                                .thenThrow(new RuntimeException("Unexpected error"));
 
                 // Then
                 assertThrows(InternalServerException.class, () -> itemOnHandService.itemAvailabilities(skuCodeList));
@@ -131,6 +166,19 @@ public class ItemOnHandServiceTest {
         }
 
         @Test
+        @DisplayName("`createInventory()` should throw InternalServerException when repository throws Exception")
+        void createInventory_GenericException_ThrowsInternalServerException() {
+                // Given
+                var inventory = Inventory.createInventory("SKU-123", 10);
+                when(inventoryRepository.save(inventory))
+                                .thenThrow(new RuntimeException("Unexpected error"));
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.createInventory(inventory))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
         @DisplayName("`updateInventory()` should return UpdateInventoryResponse when inventory is updated")
         void updateInventory_ValidSkuCodeAndQuantity_ReturnsSuccessResponse() throws Exception {
                 // Given
@@ -142,6 +190,17 @@ public class ItemOnHandServiceTest {
                 // Then
                 assertThat(response.skuCode()).isEqualTo("SKU-123");
                 assertThat(response.quantity()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw NegativeQuantityException when quantity is negative")
+        void updateInventory_NegativeQuantity_ThrowsNegativeQuantityException() {
+                // When & Then
+                assertThatThrownBy(() -> itemOnHandService.updateInventory("SKU-123", -10))
+                                .isInstanceOf(NegativeQuantityException.class);
+
+                // Verify repository is not called for negative quantity
+                verify(inventoryRepository, never()).updateQuantityBySkuCode(anyString(), anyInt());
         }
 
         @Test
@@ -162,6 +221,30 @@ public class ItemOnHandServiceTest {
                 when(inventoryRepository.updateQuantityBySkuCode("SKU-123", 50))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.updateInventory("SKU-123", 50))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw InternalServerException when repository throws PersistenceException")
+        void updateInventory_PersistenceException_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.updateQuantityBySkuCode("SKU-123", 50))
+                                .thenThrow(new PersistenceException("Constraint violation"));
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.updateInventory("SKU-123", 50))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw InternalServerException when repository throws Exception")
+        void updateInventory_GenericException_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.updateQuantityBySkuCode("SKU-123", 50))
+                                .thenThrow(new RuntimeException("Unexpected error"));
 
                 // Then
                 assertThatThrownBy(() -> itemOnHandService.updateInventory("SKU-123", 50))
@@ -202,4 +285,133 @@ public class ItemOnHandServiceTest {
                 assertThatThrownBy(() -> itemOnHandService.deleteInventory("SKU-123"))
                                 .isInstanceOf(InternalServerException.class);
         }
+
+        @Test
+        @DisplayName("`deleteInventory()` should throw InternalServerException when repository throws PersistenceException")
+        void deleteInventory_PersistenceException_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.deleteBySkuCode("SKU-123"))
+                                .thenThrow(new PersistenceException("Foreign key constraint violation"));
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deleteInventory("SKU-123"))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`deleteInventory()` should throw InternalServerException when repository throws Exception")
+        void deleteInventory_GenericException_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.deleteBySkuCode("SKU-123"))
+                                .thenThrow(new RuntimeException("Unexpected error"));
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deleteInventory("SKU-123"))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should succeed when inventory exists and deduction is valid")
+        void deductInventoryQuantity_ValidSkuCodeAndQuantity_Succeeds() throws Exception {
+                // Given
+                when(inventoryRepository.deductQuantityBySkuCode("SKU-123", 5)).thenReturn(1);
+
+                // When
+                itemOnHandService.deductInventoryQuantity("SKU-123", 5);
+
+                // Then
+                verify(inventoryRepository).deductQuantityBySkuCode("SKU-123", 5);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should succeed when deducting zero quantity")
+        void deductInventoryQuantity_ZeroQuantity_Succeeds() throws Exception {
+                // Given
+                when(inventoryRepository.deductQuantityBySkuCode("SKU-123", 0)).thenReturn(1);
+
+                // When
+                itemOnHandService.deductInventoryQuantity("SKU-123", 0);
+
+                // Then
+                verify(inventoryRepository).deductQuantityBySkuCode("SKU-123", 0);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should throw NotFoundException when inventory does not exist")
+        void deductInventoryQuantity_NonExistentSkuCode_ThrowsNotFoundException() {
+                // Given
+                when(inventoryRepository.deductQuantityBySkuCode("NON-EXISTENT", 5)).thenReturn(0);
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deductInventoryQuantity("NON-EXISTENT", 5))
+                                .isInstanceOf(NotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should throw InternalServerException when repository throws DataAccessException")
+        void deductInventoryQuantity_DatabaseError_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.deductQuantityBySkuCode("SKU-123", 5))
+                                .thenThrow(new DataAccessException("Database connection failed") {
+                                });
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deductInventoryQuantity("SKU-123", 5))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should throw InternalServerException when repository throws PersistenceException")
+        void deductInventoryQuantity_PersistenceException_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.deductQuantityBySkuCode("SKU-123", 5))
+                                .thenThrow(new PersistenceException("Constraint violation"));
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deductInventoryQuantity("SKU-123", 5))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should throw InternalServerException when repository throws Exception")
+        void deductInventoryQuantity_GenericException_ThrowsInternalServerException() {
+                // Given
+                when(inventoryRepository.deductQuantityBySkuCode("SKU-123", 5))
+                                .thenThrow(new RuntimeException("Unexpected error"));
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deductInventoryQuantity("SKU-123", 5))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`updateInventory()` should throw NegativeQuantityException when repository throws ConstraintViolationException")
+        void updateInventory_ConstraintViolation_ThrowsNegativeQuantityException() {
+                // Given
+                DataAccessException dataAccessException = new DataIntegrityViolationException("Constraint violation",
+                                new ConstraintViolationException("on_hand_quantity cannot be negative", null,
+                                                "inventory"));
+                when(inventoryRepository.updateQuantityBySkuCode("SKU-123", -10))
+                                .thenThrow(dataAccessException);
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.updateInventory("SKU-123", -10))
+                                .isInstanceOf(NegativeQuantityException.class);
+        }
+
+        @Test
+        @DisplayName("`deductInventoryQuantity()` should throw InsufficientQuantityException when repository throws ConstraintViolationException")
+        void deductInventoryQuantity_ConstraintViolation_ThrowsInsufficientQuantityException() {
+                // Given
+                DataAccessException dataAccessException = new DataIntegrityViolationException("Constraint violation",
+                                new ConstraintViolationException("on_hand_quantity cannot be negative", null,
+                                                "inventory"));
+                when(inventoryRepository.deductQuantityBySkuCode("SKU-123", 100))
+                                .thenThrow(dataAccessException);
+
+                // Then
+                assertThatThrownBy(() -> itemOnHandService.deductInventoryQuantity("SKU-123", 100))
+                                .isInstanceOf(InsufficientQuantityException.class);
+        }
+
 }

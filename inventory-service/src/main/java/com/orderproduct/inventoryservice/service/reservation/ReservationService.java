@@ -2,17 +2,16 @@ package com.orderproduct.inventoryservice.service.reservation;
 
 import java.util.List;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
+import com.orderproduct.inventoryservice.common.exception.DuplicateReservationException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
 import com.orderproduct.inventoryservice.entity.Reservation;
-import com.orderproduct.inventoryservice.repository.ReservationRepository;
+import com.orderproduct.inventoryservice.repository.ReservationRepositoryWrapper;
 
-import jakarta.persistence.PersistenceException;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class ReservationService {
 
-    private final ReservationRepository reservationRepository;
+    private final ReservationRepositoryWrapper reservationRepository;
     private final ReservedQuantityService reservedQuantityService;
     private final ReservationOrchestrator reservationOrchestrator;
     private final ReservationStateManager reservationStateManager;
@@ -43,7 +42,8 @@ public class ReservationService {
     }
 
     @NonNull
-    public List<Reservation> reserveProducts(@NonNull OrderReservationRequest request) throws InternalServerException {
+    public List<Reservation> reserveProducts(@NonNull OrderReservationRequest request)
+            throws InternalServerException, DuplicateReservationException {
         log.debug("Reserving products for order: {} with {} items",
                 request.orderNumber(), request.itemReservationRequests().size());
 
@@ -56,7 +56,7 @@ public class ReservationService {
 
     @NonNull
     public List<Reservation> updateReservationState(@NonNull ReservationStateUpdateRequest request)
-            throws InternalServerException {
+            throws InternalServerException, DuplicateReservationException {
         log.debug("Updating reservation state to {} for order: {}", request.state(), request.orderNumber());
 
         List<Reservation> updatedReservations = reservationStateManager.updateReservationState(request);
@@ -68,25 +68,12 @@ public class ReservationService {
     }
 
     @NonNull
-    private List<Reservation> saveItems(List<Reservation> reservationsToSave) {
-        try {
-            log.debug("Saving {} reservations", reservationsToSave.size());
-            List<Reservation> result = reservationRepository.saveAll(reservationsToSave);
-            log.debug("Successfully saved {} reservations", result.size());
-            return result;
-        } catch (DataAccessException e) {
-            log.error("DataAccessException when saving reservations:{} and errorMsg:{}", reservationsToSave,
-                    e.getMessage());
-            throw new InternalServerException();
-        } catch (PersistenceException e) {
-            log.error("PersistenceException when saving reservations:{} and errorMsg:{}", reservationsToSave,
-                    e.getMessage());
-            throw new InternalServerException();
-        } catch (Exception e) {
-            log.error("Exception when saving reservations:{} and errorMsg:{}", reservationsToSave,
-                    e.getMessage());
-            throw new InternalServerException();
-        }
+    private List<Reservation> saveItems(List<Reservation> reservationsToSave)
+            throws InternalServerException, DuplicateReservationException {
+        log.debug("Saving {} reservations", reservationsToSave.size());
+        List<Reservation> result = reservationRepository.saveAll(reservationsToSave);
+        log.debug("Successfully saved {} reservations", result.size());
+        return result;
     }
 
 }

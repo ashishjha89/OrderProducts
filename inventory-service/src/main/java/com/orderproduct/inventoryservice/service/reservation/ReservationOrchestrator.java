@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
@@ -16,7 +15,7 @@ import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.entity.ReservationState;
-import com.orderproduct.inventoryservice.repository.ReservationRepository;
+import com.orderproduct.inventoryservice.repository.ReservationRepositoryWrapper;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +24,11 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ReservationOrchestrator {
 
-    private final ReservationRepository reservationRepository;
+    private final ReservationRepositoryWrapper reservationRepository;
     private final TimeProvider timeProvider;
 
-    public ReservationOrchestrator(ReservationRepository reservationRepository, TimeProvider timeProvider) {
+    public ReservationOrchestrator(ReservationRepositoryWrapper reservationRepository,
+            TimeProvider timeProvider) {
         this.reservationRepository = reservationRepository;
         this.timeProvider = timeProvider;
     }
@@ -97,13 +97,7 @@ public class ReservationOrchestrator {
     @NonNull
     private List<Reservation> getAllExistingReservationsForOrder(@NonNull String orderNumber)
             throws InternalServerException {
-        try {
-            return reservationRepository.findByOrderNumber(orderNumber);
-        } catch (DataAccessException e) {
-            log.error("DataAccessException when finding existing reservations for orderNumber:{} and errorMsg:{}",
-                    orderNumber, e.getMessage());
-            throw new InternalServerException();
-        }
+        return reservationRepository.findByOrderNumber(orderNumber);
     }
 
     @NonNull
@@ -122,14 +116,7 @@ public class ReservationOrchestrator {
 
     private void deleteReservationsForSkuCodes(@NonNull String orderNumber, @NonNull Set<String> skuCodesToDelete)
             throws InternalServerException {
-        try {
-            reservationRepository.deleteByOrderNumberAndSkuCodeIn(orderNumber, List.copyOf(skuCodesToDelete));
-        } catch (DataAccessException e) {
-            log.error(
-                    "DataAccessException when deleting reservations for orderNumber:{} and skuCodes:{} and errorMsg:{}",
-                    orderNumber, skuCodesToDelete, e.getMessage());
-            throw new InternalServerException();
-        }
+        reservationRepository.deleteByOrderNumberAndSkuCodeIn(orderNumber, List.copyOf(skuCodesToDelete));
     }
 
     private Reservation findExistingReservationForSku(@NonNull String skuCode,

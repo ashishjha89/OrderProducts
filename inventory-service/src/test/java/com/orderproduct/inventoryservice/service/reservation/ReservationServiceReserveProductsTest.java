@@ -14,14 +14,18 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 
+import com.orderproduct.inventoryservice.common.exception.DuplicateReservationException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.InventoryExceptionHandler;
 import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.common.util.TimeProvider;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
@@ -29,23 +33,31 @@ import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.entity.ReservationState;
 import com.orderproduct.inventoryservice.repository.ReservationRepository;
+import com.orderproduct.inventoryservice.repository.ReservationRepositoryWrapper;
+import com.orderproduct.inventoryservice.service.inventory.InventoryDeductionService;
 
 import jakarta.persistence.PersistenceException;
 
 public class ReservationServiceReserveProductsTest {
 
         private final ReservationRepository reservationRepository = mock(ReservationRepository.class);
+        private final InventoryExceptionHandler inventoryExceptionHandler = new InventoryExceptionHandler();
+        private final ReservationRepositoryWrapper reservationRepositoryWrapper = new ReservationRepositoryWrapper(
+                        reservationRepository, inventoryExceptionHandler);
         private final TimeProvider timeProvider = mock(TimeProvider.class);
+        private final InventoryDeductionService inventoryDeductionService = mock(InventoryDeductionService.class);
 
         private final ReservedQuantityService reservedQuantityService = new ReservedQuantityService(
-                        reservationRepository);
-        private final ReservationOrchestrator reservationBuilder = new ReservationOrchestrator(reservationRepository,
+                        reservationRepositoryWrapper);
+        private final ReservationOrchestrator reservationBuilder = new ReservationOrchestrator(
+                        reservationRepositoryWrapper,
                         timeProvider);
         private final ReservationStateManager reservationStateManager = new ReservationStateManager(
-                        reservationRepository);
+                        reservationRepositoryWrapper, inventoryDeductionService);
 
         private final ReservationService reservationService = new ReservationService(
-                        reservationRepository, reservedQuantityService, reservationBuilder, reservationStateManager);
+                        reservationRepositoryWrapper, reservedQuantityService, reservationBuilder,
+                        reservationStateManager);
 
         @Test
         @DisplayName("`reserveProducts()` should create new reservations when no existing reservations exist")
@@ -123,7 +135,8 @@ public class ReservationServiceReserveProductsTest {
                                                 .status(ReservationState.PENDING)
                                                 .build());
 
-                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
                 when(timeProvider.getCurrentTimestamp()).thenReturn(currentTime);
                 when(reservationRepository.saveAll(anyList())).thenReturn(expectedUpdatedReservations);
 
@@ -181,7 +194,8 @@ public class ReservationServiceReserveProductsTest {
                                                 .status(ReservationState.PENDING)
                                                 .build());
 
-                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
                 when(timeProvider.getCurrentTimestamp()).thenReturn(currentTime);
                 when(reservationRepository.saveAll(anyList())).thenReturn(expectedReservations);
 
@@ -190,7 +204,8 @@ public class ReservationServiceReserveProductsTest {
 
                 // Then
                 assertEquals(expectedReservations, result);
-                verify(reservationRepository).deleteByOrderNumberAndSkuCodeIn(eq(orderNumber), eq(List.of("skuCode2")));
+                verify(reservationRepository).deleteByOrderNumberAndSkuCodeIn(eq(orderNumber),
+                                eq(List.of("skuCode2")));
         }
 
         @Test
@@ -223,7 +238,8 @@ public class ReservationServiceReserveProductsTest {
                                                 .status(ReservationState.PENDING)
                                                 .build());
 
-                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
                 when(timeProvider.getCurrentTimestamp()).thenReturn(currentTime);
                 when(reservationRepository.saveAll(anyList())).thenReturn(expectedReservations);
 
@@ -254,7 +270,8 @@ public class ReservationServiceReserveProductsTest {
                                                 .status(state)
                                                 .build());
 
-                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
 
                 // Then
                 assertThatThrownBy(() -> reservationService.reserveProducts(request))
@@ -294,7 +311,8 @@ public class ReservationServiceReserveProductsTest {
                                                 .status(ReservationState.CANCELLED)
                                                 .build());
 
-                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
 
                 // Then
                 assertThatThrownBy(() -> reservationService.reserveProducts(request))
@@ -303,7 +321,7 @@ public class ReservationServiceReserveProductsTest {
 
         @Test
         @DisplayName("`reserveProducts()` should throw InternalServerException when finding existing reservations throws DataAccessException")
-        public void reserveProducts_FindingExistingReservationsThrowsError() {
+        public void reserveProducts_FindingExistingReservationsThrowsDataAccessException() {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
@@ -312,6 +330,38 @@ public class ReservationServiceReserveProductsTest {
                 when(reservationRepository.findByOrderNumber(orderNumber))
                                 .thenThrow(new DataAccessException("Database connection failed") {
                                 });
+
+                // Then
+                assertThatThrownBy(() -> reservationService.reserveProducts(request))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`reserveProducts()` should throw InternalServerException when finding existing reservations throws PersistenceException")
+        public void reserveProducts_FindingExistingReservationsThrowsPersistenceException() {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
+                final var request = new OrderReservationRequest(orderNumber, itemRequests);
+
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenThrow(new PersistenceException("Database constraint violation"));
+
+                // Then
+                assertThatThrownBy(() -> reservationService.reserveProducts(request))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`reserveProducts()` should throw InternalServerException when finding existing reservations throws Exception")
+        public void reserveProducts_FindingExistingReservationsThrowsException() {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
+                final var request = new OrderReservationRequest(orderNumber, itemRequests);
+
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenThrow(new RuntimeException("Unexpected error"));
 
                 // Then
                 assertThatThrownBy(() -> reservationService.reserveProducts(request))
@@ -378,7 +428,7 @@ public class ReservationServiceReserveProductsTest {
 
         @Test
         @DisplayName("`reserveProducts()` should throw InternalServerException when deleting reservations throws DataAccessException")
-        public void reserveProducts_DeletingReservationsThrowsError() {
+        public void reserveProducts_DeletingReservationsThrowsDataAccessException() {
                 // Given
                 final var orderNumber = "ORDER-001";
                 final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
@@ -394,12 +444,91 @@ public class ReservationServiceReserveProductsTest {
                                                 .status(ReservationState.PENDING)
                                                 .build());
 
-                when(reservationRepository.findByOrderNumber(orderNumber)).thenReturn(existingReservations);
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
                 doThrow(new DataAccessException("Database connection failed") {
                 }).when(reservationRepository).deleteByOrderNumberAndSkuCodeIn(anyString(), anyList());
 
                 // Then
                 assertThatThrownBy(() -> reservationService.reserveProducts(request))
                                 .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`reserveProducts()` should throw InternalServerException when deleting reservations throws PersistenceException")
+        public void reserveProducts_DeletingReservationsThrowsPersistenceException() {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
+                final var request = new OrderReservationRequest(orderNumber, itemRequests);
+
+                final var existingReservations = List.of(
+                                Reservation.builder()
+                                                .id(1L)
+                                                .orderNumber(orderNumber)
+                                                .skuCode("skuCode2")
+                                                .reservedQuantity(3)
+                                                .reservedAt(LocalDateTime.now().minusHours(1))
+                                                .status(ReservationState.PENDING)
+                                                .build());
+
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
+                doThrow(new PersistenceException("Database constraint violation"))
+                                .when(reservationRepository)
+                                .deleteByOrderNumberAndSkuCodeIn(anyString(), anyList());
+
+                // Then
+                assertThatThrownBy(() -> reservationService.reserveProducts(request))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`reserveProducts()` should throw InternalServerException when deleting reservations throws Exception")
+        public void reserveProducts_DeletingReservationsThrowsException() {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var itemRequests = List.of(new ItemReservationRequest("skuCode1", 5));
+                final var request = new OrderReservationRequest(orderNumber, itemRequests);
+
+                final var existingReservations = List.of(
+                                Reservation.builder()
+                                                .id(1L)
+                                                .orderNumber(orderNumber)
+                                                .skuCode("skuCode2")
+                                                .reservedQuantity(3)
+                                                .reservedAt(LocalDateTime.now().minusHours(1))
+                                                .status(ReservationState.PENDING)
+                                                .build());
+
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(existingReservations);
+                doThrow(new RuntimeException("Unexpected error"))
+                                .when(reservationRepository)
+                                .deleteByOrderNumberAndSkuCodeIn(anyString(), anyList());
+
+                // Then
+                assertThatThrownBy(() -> reservationService.reserveProducts(request))
+                                .isInstanceOf(InternalServerException.class);
+        }
+
+        @Test
+        @DisplayName("`reserveProducts()` should throw DuplicateReservationException when repository throws ConstraintViolationException")
+        void reserveProducts_ConstraintViolation_ThrowsDuplicateReservationException() {
+                // Given
+                String orderNumber = "ORDER-123";
+                OrderReservationRequest request = new OrderReservationRequest(orderNumber,
+                                List.of(new ItemReservationRequest("skuCode1", 5)));
+
+                when(reservationRepository.findByOrderNumber(orderNumber))
+                                .thenReturn(List.of());
+                when(reservationRepository.saveAll(anyList()))
+                                .thenThrow(new DataIntegrityViolationException("Constraint violation",
+                                                new ConstraintViolationException("Duplicate reservation", null,
+                                                                "inventory_reservation")));
+
+                // Then
+                assertThatThrownBy(() -> reservationService.reserveProducts(request))
+                                .isInstanceOf(DuplicateReservationException.class);
         }
 }

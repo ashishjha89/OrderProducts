@@ -3,19 +3,19 @@ package com.orderproduct.inventoryservice.service.inventory;
 import java.util.List;
 
 import org.hibernate.exception.ConstraintViolationException;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import com.orderproduct.inventoryservice.common.exception.DuplicateSkuCodeException;
+import com.orderproduct.inventoryservice.common.exception.InsufficientQuantityException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.NegativeQuantityException;
 import com.orderproduct.inventoryservice.common.exception.NotFoundException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.dto.response.CreateInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.UpdateInventoryResponse;
 import com.orderproduct.inventoryservice.entity.Inventory;
-import com.orderproduct.inventoryservice.repository.InventoryRepository;
+import com.orderproduct.inventoryservice.repository.InventoryRepositoryWrapper;
 
-import jakarta.persistence.PersistenceException;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class ItemOnHandService {
 
-    private final InventoryRepository inventoryRepository;
+    private final InventoryRepositoryWrapper inventoryRepository;
 
     @NonNull
     public List<ItemOnHandQuantity> itemAvailabilities(@NonNull List<String> skuCodes) throws InternalServerException {
@@ -47,7 +47,7 @@ public class ItemOnHandService {
 
     @NonNull
     public UpdateInventoryResponse updateInventory(@NonNull String skuCode, int quantity)
-            throws InternalServerException, NotFoundException {
+            throws InternalServerException, NotFoundException, NegativeQuantityException {
         int updatedCount = updateItemQuantity(skuCode, quantity);
         if (updatedCount == 0) {
             log.warn("No inventory found to update for SKU: {}", skuCode);
@@ -65,68 +65,62 @@ public class ItemOnHandService {
         }
     }
 
-    private List<Inventory> getAvailableInventories(List<String> skuCodes) throws InternalServerException {
-        try {
-            log.debug("Querying inventory for {} SKU codes", skuCodes.size());
-            List<Inventory> result = inventoryRepository.findBySkuCodeIn(skuCodes);
-            log.debug("Found {} inventory records", result.size());
-            return result;
-        } catch (DataAccessException e) {
-            log.error("DataAccessException when finding onHands Item Availabilities for skuCodes:{} and errorMsg:{}",
-                    skuCodes,
-                    e.getMessage());
-            throw new InternalServerException();
+    public void deductInventoryQuantity(@NonNull String skuCode, int deductionQuantity)
+            throws InternalServerException, NotFoundException, InsufficientQuantityException {
+        int updatedCount = deductItemQuantity(skuCode, deductionQuantity);
+        if (updatedCount == 0) {
+            log.warn("No inventory found to deduct from for SKU: {}", skuCode);
+            throw new NotFoundException();
         }
+        log.debug("Successfully deducted {} from inventory for SKU: {}", deductionQuantity, skuCode);
+    }
+
+    private List<Inventory> getAvailableInventories(List<String> skuCodes) throws InternalServerException {
+        log.debug("Querying inventory for {} SKU codes", skuCodes.size());
+        List<Inventory> result = inventoryRepository.findBySkuCodeIn(skuCodes);
+        log.debug("Found {} inventory records", result.size());
+        return result;
     }
 
     private void saveInventory(@NonNull Inventory inventory) throws InternalServerException, DuplicateSkuCodeException {
+        log.debug("Saving inventory for SKU: {}", inventory.getSkuCode());
         try {
-            log.debug("Saving inventory for SKU: {}", inventory.getSkuCode());
             inventoryRepository.save(inventory);
             log.debug("Successfully saved inventory for SKU: {}", inventory.getSkuCode());
-        } catch (DataAccessException e) {
+        } catch (InternalServerException e) {
+            // Check if it's a duplicate SKU code error
             if (e.getCause() instanceof ConstraintViolationException) {
                 log.warn("Duplicate SKU code attempted: {}", inventory.getSkuCode());
                 throw new DuplicateSkuCodeException();
             }
-            log.error("Error when creating inventory with skuCode:{} and errorMsg:{}", inventory.getSkuCode(),
-                    e.getMessage());
-            throw new InternalServerException();
-        } catch (PersistenceException e) {
-            log.error("PersistenceException when creating inventory with skuCode:{} and errorMsg:{}",
-                    inventory.getSkuCode(),
-                    e.getMessage());
-
-            throw new InternalServerException();
-        } catch (Exception e) {
-            log.error("Exception when creating inventory with skuCode:{} and errorMsg:{}", inventory.getSkuCode(),
-                    e.getMessage());
-            throw new InternalServerException();
+            throw e;
         }
     }
 
-    private int updateItemQuantity(@NonNull String skuCode, int quantity) throws InternalServerException {
-        try {
-            log.debug("Updating inventory quantity for SKU: {} to {}", skuCode, quantity);
-            int result = inventoryRepository.updateQuantityBySkuCode(skuCode, quantity);
-            log.debug("Updated {} inventory records for SKU: {}", result, skuCode);
-            return result;
-        } catch (DataAccessException e) {
-            log.error("Error when updating inventory with skuCode:{} and errorMsg:{}", skuCode, e.getMessage());
-            throw new InternalServerException();
+    private int updateItemQuantity(@NonNull String skuCode, int quantity)
+            throws InternalServerException, NegativeQuantityException {
+        log.debug("Updating inventory quantity for SKU: {} to {}", skuCode, quantity);
+        if (quantity < 0) {
+            log.warn("Negative quantity attempted for SKU: {}", skuCode);
+            throw new NegativeQuantityException();
         }
+        int result = inventoryRepository.updateQuantityBySkuCode(skuCode, quantity);
+        log.debug("Updated {} inventory records for SKU: {}", result, skuCode);
+        return result;
     }
 
     private int deleteItem(@NonNull String skuCode) throws InternalServerException, NotFoundException {
-        try {
-            log.debug("Deleting inventory for SKU: {}", skuCode);
-            int result = inventoryRepository.deleteBySkuCode(skuCode);
-            log.debug("Deleted {} inventory records for SKU: {}", result, skuCode);
-            return result;
-        } catch (DataAccessException e) {
-            log.error("Error when deleting inventory with skuCode:{} and errorMsg:{}", skuCode, e.getMessage());
-            throw new InternalServerException();
-        }
+        log.debug("Deleting inventory for SKU: {}", skuCode);
+        int result = inventoryRepository.deleteBySkuCode(skuCode);
+        log.debug("Deleted {} inventory records for SKU: {}", result, skuCode);
+        return result;
+    }
+
+    private int deductItemQuantity(@NonNull String skuCode, int deductionQuantity) throws InternalServerException {
+        log.debug("Deducting {} from inventory quantity for SKU: {}", deductionQuantity, skuCode);
+        int result = inventoryRepository.deductQuantityBySkuCode(skuCode, deductionQuantity);
+        log.debug("Deducted from {} inventory records for SKU: {}", result, skuCode);
+        return result;
     }
 
     private List<ItemOnHandQuantity> getItemOnHandQuantity(List<String> skuCodes, List<Inventory> inventoryList)
