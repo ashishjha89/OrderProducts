@@ -88,9 +88,6 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: order_product_db
-      MYSQL_USER: order_product_user
-      MYSQL_PASSWORD: 283656ff3b8e513f
       MYSQL_LOWER_CASE_TABLE_NAMES: 1
     command: ["mysqld", "--binlog-format=ROW", "--log-bin=mysql-bin", "--server-id=1"]
     volumes:
@@ -117,6 +114,12 @@ services:
     depends_on:
       connect:
         condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: debezium_user
+      MYSQL_PASSWORD: fBWsBYOGzcggYQfM
+      MYSQL_DB: order_db
     command:
       - /bin/sh
       - -c

@@ -16,7 +16,7 @@ docker exec broker kafka-topics --bootstrap-server localhost:29092 --list
 
 # Test inserting an event manually using Docker container
 echo -e "\n3. Testing manual event insertion..."
-docker exec mysql mysql -u order_product_user -p283656ff3b8e513f order_product_db -e "
+docker exec mysql mysql -u order_user -pnS3johd59oQIcZhN order_db -e "
 INSERT INTO outbox_event(eventid, eventtype, aggregatetype, aggregateid, payload, createdat) 
 VALUES (UUID(), 'OrderStatusChangedEvent', 'Order', 'test-order-123', '{\"orderNumber\":\"test-order-123\", \"status\":\"FULFILLED\"}', UNIX_TIMESTAMP(NOW(3)) * 1000);
 "
@@ -43,6 +43,6 @@ fi
 
 # Check the outbox_event table to verify the insert worked
 echo -e "\n7. Verifying event was inserted into outbox_event table..."
-docker exec mysql mysql -u order_product_user -p283656ff3b8e513f order_product_db -e "SELECT id, eventtype, aggregatetype, aggregateid, createdat FROM outbox_event ORDER BY createdat DESC LIMIT 3;"
+docker exec mysql mysql -u order_user -pnS3johd59oQIcZhN order_db -e "SELECT id, eventtype, aggregatetype, aggregateid, createdat FROM outbox_event ORDER BY createdat DESC LIMIT 3;"
 
 echo -e "\n=== Test completed ===" 

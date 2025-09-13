@@ -1,4 +1,4 @@
-USE order_product_db;
+USE inventory_db;
 
 -- 1. Insert initial data into the inventory table
 INSERT INTO inventory (sku_code, on_hand_quantity) VALUES

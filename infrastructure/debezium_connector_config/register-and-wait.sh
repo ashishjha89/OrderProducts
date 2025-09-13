@@ -1,13 +1,15 @@
 #!/bin/sh
 set -e
 
-MYSQL_HOST="mysql"
-MYSQL_PORT="3306"
-MYSQL_USER="order_product_user"
-MYSQL_PASSWORD="283656ff3b8e513f"
-MYSQL_DB="order_product_db"
+# Use environment variables provided by docker-compose, with fallbacks
+MYSQL_HOST="${MYSQL_HOST:-mysql}"
+MYSQL_PORT="${MYSQL_PORT:-3306}"
+MYSQL_USER="${MYSQL_USER:-debezium_user}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-fBWsBYOGzcggYQfM}"
+MYSQL_DB="${MYSQL_DB:-order_db}"
 
 echo "Waiting for MySQL to be available..."
+echo "Connecting to ${MYSQL_DB} as ${MYSQL_USER}@${MYSQL_HOST}:${MYSQL_PORT}"
 
 # Wait for MySQL to be ready
 until mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} -e "SELECT 1;" ${MYSQL_DB}; do

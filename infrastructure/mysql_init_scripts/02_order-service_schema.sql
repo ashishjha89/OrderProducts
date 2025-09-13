@@ -1,7 +1,8 @@
 -- This script will be automatically executed by the MySQL container on first startup
 -- when mounted to /docker-entrypoint-initdb.d/.
+-- Creates tables for order service
 
-USE order_product_db;
+USE order_db;
 
 -- Drop tables in reverse dependency order to avoid foreign key constraints issues
 DROP TABLE IF EXISTS order_line_items;

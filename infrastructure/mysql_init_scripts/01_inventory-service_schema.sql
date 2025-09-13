@@ -1,7 +1,8 @@
 -- This script will be automatically executed by the MySQL container on first startup
 -- when mounted to /docker-entrypoint-initdb.d/.
+-- Creates tables for inventory service
 
-USE order_product_db;
+USE inventory_db;
 
 DROP TABLE IF EXISTS inventory;
 DROP TABLE IF EXISTS inventory_reservation;
