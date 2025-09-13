@@ -79,7 +79,6 @@ mvn test
 - Integration with Eureka Discovery Server and Api Gateway
 
 ## Next Steps
-- Decrement onHandQuantity when order is fulfilled.
 - Commit to Kafka only when DB operations are successful.
 - Expose GRPC endpoint corresponding to POST /api/reservations.
 - Add pagination to get all SKUs.
