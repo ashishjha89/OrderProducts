@@ -50,6 +50,36 @@ The service supports the following REST endpoints:
 ### /reservations endpoints:
 - **POST** `/api/reservations`: Reserve products for an order if available.
 
+## gRPC Service Testing
+
+The service also exposes a gRPC endpoint for product reservations. You can test it using `grpcurl`:
+
+### Testing the gRPC Service
+
+1. **List available services**:
+   ```bash
+   grpcurl -plaintext localhost:9090 list
+   ```
+
+2. **Test the ReserveProducts method**:
+   ```bash
+   grpcurl -plaintext -d '{
+     "order_number": "TEST-GRPC-ORDER-001",
+     "item_reservation_requests": [
+       {
+         "sku_code": "samsung-s10",
+         "quantity": 1
+       }
+     ]
+   }' localhost:9090 com.orderproduct.inventoryservice.grpc.ReservationService/ReserveProducts
+   ```
+
+### gRPC Service Details
+- **Port**: 9090 (configured in `application.properties`)
+- **Service**: `com.orderproduct.inventoryservice.grpc.ReservationService`
+- **Method**: `ReserveProducts`
+- **Protocol**: gRPC over HTTP/2
+
 ## Testing
 
 The project includes comprehensive testing using various frameworks and approaches:
@@ -80,7 +110,6 @@ mvn test
 
 ## Next Steps
 - Commit to Kafka only when DB operations are successful.
-- Expose GRPC endpoint corresponding to POST /api/reservations.
 - Add pagination to get all SKUs.
 - Update `application.properties` to make it production-ready.
 - Implement authorizations according to different operations.

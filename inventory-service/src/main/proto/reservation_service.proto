@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package com.orderproduct.inventoryservice.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.orderproduct.inventoryservice.grpc";
+option java_outer_classname = "ReservationServiceProto";
+
+// Request message for reserving products
+message ReserveProductsRequest {
+  string order_number = 1;
+  repeated ItemReservationRequest item_reservation_requests = 2;
+}
+
+// Individual item reservation request
+message ItemReservationRequest {
+  string sku_code = 1;
+  int32 quantity = 2;
+}
+
+// Response message for product reservation
+message ReserveProductsResponse {
+  repeated AvailableInventoryResponse available_inventory = 1;
+}
+
+// Available inventory information
+message AvailableInventoryResponse {
+  string sku_code = 1;
+  int32 available_quantity = 2;
+}
+
+// Error response for detailed error information
+message ErrorResponse {
+  string error_code = 1;
+  string error_message = 2;
+  repeated string unavailable_products = 3; // For NotEnoughItemException
+}
+
+// Reservation service definition
+service ReservationService {
+  // Reserve products for an order if available
+  rpc ReserveProducts(ReserveProductsRequest) returns (ReserveProductsResponse);
+}
