@@ -6,9 +6,11 @@ import java.util.stream.Collectors;
 import com.google.protobuf.Any;
 import com.google.rpc.Code;
 import com.google.rpc.ErrorInfo;
+import com.google.rpc.Status;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.service.ReservationManagementService;
@@ -45,26 +47,22 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
 
             responseObserver.onNext(grpcResponse);
             responseObserver.onCompleted();
-
         } catch (NotEnoughItemException e) {
             log.warn("gRPC:ReserveProducts - Insufficient stock for order: {}", request.getOrderNumber());
             responseObserver.onError(buildNotEnoughItemError(e));
-
         } catch (InternalServerException e) {
             log.error("gRPC:ReserveProducts - Internal server error for order: {}", request.getOrderNumber(), e);
             responseObserver.onError(buildInternalServerError(e));
-
         } catch (Exception e) {
             log.error("gRPC:ReserveProducts - Unexpected error for order: {}", request.getOrderNumber(), e);
             responseObserver.onError(buildUnexpectedError(e));
-
         }
     }
 
     private OrderReservationRequest convertToOrderReservationRequest(ReserveProductsRequest grpcRequest) {
-        List<com.orderproduct.inventoryservice.dto.request.ItemReservationRequest> itemRequests = grpcRequest
+        List<ItemReservationRequest> itemRequests = grpcRequest
                 .getItemReservationRequestsList().stream()
-                .map(grpcItem -> new com.orderproduct.inventoryservice.dto.request.ItemReservationRequest(
+                .map(grpcItem -> new ItemReservationRequest(
                         grpcItem.getSkuCode(),
                         grpcItem.getQuantity()))
                 .collect(Collectors.toList());
@@ -76,12 +74,11 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
         ReserveProductsResponse.Builder responseBuilder = ReserveProductsResponse.newBuilder();
 
         for (AvailableInventoryResponse inventoryResponse : inventoryResponses) {
-            com.orderproduct.inventoryservice.grpc.AvailableInventoryResponse grpcInventoryResponse = com.orderproduct.inventoryservice.grpc.AvailableInventoryResponse
-                    .newBuilder()
-                    .setSkuCode(inventoryResponse.skuCode())
-                    .setAvailableQuantity(inventoryResponse.availableQuantity())
-                    .build();
-            responseBuilder.addAvailableInventory(grpcInventoryResponse);
+            responseBuilder.addAvailableInventory(
+                    com.orderproduct.inventoryservice.grpc.AvailableInventoryResponse.newBuilder()
+                            .setSkuCode(inventoryResponse.skuCode())
+                            .setAvailableQuantity(inventoryResponse.availableQuantity())
+                            .build());
         }
 
         return responseBuilder.build();
@@ -101,7 +98,7 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
                     .build();
         }
 
-        com.google.rpc.Status rpcStatus = buildBaseStatus(Code.RESOURCE_EXHAUSTED, e.getErrorMessage())
+        Status rpcStatus = buildBaseStatus(Code.RESOURCE_EXHAUSTED, e.getErrorMessage())
                 .addDetails(Any.pack(errorInfo))
                 .build();
         return StatusProto.toStatusRuntimeException(rpcStatus);
@@ -109,7 +106,7 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
 
     private StatusRuntimeException buildInternalServerError(InternalServerException e) {
         ErrorInfo errorInfo = buildBaseErrorInfo(e.getErrorCode(), e.getErrorMessage());
-        com.google.rpc.Status rpcStatus = buildBaseStatus(Code.INTERNAL, e.getErrorMessage())
+        Status rpcStatus = buildBaseStatus(Code.INTERNAL, e.getErrorMessage())
                 .addDetails(Any.pack(errorInfo))
                 .build();
 
@@ -123,7 +120,7 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
                 .putMetadata("original_exception", e.getClass().getSimpleName())
                 .build();
 
-        com.google.rpc.Status rpcStatus = buildBaseStatus(Code.INTERNAL, ErrorComponent.somethingWentWrongMsg)
+        Status rpcStatus = buildBaseStatus(Code.INTERNAL, ErrorComponent.somethingWentWrongMsg)
                 .addDetails(Any.pack(errorInfo))
                 .build();
 
@@ -136,8 +133,8 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
                 .build();
     }
 
-    private com.google.rpc.Status.Builder buildBaseStatus(Code code, String message) {
-        return com.google.rpc.Status.newBuilder()
+    private Status.Builder buildBaseStatus(Code code, String message) {
+        return Status.newBuilder()
                 .setCode(code.getNumber())
                 .setMessage(message);
     }
