@@ -15,20 +15,10 @@ mvn spring-boot:run
 
 ## Prerequisites
 
-Before running the service, ensure the following dependencies are set up:
-
-1. **MySQL**: Used as the primary database. You can start MySQL using:
-   ```bash
-   brew services start mysql
-   ```
-
-2. **Zipkin Server**: Used to visualize traces for distributed tracing. Start the Zipkin server using:
-   ```bash
-   docker run -d -p 9411:9411 openzipkin/zipkin
-   ```
-
-3. Ensure the `discovery-server` (Eureka server) is running to enable service registration and
-   discovery.
+Before running the service:
+- Ensure that `discovery-server` (Eureka server) is running to enable service registration and discovery.
+- Ensure that `api-gateway` is running.
+- Ensure that `infrastructure` is setup (see parent directory of project). This service relies on: MySQL, Kafka and Zipkin.
 
 ## API Documentation
 
@@ -38,6 +28,8 @@ http://localhost:<port-number>/api/inventory/swagger-ui/index.html
 ```
 
 ## Supported Endpoints
+
+- **Port**: 0 (i.e. it is exposed via dynamic port).
 
 The service supports the following REST endpoints:
 
@@ -85,25 +77,22 @@ The service also exposes a gRPC endpoint for product reservations. You can test 
 The project includes comprehensive testing using various frameworks and approaches:
 
 ### Test Frameworks Used
-- **TestContainers**: For integration tests with MySQL
-- **MockMvc**: For testing REST endpoints
-- **Mockito**: For unit testing with mocks
+- **TestContainers**: For integration tests with MySQL.
+- **MockMvc**: For testing REST endpoints.
+- **Mockito**: For unit testing with mocks.
 
 ### Types of Tests
-- **Unit Tests**: Testing individual components using Mockito
-- **Integration Tests**: Using TestContainers for MySQL integration
-- **Controller Tests**: Using MockMvc for API endpoint testing
-
-Run all tests using:
-```bash
-mvn test
-```
+- **Unit Tests**: Testing individual components using Mockito.
+- **Integration Tests**: Using TestContainers for MySQL integration.
+- **Controller Tests**: Using MockMvc for API endpoint testing.
 
 ## Technologies used
 - Integration tests
    - TestContainers
    - Consumer Driven Contracts (spring-cloud-contract)
 - MySql
+- Kafka consumer
+- GRPC Server
 - Distributed tracking (Zipkin & micrometer)
 - Swagger
 - Integration with Eureka Discovery Server and Api Gateway

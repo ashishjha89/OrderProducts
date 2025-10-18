@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a Spring MVC project designed to manage orders with thorough unit and integration tests.
+This is a Spring MVC project designed to manage orders.
 
 ## Running the Application
 
@@ -14,23 +14,11 @@ mvn spring-boot:run
 
 ## Prerequisites
 
-Before running the service, ensure the following dependencies are set up:
-
-1. **MongoDB**: Used to store order data. You can start MongoDB using:
-   ```bash
-   brew services start mongodb-community
-   ```
-
-2. **Zipkin Server**: Used to visualize traces for distributed tracing. Start the Zipkin server using:
-   ```bash
-   docker run -d -p 9411:9411 openzipkin/zipkin
-   ```
-
-3. Ensure the `discovery-server` (Eureka server) is running to enable service registration and discovery.
-
-4. Ensure the `api-gateway` is running so that this service is available via port 8080.
-
-5. Ensure the `inventory-service` is running to check stock availability.
+Before running the service:
+- Ensure the `discovery-server` (Eureka server) is running to enable service registration and discovery.
+- Ensure the `api-gateway` is running so that this service is available via port 8080.
+- Ensure the `inventory-service` is running to check stock availability.
+- Ensure that `infrastructure` is setup (see parent directory of project). This service relies on: MySQL, Kafka and Zipkin.
 
 ## API Documentation
 
@@ -57,12 +45,6 @@ The service supports the following REST endpoints:
 - **Unit Tests**: Testing individual components using Mockito
 - **Integration Tests**: Using TestContainers for MySQL integration
 - **Controller Tests**: Using MockMvc for API endpoint testing
-
-Run tests using:
-
-```bash
-mvn test
-```
 
 ## Technologies used
 - Integration tests

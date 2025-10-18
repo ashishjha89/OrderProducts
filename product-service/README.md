@@ -2,34 +2,7 @@
 
 ## Overview
 
-This is a Spring MVC project designed to manage products (store & retrieve), with thorough unit and integration tests.
-
-## Prerequisites
-
-Before running the service, ensure the following dependencies are set up:
-
-1. **MongoDB**: Used to store "Products." You can start MongoDB using:
-   ```bash
-   brew services start mongodb-community
-   ```
-
-2. **Zipkin Server**: Used to visualize traces for distributed tracing. Start the Zipkin server using:
-   ```bash
-   docker run -d -p 9411:9411 openzipkin/zipkin
-   ```
-
-3. Ensure the `discovery-server` (Eureka server) is running to enable service registration and
-   discovery.
-
-4. Ensure the `api-gateway` is running so that this service is available via port 8080.
-
-## API Documentation
-
-The API documentation is available at:
-
-```
-http://localhost:8080/api/product/swagger-ui/index.html
-```
+This is a Spring MVC project designed to manage products (store & retrieve).
 
 ## Running the Application
 
@@ -39,18 +12,39 @@ To run the application, use:
 mvn spring-boot:run
 ```
 
+## Prerequisites
+
+Before running the service:
+- Ensure that `discovery-server` (Eureka server) is running to enable service registration and discovery.
+- Ensure that `api-gateway` is running.
+- Ensure that `infrastructure` is setup (see parent directory of project). This service relies on: MongoDB and Zipkin.
+
+## API Documentation
+
+The API documentation is available at:
+
+```
+http://localhost:8080/api/product/swagger-ui/index.html
+```
+
+## Supported Endpoints
+
+The service supports the following REST endpoints:
+
+- **POST** `/api/products`: Create a product.
+- **GET** `/api/products`: Get all products.
+
 ## Testing
 
-The project includes:
+### Test Frameworks Used
+- **TestContainers**: For integration tests with MongoDB.
+- **MockMvc**: For testing REST endpoints.
+- **Mockito**: For unit testing with mocks.
 
-- **Unit Tests**: To validate individual components.
-- **Integration Tests**: To ensure the application works as a whole.
-
-Run tests using:
-
-```bash
-mvn test
-```
+### Types of Tests
+- **Unit Tests**: Testing individual components using Mockito.
+- **Integration Tests**: Using TestContainers for MySQL integration.
+- **Controller Tests**: Using MockMvc for API endpoint testing.
 
 ## Technologies used
 - Integration tests with TestContainers

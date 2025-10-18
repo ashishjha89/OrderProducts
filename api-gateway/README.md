@@ -11,7 +11,6 @@ This project is a **Spring Cloud Gateway** application that routes requests to y
 
 ## Prerequisites
 
-- Microservices: `product-service`, `order-service`, `inventory-service`
 - Eureka Discovery Server (running on `localhost:8761`)
 - Zipkin (optional, for tracing; running on `localhost:9411`)
 

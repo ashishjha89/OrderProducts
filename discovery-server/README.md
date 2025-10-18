@@ -1,4 +1,6 @@
-### Eureka Service Registry
+# Discovery-Server
+
+## Eureka Service Registry
 It runs on:
 ```
 http://localhost:8761/
@@ -6,11 +8,11 @@ http://localhost:8761/
 
 Note: Start Eureka Service Registry before running your services.
 
-### Responsibilities
+## Responsibilities
 - This service acts as Eureka Server. It registers other services (implemented as Eureka Client).
 - Through Eureka Server dashboard, we can see service health related metrics.
 
-### Running the Application
+## Running the Application
 
 To run the application, use:
 
