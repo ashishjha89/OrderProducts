@@ -6,6 +6,11 @@ option java_multiple_files = true;
 option java_package = "com.orderproduct.inventoryservice.grpc";
 option java_outer_classname = "ReservationServiceProto";
 
+// This service uses Google's standard error model for error handling.
+// Errors are returned via com.google.rpc.Status with com.google.rpc.ErrorInfo details.
+// Import these types from google/rpc/status.proto and google/rpc/error_details.proto
+// when using this service.
+
 // Request message for reserving products
 message ReserveProductsRequest {
   string order_number = 1;
@@ -29,15 +34,31 @@ message AvailableInventoryResponse {
   int32 available_quantity = 2;
 }
 
-// Error response for detailed error information
-message ErrorResponse {
-  string error_code = 1;
-  string error_message = 2;
-  repeated string unavailable_products = 3; // For NotEnoughItemException
-}
-
 // Reservation service definition
 service ReservationService {
   // Reserve products for an order if available
+  //
+  // On success, returns ReserveProductsResponse with available inventory quantities
+  // after reservation.
+  //
+  // Error Handling:
+  // This RPC uses Google's standard error model. Errors are returned as
+  // StatusRuntimeException with the following codes and details:
+  //
+  // 1. RESOURCE_EXHAUSTED - Insufficient stock to fulfill the reservation
+  //    - Status message: "Not enough stock for some products"
+  //    - ErrorInfo.reason: "NOT_ENOUGH_ITEM_ERROR_CODE"
+  //    - ErrorInfo.metadata:
+  //      * "unavailable_products": Comma-separated list of SKU codes that are unavailable
+  //      * "unavailable_count": Number of unavailable products
+  //
+  // 2. INTERNAL - Server-side error (database failure, unexpected exception)
+  //    - Status message: "Sorry, something went wrong."
+  //    - ErrorInfo.reason: "SOMETHING_WENT_WRONG_ERROR_CODE"
+  //    - ErrorInfo.metadata:
+  //      * "original_exception": Class name of the original exception (for unexpected errors)
+  //
+  // Note: No reservations are created if any product in the request cannot be fulfilled.
+  // The operation is atomic - either all products are reserved or none are.
   rpc ReserveProducts(ReserveProductsRequest) returns (ReserveProductsResponse);
 }

@@ -53,30 +53,6 @@ class ReservationGrpcServiceTest {
                 reservationGrpcService = new ReservationGrpcService(reservationManagementService);
         }
 
-        /**
-         * Helper method to extract ErrorInfo from StatusRuntimeException
-         */
-        private ErrorInfo extractErrorInfo(StatusRuntimeException exception) {
-                // Get the status from the exception
-                io.grpc.Status grpcStatus = exception.getStatus();
-                assertNotNull(grpcStatus, "gRPC Status should not be null");
-
-                // Get the status details from the exception's trailers
-                com.google.rpc.Status status = StatusProto.fromStatusAndTrailers(grpcStatus, exception.getTrailers());
-                assertNotNull(status, "Status should not be null");
-
-                for (Any detail : status.getDetailsList()) {
-                        if (detail.is(ErrorInfo.class)) {
-                                try {
-                                        return detail.unpack(ErrorInfo.class);
-                                } catch (Exception e) {
-                                        // Continue to next detail
-                                }
-                        }
-                }
-                return null;
-        }
-
         @Test
         @DisplayName("Should reserve products successfully")
         void reserveProducts_Success() throws Exception {
@@ -250,5 +226,26 @@ class ReservationGrpcServiceTest {
                 assertEquals(Status.INTERNAL.getCode(), capturedError.getStatus().getCode());
                 assertEquals(ErrorComponent.somethingWentWrongMsg, capturedError.getStatus().getDescription());
                 assertEquals(ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE, errorInfo.getReason());
+        }
+
+        private ErrorInfo extractErrorInfo(StatusRuntimeException exception) {
+                // Get the status from the exception
+                io.grpc.Status grpcStatus = exception.getStatus();
+                assertNotNull(grpcStatus, "gRPC Status should not be null");
+
+                // Get the status details from the exception's trailers
+                com.google.rpc.Status status = StatusProto.fromStatusAndTrailers(grpcStatus, exception.getTrailers());
+                assertNotNull(status, "Status should not be null");
+
+                for (Any detail : status.getDetailsList()) {
+                        if (detail.is(ErrorInfo.class)) {
+                                try {
+                                        return detail.unpack(ErrorInfo.class);
+                                } catch (Exception e) {
+                                        // Continue to next detail
+                                }
+                        }
+                }
+                return null;
         }
 }

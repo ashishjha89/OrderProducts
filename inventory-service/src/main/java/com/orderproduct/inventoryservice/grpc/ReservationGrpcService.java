@@ -32,6 +32,7 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
     @Override
     public void reserveProducts(ReserveProductsRequest request,
             StreamObserver<ReserveProductsResponse> responseObserver) {
+
         log.info("gRPC:ReserveProducts - Reserving products for order: {}", request.getOrderNumber());
 
         try {
@@ -60,11 +61,8 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
     }
 
     private OrderReservationRequest convertToOrderReservationRequest(ReserveProductsRequest grpcRequest) {
-        List<ItemReservationRequest> itemRequests = grpcRequest
-                .getItemReservationRequestsList().stream()
-                .map(grpcItem -> new ItemReservationRequest(
-                        grpcItem.getSkuCode(),
-                        grpcItem.getQuantity()))
+        List<ItemReservationRequest> itemRequests = grpcRequest.getItemReservationRequestsList().stream()
+                .map(grpcItem -> new ItemReservationRequest(grpcItem.getSkuCode(), grpcItem.getQuantity()))
                 .collect(Collectors.toList());
 
         return new OrderReservationRequest(grpcRequest.getOrderNumber(), itemRequests);
@@ -85,7 +83,7 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
     }
 
     private StatusRuntimeException buildNotEnoughItemError(NotEnoughItemException e) {
-        ErrorInfo errorInfo = buildBaseErrorInfo(e.getErrorCode(), e.getErrorMessage());
+        ErrorInfo errorInfo = buildBaseErrorInfo(e.getErrorCode());
 
         // Add unavailable products as metadata
         if (e.getUnavailableProducts() != null && !e.getUnavailableProducts().isEmpty()) {
@@ -105,7 +103,7 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
     }
 
     private StatusRuntimeException buildInternalServerError(InternalServerException e) {
-        ErrorInfo errorInfo = buildBaseErrorInfo(e.getErrorCode(), e.getErrorMessage());
+        ErrorInfo errorInfo = buildBaseErrorInfo(e.getErrorCode());
         Status rpcStatus = buildBaseStatus(Code.INTERNAL, e.getErrorMessage())
                 .addDetails(Any.pack(errorInfo))
                 .build();
@@ -114,8 +112,8 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
     }
 
     private StatusRuntimeException buildUnexpectedError(Exception e) {
-        ErrorInfo errorInfo = buildBaseErrorInfo(ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE,
-                ErrorComponent.somethingWentWrongMsg)
+        ErrorInfo errorInfo = buildBaseErrorInfo(
+                ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE)
                 .toBuilder()
                 .putMetadata("original_exception", e.getClass().getSimpleName())
                 .build();
@@ -127,16 +125,12 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
         return StatusProto.toStatusRuntimeException(rpcStatus);
     }
 
-    private ErrorInfo buildBaseErrorInfo(String errorCode, String errorMessage) {
-        return ErrorInfo.newBuilder()
-                .setReason(errorCode)
-                .build();
+    private ErrorInfo buildBaseErrorInfo(String errorCode) {
+        return ErrorInfo.newBuilder().setReason(errorCode).build();
     }
 
     private Status.Builder buildBaseStatus(Code code, String message) {
-        return Status.newBuilder()
-                .setCode(code.getNumber())
-                .setMessage(message);
+        return Status.newBuilder().setCode(code.getNumber()).setMessage(message);
     }
 
 }
