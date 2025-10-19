@@ -64,7 +64,7 @@ class OrderTransactionService {
 
     private SavedOrder persistOrder(Order order) throws InternalServerException {
         try {
-            log.debug("Saving order with ID: {} and order number: {}", order.getId(), order.getOrderNumber());
+            log.debug("Saving order with order number: {}", order.getOrderNumber());
             Order savedOrder = orderRepository.save(order);
             log.debug("Order saved successfully with ID: {} and order number: {}", savedOrder.getId(),
                     savedOrder.getOrderNumber());

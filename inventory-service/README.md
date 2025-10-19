@@ -68,7 +68,7 @@ The service also exposes a gRPC endpoint for product reservations. You can test 
 
 ### gRPC Service Details
 - **Port**: 9090 (configured in `application.properties`)
-- **Service**: `com.orderproduct.inventoryservice.grpc.ReservationService`
+- **Service**: `com.orderproduct.inventoryservice.grpc.ReservationGrpcService`
 - **Method**: `ReserveProducts`
 - **Protocol**: gRPC over HTTP/2
 

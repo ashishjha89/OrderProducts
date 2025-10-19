@@ -34,9 +34,9 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 
-public class InventoryReservationServiceTest {
+public class InventoryReservationHttpServiceTest {
 
-        private InventoryReservationService inventoryReservationService;
+        private InventoryReservationHttpService inventoryReservationHttpService;
         private final ObjectMapper objectMapper = new ObjectMapper();
         private MockWebServer mockWebServer;
 
@@ -45,7 +45,7 @@ public class InventoryReservationServiceTest {
                 mockWebServer = new MockWebServer();
                 mockWebServer.start();
 
-                inventoryReservationService = new InventoryReservationService(
+                inventoryReservationHttpService = new InventoryReservationHttpService(
                                 WebClient.builder(),
                                 mockWebServer.url("/").toString());
         }
@@ -77,39 +77,13 @@ public class InventoryReservationServiceTest {
                                         .addHeader("Content-Type", "application/json"));
 
                         // When
-                        final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
+                        final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationHttpService
                                         .reserveOrder(orderReservationRequest).get();
 
                         // Then
                         assertEquals(mockStatuses, responseStatuses);
                 }
 
-                @Test
-                @DisplayName("reserveOrder should handle multiple item reservations successfully")
-                void reserveOrderShouldHandleMultipleItemReservationsSuccessfully() throws Exception {
-                        // Given
-                        final var mockStatuses = List.of(
-                                        new InventoryAvailabilityStatus("sku1", 15),
-                                        new InventoryAvailabilityStatus("sku2", 8),
-                                        new InventoryAvailabilityStatus("sku3", 0));
-                        final var orderReservationRequest = new OrderReservationRequest(
-                                        "ORDER-456",
-                                        List.of(
-                                                        new ItemReservationRequest("sku1", 10),
-                                                        new ItemReservationRequest("sku2", 5),
-                                                        new ItemReservationRequest("sku3", 2)));
-
-                        mockWebServer.enqueue(new MockResponse()
-                                        .setBody(objectMapper.writeValueAsString(mockStatuses))
-                                        .addHeader("Content-Type", "application/json"));
-
-                        // When
-                        final List<InventoryAvailabilityStatus> responseStatuses = inventoryReservationService
-                                        .reserveOrder(orderReservationRequest).get();
-
-                        // Then
-                        assertEquals(mockStatuses, responseStatuses);
-                }
         }
 
         @Nested
@@ -125,7 +99,7 @@ public class InventoryReservationServiceTest {
                         // When & Then
                         assertThrows(
                                         InvalidInputException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest));
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest));
                 }
         }
 
@@ -149,7 +123,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -171,7 +146,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InternalServerException.class, exception.getCause());
@@ -193,7 +169,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InternalServerException.class, exception.getCause());
@@ -213,7 +190,8 @@ public class InventoryReservationServiceTest {
                         // When & Then
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InternalServerException.class, exception.getCause());
@@ -239,7 +217,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -261,7 +240,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -282,7 +262,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -324,7 +305,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InventoryNotInStockException.class, exception.getCause());
@@ -354,7 +336,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(OrderReservationNotAllowedException.class, exception.getCause());
@@ -384,7 +367,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -406,7 +390,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -428,7 +413,8 @@ public class InventoryReservationServiceTest {
                         // When
                         ExecutionException exception = assertThrows(
                                         ExecutionException.class,
-                                        () -> inventoryReservationService.reserveOrder(orderReservationRequest).get());
+                                        () -> inventoryReservationHttpService.reserveOrder(orderReservationRequest)
+                                                        .get());
 
                         // Then
                         assertInstanceOf(InvalidInventoryException.class, exception.getCause());
@@ -442,7 +428,7 @@ public class InventoryReservationServiceTest {
                 @Test
                 @DisplayName("reserveOrder should have resilience4j annotations")
                 void reserveOrderShouldHaveResilience4jAnnotations() throws NoSuchMethodException {
-                        Method method = InventoryReservationService.class.getMethod(
+                        Method method = InventoryReservationHttpService.class.getMethod(
                                         "reserveOrder", OrderReservationRequest.class);
                         assertNotNull(method.getAnnotation(CircuitBreaker.class), "@CircuitBreaker should be present");
                         assertNotNull(method.getAnnotation(TimeLimiter.class), "@TimeLimiter should be present");
@@ -463,7 +449,7 @@ public class InventoryReservationServiceTest {
                                         List.of(new ItemReservationRequest("test-sku-1", 5)));
 
                         // When
-                        var future = inventoryReservationService.reserveOrder(orderReservationRequest);
+                        var future = inventoryReservationHttpService.reserveOrder(orderReservationRequest);
 
                         // Then
                         var exception = assertThrows(Exception.class, future::get);

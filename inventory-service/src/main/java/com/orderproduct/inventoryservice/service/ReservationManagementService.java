@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.common.util.InventoryCalculationUtils;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
@@ -33,7 +34,7 @@ public class ReservationManagementService {
 
         @Transactional
         public List<AvailableInventoryResponse> reserveProductsIfAvailable(OrderReservationRequest request)
-                        throws NotEnoughItemException, InternalServerException {
+                        throws NotEnoughItemException, InternalServerException, OrderReservationNotAllowedException {
                 log.info("Attempting to reserve products for order: {} with {} items",
                                 request.orderNumber(), request.itemReservationRequests().size());
 

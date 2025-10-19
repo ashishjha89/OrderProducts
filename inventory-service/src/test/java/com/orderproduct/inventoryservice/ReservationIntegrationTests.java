@@ -24,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.orderproduct.inventoryservice.common.exception.ErrorBody;
 import com.orderproduct.inventoryservice.common.exception.ErrorBodyWithUnavailableProducts;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.ReservationStateUpdateResponse;
@@ -210,6 +211,45 @@ class ReservationIntegrationTests {
                 // Verify no reservations were created in database
                 final var newReservations = reservationRepository.findByOrderNumber("ORDER-456");
                 assertEquals(0, newReservations.size());
+        }
+
+        @Test
+        @DisplayName("POST:/api/reservations should return 409 when reservation not allowed for order with non-pending state")
+        void reserveProducts_OrderReservationNotAllowed() throws Exception {
+                // Given - orderNumber2 already has FULFILLED reservations
+                // Attempting to reserve again should fail
+                final var reservationRequest = """
+                                {
+                                    "orderNumber": "orderNumber2",
+                                    "itemReservationRequests": [
+                                        {
+                                            "skuCode": "skuCode2",
+                                            "quantity": 1
+                                        }
+                                    ]
+                                }
+                                """;
+
+                // Make Api call
+                MvcResult result = mockMvc.perform(
+                                MockMvcRequestBuilders
+                                                .post("/api/reservations")
+                                                .contentType("application/json")
+                                                .content(reservationRequest))
+                                .andExpect(status().isConflict())
+                                .andReturn();
+
+                // Process response
+                final var jsonStr = result.getResponse().getContentAsString();
+                final var response = objectMapper.readValue(jsonStr, ErrorBody.class);
+
+                // Assert error response
+                assertEquals("ORDER_RESERVATION_NOT_ALLOWED", response.errorCode());
+
+                // Verify no new reservations were created in database
+                final var reservations = reservationRepository.findByOrderNumber("orderNumber2");
+                assertEquals(1, reservations.size()); // Only the existing FULFILLED reservation
+                assertEquals(ReservationState.FULFILLED, reservations.get(0).getStatus());
         }
 
         @Test

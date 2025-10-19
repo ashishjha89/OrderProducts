@@ -58,6 +58,11 @@ public class ReservationController {
                                         + " errorMessage:" + ErrorComponent.notEnoughStockMsg, content = {
                                                         @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBodyWithUnavailableProducts.class))
                                         }),
+                        @ApiResponse(responseCode = "409", description = "errorCode:"
+                                        + ErrorComponent.ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE
+                                        + " errorMessage:" + ErrorComponent.orderReservationNotAllowedMsg, content = {
+                                                        @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorBodyWithUnavailableProducts.class))
+                                        }),
                         @ApiResponse(responseCode = "500", description = "errorCode:"
                                         + ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE + " errorMessage:"
                                         + ErrorComponent.somethingWentWrongMsg, content = {

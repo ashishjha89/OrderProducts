@@ -10,6 +10,7 @@ import com.google.rpc.Status;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
@@ -51,6 +52,9 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
         } catch (NotEnoughItemException e) {
             log.warn("gRPC:ReserveProducts - Insufficient stock for order: {}", request.getOrderNumber());
             responseObserver.onError(buildNotEnoughItemError(e));
+        } catch (OrderReservationNotAllowedException e) {
+            log.warn("gRPC:ReserveProducts - Reservation not allowed for order: {}", request.getOrderNumber());
+            responseObserver.onError(buildOrderReservationNotAllowedError(e));
         } catch (InternalServerException e) {
             log.error("gRPC:ReserveProducts - Internal server error for order: {}", request.getOrderNumber(), e);
             responseObserver.onError(buildInternalServerError(e));
@@ -97,6 +101,14 @@ public class ReservationGrpcService extends ReservationServiceGrpc.ReservationSe
         }
 
         Status rpcStatus = buildBaseStatus(Code.RESOURCE_EXHAUSTED, e.getErrorMessage())
+                .addDetails(Any.pack(errorInfo))
+                .build();
+        return StatusProto.toStatusRuntimeException(rpcStatus);
+    }
+
+    private StatusRuntimeException buildOrderReservationNotAllowedError(OrderReservationNotAllowedException e) {
+        ErrorInfo errorInfo = buildBaseErrorInfo(e.getErrorCode());
+        Status rpcStatus = buildBaseStatus(Code.FAILED_PRECONDITION, e.getErrorMessage())
                 .addDetails(Any.pack(errorInfo))
                 .build();
         return StatusProto.toStatusRuntimeException(rpcStatus);

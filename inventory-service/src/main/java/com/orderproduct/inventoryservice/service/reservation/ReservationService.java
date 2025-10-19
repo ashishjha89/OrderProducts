@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.orderproduct.inventoryservice.common.exception.DuplicateReservationException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
+import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
@@ -43,7 +44,7 @@ public class ReservationService {
 
     @NonNull
     public List<Reservation> reserveProducts(@NonNull OrderReservationRequest request)
-            throws InternalServerException, DuplicateReservationException {
+            throws InternalServerException, DuplicateReservationException, OrderReservationNotAllowedException {
         log.debug("Reserving products for order: {} with {} items",
                 request.orderNumber(), request.itemReservationRequests().size());
 

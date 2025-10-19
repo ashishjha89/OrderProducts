@@ -21,6 +21,7 @@ import com.google.rpc.ErrorInfo;
 import com.orderproduct.inventoryservice.common.exception.ErrorComponent;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.response.AvailableInventoryResponse;
 import com.orderproduct.inventoryservice.dto.response.ItemAvailability;
@@ -141,8 +142,8 @@ class ReservationGrpcServiceTest {
         }
 
         @Test
-        @DisplayName("Should return INTERNAL when internal server error")
-        void reserveProducts_InternalServerError_ReturnsInternal() throws Exception {
+        @DisplayName("Should return FAILED_PRECONDITION when reservation not allowed")
+        void reserveProducts_ReservationNotAllowed_ReturnsFailedPrecondition() throws Exception {
                 // Given
                 ReserveProductsRequest request = ReserveProductsRequest.newBuilder()
                                 .setOrderNumber("ORDER-003")
@@ -153,6 +154,38 @@ class ReservationGrpcServiceTest {
                                 .build();
                 OrderReservationRequest expectedRequest = new OrderReservationRequest(
                                 "ORDER-003",
+                                List.of(new com.orderproduct.inventoryservice.dto.request.ItemReservationRequest(
+                                                "skuCode1", 5)));
+                when(reservationManagementService.reserveProductsIfAvailable(expectedRequest))
+                                .thenThrow(new OrderReservationNotAllowedException("ORDER-003"));
+
+                // When
+                reservationGrpcService.reserveProducts(request, responseObserver);
+
+                // Then
+                verify(responseObserver).onError(errorCaptor.capture());
+
+                StatusRuntimeException capturedError = errorCaptor.getValue();
+                ErrorInfo errorInfo = extractErrorInfo(capturedError);
+
+                assertEquals(Status.FAILED_PRECONDITION.getCode(), capturedError.getStatus().getCode());
+                assertEquals(ErrorComponent.orderReservationNotAllowedMsg, capturedError.getStatus().getDescription());
+                assertEquals(ErrorComponent.ORDER_RESERVATION_NOT_ALLOWED_ERROR_CODE, errorInfo.getReason());
+        }
+
+        @Test
+        @DisplayName("Should return INTERNAL when internal server error")
+        void reserveProducts_InternalServerError_ReturnsInternal() throws Exception {
+                // Given
+                ReserveProductsRequest request = ReserveProductsRequest.newBuilder()
+                                .setOrderNumber("ORDER-004")
+                                .addItemReservationRequests(ItemReservationRequest.newBuilder()
+                                                .setSkuCode("skuCode1")
+                                                .setQuantity(5)
+                                                .build())
+                                .build();
+                OrderReservationRequest expectedRequest = new OrderReservationRequest(
+                                "ORDER-004",
                                 List.of(new com.orderproduct.inventoryservice.dto.request.ItemReservationRequest(
                                                 "skuCode1", 5)));
                 when(reservationManagementService.reserveProductsIfAvailable(expectedRequest))
@@ -177,10 +210,10 @@ class ReservationGrpcServiceTest {
         void reserveProducts_EmptyItemList_ShouldReturnEmptyResponse() throws Exception {
                 // Given
                 ReserveProductsRequest request = ReserveProductsRequest.newBuilder()
-                                .setOrderNumber("ORDER-004")
+                                .setOrderNumber("ORDER-005")
                                 .build();
                 OrderReservationRequest expectedRequest = new OrderReservationRequest(
-                                "ORDER-004",
+                                "ORDER-005",
                                 List.of());
                 when(reservationManagementService.reserveProductsIfAvailable(expectedRequest))
                                 .thenReturn(List.of());
@@ -201,14 +234,14 @@ class ReservationGrpcServiceTest {
         void reserveProducts_UnexpectedException_ReturnsInternal() throws Exception {
                 // Given
                 ReserveProductsRequest request = ReserveProductsRequest.newBuilder()
-                                .setOrderNumber("ORDER-005")
+                                .setOrderNumber("ORDER-006")
                                 .addItemReservationRequests(ItemReservationRequest.newBuilder()
                                                 .setSkuCode("skuCode1")
                                                 .setQuantity(5)
                                                 .build())
                                 .build();
                 OrderReservationRequest expectedRequest = new OrderReservationRequest(
-                                "ORDER-005",
+                                "ORDER-006",
                                 List.of(new com.orderproduct.inventoryservice.dto.request.ItemReservationRequest(
                                                 "skuCode1", 5)));
                 when(reservationManagementService.reserveProductsIfAvailable(expectedRequest))

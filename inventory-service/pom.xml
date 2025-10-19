@@ -187,6 +187,8 @@
                     <baseClassForTests>com.orderproduct.inventoryservice.CdcBaseClass</baseClassForTests>
                 </configuration>
             </plugin>
+
+            <!-- Protobuf Compiler Plugin -->
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
@@ -205,6 +207,8 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- OS Detection Plugin -->
             <plugin>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>

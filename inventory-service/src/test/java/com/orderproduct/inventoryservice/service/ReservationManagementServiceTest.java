@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.domain.ItemOnHandQuantity;
 import com.orderproduct.inventoryservice.domain.ReservedItemQuantity;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
@@ -229,6 +230,36 @@ public class ReservationManagementServiceTest {
 
                 // Then
                 assertThrows(InternalServerException.class,
+                                () -> reservationManagementService.reserveProductsIfAvailable(request));
+        }
+
+        @Test
+        @DisplayName("`reserveProductsIfAvailable()` should throw OrderReservationNotAllowedException when reservation is not allowed")
+        public void reserveProductsIfAvailable_ReservationNotAllowed_ThrowsOrderReservationNotAllowedException() {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var itemRequests = List.of(
+                                new ItemReservationRequest("skuCode1", 5),
+                                new ItemReservationRequest("skuCode2", 10));
+                final var request = new OrderReservationRequest(orderNumber, itemRequests);
+
+                final var itemOnHandQuantities = List.of(
+                                new ItemOnHandQuantity("skuCode1", 15),
+                                new ItemOnHandQuantity("skuCode2", 20));
+
+                final var reservedQuantities = List.of(
+                                new ReservedItemQuantity("skuCode1", 3),
+                                new ReservedItemQuantity("skuCode2", 5));
+
+                when(itemOnHandService.itemAvailabilities(List.of("skuCode1", "skuCode2")))
+                                .thenReturn(itemOnHandQuantities);
+                when(reservationService.findPendingReservedQuantities(List.of("skuCode1", "skuCode2")))
+                                .thenReturn(reservedQuantities);
+                doThrow(new OrderReservationNotAllowedException(orderNumber)).when(reservationService)
+                                .reserveProducts(request);
+
+                // Then
+                assertThrows(OrderReservationNotAllowedException.class,
                                 () -> reservationManagementService.reserveProductsIfAvailable(request));
         }
 

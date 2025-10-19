@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
+import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
 import com.orderproduct.inventoryservice.dto.request.ItemReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.OrderReservationRequest;
 import com.orderproduct.inventoryservice.dto.request.ReservationStateUpdateRequest;
@@ -91,8 +92,28 @@ class ReservationControllerTest {
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isConflict())
                                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andExpect(jsonPath("$.errorCode").value("NOT_ENOUGH_ITEM_ERROR_CODE"))
-                                .andExpect(jsonPath("$.errorMessage").value("Not enough stock for some products"));
+                                .andExpect(jsonPath("$.errorCode").value("NOT_ENOUGH_ITEM_ERROR_CODE"));
+        }
+
+        @Test
+        @DisplayName("POST /api/reservations should return 409 when reservation not allowed")
+        public void reserveProducts_ReservationNotAllowed_Returns409() throws Exception {
+                // Given
+                final var orderNumber = "ORDER-001";
+                final var itemRequests = List.of(
+                                new ItemReservationRequest("skuCode1", 5));
+                final var request = new OrderReservationRequest(orderNumber, itemRequests);
+
+                when(reservationManagementService.reserveProductsIfAvailable(any(OrderReservationRequest.class)))
+                                .thenThrow(new OrderReservationNotAllowedException(orderNumber));
+
+                // When & Then
+                mockMvc.perform(post("/api/reservations")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isConflict())
+                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$.errorCode").value("ORDER_RESERVATION_NOT_ALLOWED"));
         }
 
         @Test

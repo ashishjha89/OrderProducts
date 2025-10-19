@@ -176,6 +176,32 @@ class ReservationGrpcServiceIntegrationTest {
         }
 
         @Test
+        @DisplayName("Should return FAILED_PRECONDITION when reservation not allowed for order with non-pending state via gRPC")
+        void reserveProducts_OrderReservationNotAllowed() {
+                // Given - orderNumber2 already has FULFILLED reservations
+                // Attempting to reserve again should fail
+                ReserveProductsRequest request = ReserveProductsRequest.newBuilder()
+                                .setOrderNumber("orderNumber2")
+                                .addItemReservationRequests(ItemReservationRequest.newBuilder()
+                                                .setSkuCode("skuCode2")
+                                                .setQuantity(1)
+                                                .build())
+                                .build();
+
+                // When & Then
+                StatusRuntimeException exception = assertThrows(StatusRuntimeException.class, () -> {
+                        reservationServiceStub.reserveProducts(request);
+                });
+
+                assertEquals(Status.FAILED_PRECONDITION.getCode(), exception.getStatus().getCode());
+
+                // Verify no new reservations were created in database
+                var reservations = reservationRepository.findByOrderNumber("orderNumber2");
+                assertEquals(1, reservations.size()); // Only the existing FULFILLED reservation
+                assertEquals(ReservationState.FULFILLED, reservations.get(0).getStatus());
+        }
+
+        @Test
         @DisplayName("Should handle empty request via gRPC")
         void reserveProducts_EmptyRequest() {
                 // Given
