@@ -79,7 +79,7 @@ public class OrderService {
                                 throw new InternalServerException();
                             }
                             if (!isReservationSuccessfulForAllItems(reservationRequests, availableStocks)) {
-                                log.error(
+                                log.info(
                                         "Reservation failed due to insufficient quantities for all line items in order: {}",
                                         orderNumber);
                                 return true;

@@ -31,7 +31,7 @@ public class OrderEventHandler {
             @Header("aggregateType") String aggregateType,
             @Header("aggregateId") String aggregateId,
             @Header("eventId") String eventId) throws InvalidKafkaEventException {
-        log.debug("Received OrderStatusChangedEvent - EventId: {}, AggregateId: {}, EventType: {}, Raw payload: {}",
+        log.info("Received OrderStatusChangedEvent - EventId: {}, AggregateId: {}, EventType: {}, Raw payload: {}",
                 eventId, aggregateId, eventType, payload);
         OrderStatusChangedEvent event = extractOrderStatusChangedEvent(payload);
         if (shouldProcessOrderStatus(event.status())) {

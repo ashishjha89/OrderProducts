@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.orderproduct.inventoryservice.common.exception.DuplicateReservationException;
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
 import com.orderproduct.inventoryservice.common.exception.NotEnoughItemException;
 import com.orderproduct.inventoryservice.common.exception.OrderReservationNotAllowedException;
@@ -34,7 +35,8 @@ public class ReservationManagementService {
 
         @Transactional
         public List<AvailableInventoryResponse> reserveProductsIfAvailable(OrderReservationRequest request)
-                        throws NotEnoughItemException, InternalServerException, OrderReservationNotAllowedException {
+                        throws NotEnoughItemException, InternalServerException, OrderReservationNotAllowedException,
+                        DuplicateReservationException {
                 log.info("Attempting to reserve products for order: {} with {} items",
                                 request.orderNumber(), request.itemReservationRequests().size());
 
@@ -61,7 +63,7 @@ public class ReservationManagementService {
 
                 // If there are any unavailable products, throw NotEnoughItemException
                 if (!unavailableItems.isEmpty()) {
-                        log.warn("Insufficient item for order: {}. Unavailable products: {}",
+                        log.debug("Insufficient item for order: {}. Unavailable products: {}",
                                         request.orderNumber(), unavailableItems);
                         throw new NotEnoughItemException(unavailableItems);
                 }

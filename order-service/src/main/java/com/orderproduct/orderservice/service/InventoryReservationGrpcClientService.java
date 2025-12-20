@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
 import com.google.protobuf.Any;
 import com.google.rpc.ErrorInfo;
 import com.orderproduct.inventoryservice.grpc.ItemReservationRequest;
@@ -30,17 +27,15 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.StatusProto;
 import jakarta.annotation.Nullable;
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.devh.boot.grpc.client.inject.GrpcClient;
 
 @Slf4j
-@Component
-@ConditionalOnProperty(name = "inventory.reservation.use-grpc", havingValue = "true")
+@AllArgsConstructor
 public class InventoryReservationGrpcClientService implements InventoryReservationService {
 
-    @GrpcClient("inventory-reservation")
-    private ReservationServiceGrpc.ReservationServiceBlockingStub reservationServiceStub;
+    private final ReservationServiceGrpc.ReservationServiceBlockingStub reservationServiceStub;
 
     @CircuitBreaker(name = "inventory", fallbackMethod = "onReserveOrderFailure")
     @TimeLimiter(name = "inventory")

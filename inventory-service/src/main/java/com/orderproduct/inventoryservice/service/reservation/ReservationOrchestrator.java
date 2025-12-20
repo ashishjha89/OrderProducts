@@ -17,6 +17,7 @@ import com.orderproduct.inventoryservice.entity.Reservation;
 import com.orderproduct.inventoryservice.entity.ReservationState;
 import com.orderproduct.inventoryservice.repository.ReservationRepositoryWrapper;
 
+import jakarta.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,8 +35,8 @@ public class ReservationOrchestrator {
     }
 
     /**
-     * Builds reservations to save based on the order reservation request.
-     * Handles idempotency by updating existing (pendingreservations.
+     * Builds reservations to save based on the OrderReservationRequest.
+     * Handles idempotency by updating existing pendingreservations.
      * It's not allowed to modify other states of reservations.
      * Also deletes reservations for SKU codes that are no longer in the request.
      */
@@ -51,7 +52,8 @@ public class ReservationOrchestrator {
         Set<PendingReservationItem> existingPendingReservations = convertToPendingReservationItems(
                 allExistingReservations);
 
-        // Delete reservations for SKU codes that are no longer in the request
+        // Delete reservations for SKU codes that are no longer in the request,
+        // but they were previously reserved for this order.
         deleteRemovedSkuReservations(orderNumber, request, existingPendingReservations);
 
         return request.itemReservationRequests().stream()
@@ -63,6 +65,29 @@ public class ReservationOrchestrator {
                     return createOrUpdateReservation(orderNumber, skuCode, quantity, existingReservation);
                 })
                 .toList();
+    }
+
+    @NonNull
+    private List<Reservation> getAllExistingReservationsForOrder(@NonNull String orderNumber)
+            throws InternalServerException {
+        return reservationRepository.findByOrderNumber(orderNumber);
+    }
+
+    private boolean orderReservationAllowed(String orderNumber, List<Reservation> existingReservations) {
+        if (existingReservations.isEmpty()) {
+            // No existing reservations, allow creation
+            return true;
+        }
+        // If the requests are made for same "pending" items, allow the request.
+        return existingReservations.stream()
+                .allMatch(reservation -> reservation.getStatus() == ReservationState.PENDING);
+    }
+
+    @NonNull
+    private Set<PendingReservationItem> convertToPendingReservationItems(List<Reservation> allReservations) {
+        return allReservations.stream()
+                .map(reservation -> new PendingReservationItem(reservation.getSkuCode(), reservation))
+                .collect(Collectors.toSet());
     }
 
     private void deleteRemovedSkuReservations(@NonNull String orderNumber, @NonNull OrderReservationRequest request,
@@ -77,27 +102,6 @@ public class ReservationOrchestrator {
         if (!skuCodesToDelete.isEmpty()) {
             deleteReservationsForSkuCodes(orderNumber, skuCodesToDelete);
         }
-    }
-
-    private boolean orderReservationAllowed(String orderNumber, List<Reservation> existingReservations) {
-        if (existingReservations.isEmpty()) {
-            return true; // No existing reservations, allow creation
-        }
-        return existingReservations.stream()
-                .allMatch(reservation -> reservation.getStatus() == ReservationState.PENDING);
-    }
-
-    @NonNull
-    private Set<PendingReservationItem> convertToPendingReservationItems(List<Reservation> allReservations) {
-        return allReservations.stream()
-                .map(reservation -> new PendingReservationItem(reservation.getSkuCode(), reservation))
-                .collect(Collectors.toSet());
-    }
-
-    @NonNull
-    private List<Reservation> getAllExistingReservationsForOrder(@NonNull String orderNumber)
-            throws InternalServerException {
-        return reservationRepository.findByOrderNumber(orderNumber);
     }
 
     @NonNull
@@ -119,6 +123,7 @@ public class ReservationOrchestrator {
         reservationRepository.deleteByOrderNumberAndSkuCodeIn(orderNumber, List.copyOf(skuCodesToDelete));
     }
 
+    @Nullable
     private Reservation findExistingReservationForSku(@NonNull String skuCode,
             @NonNull Set<PendingReservationItem> existingReservations) {
         return existingReservations.stream()
@@ -130,7 +135,7 @@ public class ReservationOrchestrator {
 
     @NonNull
     private Reservation createOrUpdateReservation(@NonNull String orderNumber, @NonNull String skuCode,
-            int quantity, Reservation existingReservation) {
+            int quantity, @Nullable Reservation existingReservation) {
         LocalDateTime currentTime = timeProvider.getCurrentTimestamp();
 
         if (existingReservation != null) {

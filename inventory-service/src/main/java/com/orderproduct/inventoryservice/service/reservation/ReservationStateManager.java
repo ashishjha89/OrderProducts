@@ -53,9 +53,7 @@ public class ReservationStateManager {
             @NonNull ReservationState newState) {
         log.debug("Transforming {} reservations to state: {}", reservations.size(), newState);
         List<Reservation> updatedReservations = reservations.stream()
-                .map(reservation -> reservation.toBuilder()
-                        .status(newState)
-                        .build())
+                .map(reservation -> reservation.toBuilder().status(newState).build())
                 .toList();
         log.debug("Successfully transformed {} reservations to state: {}", updatedReservations.size(), newState);
         return updatedReservations;
