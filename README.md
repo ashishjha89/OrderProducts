@@ -10,13 +10,13 @@ Microservices e-commerce system with Spring Boot services, service discovery, AP
 - **Discovery Server** (8761): Eureka service registry for dynamic discovery
 - **Inventory Service**: Internal service managing stock, exposes REST and gRPC
 - **Order Service**: Handles order processing, validates stock via inventory
-- **Product Service**: Product catalog management
+- **Product Service** (currently unused for core flow): Product catalog management
 
 ### Infrastructure
-- **MySQL**: Inventory & Order data (port 3306)
-- **MongoDB**: Product catalog (port 27017)
-- **Kafka**: Event streaming between services (port 9092)
-- **Zipkin**: Distributed tracing (port 9411)
+- **MySQL**: Inventory & Order data
+- **MongoDB**: Product catalog
+- **Kafka**: Event streaming between services
+- **Zipkin**: Distributed tracing
 - **Debezium**: CDC for database events
 
 ## Communication Patterns
@@ -61,25 +61,67 @@ Microservices e-commerce system with Spring Boot services, service discovery, AP
 - API Gateway as single entry point
 - Separate database users with minimal privileges
 
-## Quick links and tips
+## Setup & Deployment
 
-### Eureka dashboard
-http://localhost:8080/eureka/web
+### CASE 1: Local Debug & Development
+Run infrastructure components as docker containers, while run applications locally for debugging.
 
-### Zipkin dashboard
-http://localhost:9411/zipkin/
+```bash
+# Start only infrastructure (MySQL, MongoDB, Kafka, Zipkin, etc.)
+cd infrastructure
+docker-compose up -d mysql mongodb zookeeper broker zipkin
 
-### Clean install all services
-```
-./clean_install_services.sh
-```
-
-### Run all services
-```
-./run_services.sh
+# Run each application locally in separate terminals or IDE
+cd ../discovery-server && mvn spring-boot:run
+cd ../api-gateway && mvn spring-boot:run
+cd ../product-service && mvn spring-boot:run
+cd ../inventory-service && mvn spring-boot:run
+cd ../order-service && mvn spring-boot:run
 ```
 
-### Stop all services
+### CASE 2: Running Infrastructure and Applications as Docker Containers
+Complete dockerized environment.
+
+```bash
+# Start all services (infrastructure + applications)
+cd infrastructure
+docker-compose up -d
+
+# Check service status
+docker-compose ps
+
+# View logs for specific service
+docker-compose logs -f api-gateway
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
 ```
-./stop_services.sh
-```
+
+### Service Access Points
+
+**Main Entry:**
+- API Gateway: http://localhost:8080
+  - Products: `http://localhost:8080/api/products`
+  - Orders: `http://localhost:8080/api/order`
+
+**Monitoring:**
+- Eureka Dashboard: http://localhost:8761
+- Zipkin Tracing: http://localhost:9411
+
+**Infrastructure:**
+- MySQL: `localhost:3306`
+- MongoDB: `localhost:27017`
+- Kafka: `localhost:9092`
+
+### AWS Deployment Notes
+
+When deploying to AWS, you'd only need to:
+1. Put API Gateway behind AWS ALB (Application Load Balancer)
+2. Remove Eureka/Zipkin ports (or keep in private subnet)
+3. Use AWS managed databases (RDS for MySQL, DocumentDB for MongoDB, MSK for Kafka)
+4. Deploy services to ECS (Elastic Container Service) or EKS (Elastic Kubernetes Service)
+5. Configure VPC with private subnets for internal services
+6. Use AWS Secrets Manager for credentials

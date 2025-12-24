@@ -29,8 +29,6 @@ http://localhost:<port-number>/api/inventory/swagger-ui/index.html
 
 ## Supported Endpoints
 
-- **Port**: 0 (i.e. it is exposed via dynamic port).
-
 The service supports the following REST endpoints:
 
 ### /inventory endpoints:

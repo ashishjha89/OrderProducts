@@ -16,7 +16,9 @@ services:
       test: ["CMD-SHELL", "echo ruok | nc localhost 2181"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 3
+    networks:
+      - microservices-network
 
   broker:
     image: confluentinc/cp-kafka:7.5.3
@@ -43,7 +45,9 @@ services:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 5
+    networks:
+      - microservices-network
 
   connect:
     image: debezium/connect:2.7.3.Final
@@ -77,9 +81,11 @@ services:
     command: ["bash", "-c", "/kafka/bin/connect-distributed.sh /kafka/config/connect-distributed.properties"]
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
-      interval: 5s
-      timeout: 10s
-      retries: 60
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
 
   mysql:
     image: mysql:8.0
@@ -93,6 +99,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql_init_scripts:/docker-entrypoint-initdb.d
+    networks:
+      - microservices-network
 
   mongodb:
     image: mongo:7.0
@@ -101,12 +109,16 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - microservices-network
 
   zipkin:
     image: openzipkin/zipkin:latest
     container_name: zipkin
     ports:
       - "9411:9411"
+    networks:
+      - microservices-network
 
   register_debezium_connector:
     image: mysql:8.0
@@ -128,6 +140,149 @@ services:
         /config/register-and-wait.sh
     volumes:
       - ./debezium_connector_config:/config
+    networks:
+      - microservices-network
+
+  discovery-server:
+    build:
+      context: ../discovery-server
+      dockerfile: Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      - EUREKA_HOSTNAME=discovery-server
+      - ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      zipkin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - microservices-network
+
+  product-service:
+    build:
+      context: ../product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    environment:
+      - SERVER_PORT=8080
+      - MONGODB_URI=mongodb://mongodb:27017/product-service
+      - EUREKA_SERVER=http://discovery-server:8761/eureka
+      - ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      mongodb:
+        condition: service_started
+      discovery-server:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - microservices-network
+
+  inventory-service:
+    build:
+      context: ../inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    environment:
+      - SERVER_PORT=8080
+      - MYSQL_HOST=mysql
+      - EUREKA_SERVER=http://discovery-server:8761/eureka
+      - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      mysql:
+        condition: service_started
+      broker:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - microservices-network
+
+  order-service:
+    build:
+      context: ../order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    environment:
+      - SERVER_PORT=8080
+      - MYSQL_HOST=mysql
+      - EUREKA_SERVER=http://discovery-server:8761/eureka
+      - GRPC_INVENTORY_ADDRESS=static://inventory-service:9090
+      - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      mysql:
+        condition: service_started
+      broker:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - microservices-network
+
+  api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - EUREKA_SERVER=http://discovery-server:8761/eureka
+      - DISCOVERY_SERVER_URI=http://discovery-server:8761
+      - ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - microservices-network
 
 volumes:
   zookeeper_data:
@@ -136,3 +291,7 @@ volumes:
   mysql_data:
   mongodb_data:
   debezium_connector_config:
+
+networks:
+  microservices-network:
+    driver: bridge
