@@ -195,11 +195,7 @@ public class InventoryReservationHttpService implements InventoryReservationServ
     private Throwable mapToAppropriateException(Throwable ex, String orderNumber) {
         log.error("Error reserving products for order: {}: {}", orderNumber, ex.toString());
 
-        if (ex instanceof InternalServerException
-                || ex instanceof InvalidInputException
-                || ex instanceof InvalidInventoryException
-                || ex instanceof InventoryNotInStockException
-                || ex instanceof OrderReservationNotAllowedException) {
+        if (ex instanceof ApiException) {
             return ex;
         }
         if (ex instanceof JsonProcessingException || ex instanceof DecodingException) {
