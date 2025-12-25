@@ -40,7 +40,7 @@ public class InventoryReservationHttpService implements InventoryReservationServ
     private final String inventoryApiBaseUrl;
 
     private URI buildReservationsUri() {
-        return UriComponentsBuilder.fromHttpUrl(inventoryApiBaseUrl)
+        return UriComponentsBuilder.fromUriString(inventoryApiBaseUrl)
                 .pathSegment(RESERVATIONS_API_PATH)
                 .build()
                 .toUri();
