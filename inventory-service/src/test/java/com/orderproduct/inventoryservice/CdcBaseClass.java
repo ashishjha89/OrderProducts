@@ -7,7 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.orderproduct.inventoryservice.common.exception.InternalServerException;
@@ -38,13 +38,13 @@ public abstract class CdcBaseClass {
         @Autowired
         private ReservationController reservationController;
 
-        @MockBean
+        @MockitoBean
         private InventoryAvailabilityService inventoryAvailabilityService;
 
-        @MockBean
+        @MockitoBean
         private InventoryManagementService inventoryManagementService;
 
-        @MockBean
+        @MockitoBean
         private ReservationManagementService reservationManagementService;
 
         private final int iphone12AvailableQuantityIs5 = 5;
