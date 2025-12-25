@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -72,8 +73,8 @@ class ProductServiceApplicationTests {
 
                 // Make Api call
                 mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(productRequestStr))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(productRequestStr)))
                                 .andExpect(status().isCreated());
 
                 // Assert item is inserted
@@ -89,8 +90,8 @@ class ProductServiceApplicationTests {
                 var productRequestStr1 = objectMapper.writeValueAsString(productRequestWithAllNullFields);
                 // Make Api call and expect BadRequest
                 MvcResult result1 = mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(productRequestStr1))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(productRequestStr1)))
                                 .andExpect(status().isBadRequest())
                                 .andReturn();
                 // Process response
@@ -106,8 +107,8 @@ class ProductServiceApplicationTests {
                 var productRequestStr2 = objectMapper.writeValueAsString(productRequestWithNameAsNull);
                 // Make Api call and expect BadRequest
                 mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(productRequestStr2))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(productRequestStr2)))
                                 .andExpect(status().isBadRequest());
 
                 // Initialise 3
@@ -116,8 +117,8 @@ class ProductServiceApplicationTests {
                 var productRequestStr3 = objectMapper.writeValueAsString(productRequestWithDescriptionAsNull);
                 // Make Api call and expect BadRequest
                 mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(productRequestStr3))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(productRequestStr3)))
                                 .andExpect(status().isBadRequest());
 
                 // Initialise 4
@@ -126,8 +127,8 @@ class ProductServiceApplicationTests {
                 var productRequestStr4 = objectMapper.writeValueAsString(productRequestWithPriceAsNull);
                 // Make Api call and expect BadRequest
                 mockMvc.perform(MockMvcRequestBuilders.post("/api/products")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(productRequestStr4))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(productRequestStr4)))
                                 .andExpect(status().isBadRequest());
         }
 
@@ -138,7 +139,7 @@ class ProductServiceApplicationTests {
                 var uniqueName = System.currentTimeMillis() + "";
                 var product = Product.builder().name(uniqueName).description("Description")
                                 .price(BigDecimal.valueOf(12)).build();
-                productRepository.insert(product);
+                productRepository.insert(Objects.requireNonNull(product));
 
                 // Make Api call
                 MvcResult result = mockMvc

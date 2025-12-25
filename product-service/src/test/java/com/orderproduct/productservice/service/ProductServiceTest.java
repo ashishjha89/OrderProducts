@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ public class ProductServiceTest {
 
         final var productReturnedFromRepo = Product.builder().id("id1").name(name).description(description).price(price)
                 .build();
-        when(productRepository.save(productPassedToRepo)).thenReturn(productReturnedFromRepo);
+        when(productRepository.save(Objects.requireNonNull(productPassedToRepo))).thenReturn(productReturnedFromRepo);
 
         // Call method to test
         final var productSaved = productService.createProduct(productRequest);
@@ -60,7 +61,7 @@ public class ProductServiceTest {
 
         // Mock throwing of exception (one of the child of DataAccessException) from
         // repo
-        when(productRepository.save(productPassedToRepo))
+        when(productRepository.save(Objects.requireNonNull(productPassedToRepo)))
                 .thenThrow(new DataAccessResourceFailureException("Child class of DataAccessException"));
 
         // Assert

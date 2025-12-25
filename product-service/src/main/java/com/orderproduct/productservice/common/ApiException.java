@@ -1,14 +1,15 @@
 package com.orderproduct.productservice.common;
 
+import org.springframework.http.HttpStatusCode;
+import org.springframework.lang.NonNull;
+
 import lombok.Getter;
-import lombok.NonNull;
-import org.springframework.http.HttpStatus;
 
 @Getter
 public abstract class ApiException extends RuntimeException {
 
     @NonNull
-    private final HttpStatus httpStatus;
+    private final HttpStatusCode httpStatus;
 
     @NonNull
     private final String errorCode;
@@ -17,7 +18,7 @@ public abstract class ApiException extends RuntimeException {
     private final String errorMessage;
 
     public ApiException(
-            @NonNull HttpStatus httpStatus,
+            @NonNull HttpStatusCode httpStatus,
             @NonNull String errorCode,
             @NonNull String errorMessage) {
         super(errorMessage);
