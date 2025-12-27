@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.3
@@ -145,9 +143,8 @@ services:
       - microservices-network
 
   discovery-server:
-    build:
-      context: ../discovery-server
-      dockerfile: Dockerfile
+    image: ashishjha/orderproducts-discovery-server:latest
+    pull_policy: always
     container_name: discovery-server
     ports:
       - "8761:8761"
@@ -167,9 +164,8 @@ services:
       - microservices-network
 
   product-service:
-    build:
-      context: ../product-service
-      dockerfile: Dockerfile
+    image: ashishjha/orderproducts-product-service:latest
+    pull_policy: always
     container_name: product-service
     environment:
       - SERVER_PORT=8080
@@ -193,9 +189,8 @@ services:
       - microservices-network
 
   inventory-service:
-    build:
-      context: ../inventory-service
-      dockerfile: Dockerfile
+    image: ashishjha/orderproducts-inventory-service:latest
+    pull_policy: always
     container_name: inventory-service
     environment:
       - SERVER_PORT=8080
@@ -222,9 +217,8 @@ services:
       - microservices-network
 
   order-service:
-    build:
-      context: ../order-service
-      dockerfile: Dockerfile
+    image: ashishjha/orderproducts-order-service:latest
+    pull_policy: always
     container_name: order-service
     environment:
       - SERVER_PORT=8080
@@ -254,9 +248,8 @@ services:
       - microservices-network
 
   api-gateway:
-    build:
-      context: ../api-gateway
-      dockerfile: Dockerfile
+    image: ashishjha/orderproducts-api-gateway:latest
+    pull_policy: always
     container_name: api-gateway
     ports:
       - "8080:8080"
