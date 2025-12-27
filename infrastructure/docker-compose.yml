@@ -1,6 +1,7 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.3
+    mem_limit: 256m
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -20,6 +21,7 @@ services:
 
   broker:
     image: confluentinc/cp-kafka:7.5.3
+    mem_limit: 1g
     container_name: broker
     ports:
       - "9092:9092"
@@ -38,10 +40,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list || exit 1"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server broker:29092 --list || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,6 +53,7 @@ services:
 
   connect:
     image: debezium/connect:2.7.3.Final
+    mem_limit: 512m
     container_name: connect
     ports:
       - "8083:8083"
@@ -74,6 +78,7 @@ services:
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
     volumes:
       - ./debezium_plugins_host:/kafka/connect
       - ./connect_config:/kafka/config
@@ -88,13 +93,21 @@ services:
 
   mysql:
     image: mysql:8.0
+    mem_limit: 512m
     container_name: mysql
     ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_LOWER_CASE_TABLE_NAMES: 1
-    command: ["mysqld", "--binlog-format=ROW", "--log-bin=mysql-bin", "--server-id=1"]
+    command:
+      - mysqld
+      - --binlog-format=ROW
+      - --log-bin=mysql-bin
+      - --server-id=1
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=50
+      - --performance-schema=OFF
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql_init_scripts:/docker-entrypoint-initdb.d
@@ -103,6 +116,7 @@ services:
 
   mongodb:
     image: mongo:7.0
+    mem_limit: 512m
     container_name: mongodb
     ports:
       - "27017:27017"
@@ -113,6 +127,7 @@ services:
 
   zipkin:
     image: openzipkin/zipkin:latest
+    mem_limit: 256m
     container_name: zipkin
     ports:
       - "9411:9411"
@@ -121,6 +136,7 @@ services:
 
   register_debezium_connector:
     image: mysql:8.0
+    mem_limit: 512m
     container_name: register_debezium_connector
     depends_on:
       connect:
@@ -144,6 +160,7 @@ services:
 
   discovery-server:
     image: ashishjha/orderproducts-discovery-server:latest
+    mem_limit: 512m
     pull_policy: always
     container_name: discovery-server
     ports:
@@ -165,6 +182,7 @@ services:
 
   product-service:
     image: ashishjha/orderproducts-product-service:latest
+    mem_limit: 512m
     pull_policy: always
     container_name: product-service
     environment:
@@ -190,6 +208,7 @@ services:
 
   inventory-service:
     image: ashishjha/orderproducts-inventory-service:latest
+    mem_limit: 512m
     pull_policy: always
     container_name: inventory-service
     environment:
@@ -218,6 +237,7 @@ services:
 
   order-service:
     image: ashishjha/orderproducts-order-service:latest
+    mem_limit: 512m
     pull_policy: always
     container_name: order-service
     environment:
@@ -249,6 +269,7 @@ services:
 
   api-gateway:
     image: ashishjha/orderproducts-api-gateway:latest
+    mem_limit: 512m
     pull_policy: always
     container_name: api-gateway
     ports:
@@ -284,7 +305,6 @@ volumes:
   kafka_data:
   mysql_data:
   mongodb_data:
-  debezium_connector_config:
 
 networks:
   microservices-network:

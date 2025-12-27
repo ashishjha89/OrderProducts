@@ -125,3 +125,8 @@ When deploying to AWS, you'd only need to:
 4. Deploy services to ECS (Elastic Container Service) or EKS (Elastic Kubernetes Service)
 5. Configure VPC with private subnets for internal services
 6. Use AWS Secrets Manager for credentials
+
+### Action Items
+
+- [ ] Review `docker-compose.yml` to see if the ports need to be exposed (e.g. can we definitely remove for: "zookeeper, broker, connect, mysql, mongodb" and potentially also remove for "zipkin and discovery-server").
+- [ ] Review if there is a need to keep separate copy for EC2, e.g. `docker-compose.ec2.yml`.
