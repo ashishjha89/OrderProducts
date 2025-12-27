@@ -30,14 +30,21 @@ Replace local machine with single EC2 instance running all services via Docker C
 ### Steps
 
 #### 1.1 Launch EC2 Instance
-- **Instance Type**: t3.micro (1GB RAM, 2 vCPU) - Free tier eligible or ~$7.50/month
-- **AMI**: Amazon Linux 2023 or Ubuntu 22.04
-- **Storage**: 20GB gp3 root volume (included in free tier, otherwise ~$2/month)
-- **Security Group**: 
-  - SSH (22) from your IP
-  - HTTP (8080) from your IP for API Gateway
-  - Custom TCP (8761) from your IP for Eureka dashboard
-  - Custom TCP (9411) from your IP for Zipkin
+- **Instance Type**: t3.large (8GB RAM, 2 vCPU)
+- **AMI**: Amazon Linux 2023
+- **Storage**: 20GB gp3 root volume
+- **Security Group**:
+  - Inbound:
+    - SSH (22) from your IP
+    - HTTP (8080) from your IP for API Gateway
+    - Custom TCP (8761) from your IP for Eureka dashboard
+    - Custom TCP (9411) from your IP for Zipkin
+  - Outbound:
+    - Allow all
+- **Network**
+  - Public subnet
+  - Auto-assign public IPv4 → **Enabled**
+  - Outbound: Allow all
 - **Key Pair**: Create and download SSH key
 
 #### 1.2 Install Dependencies
@@ -45,57 +52,68 @@ Replace local machine with single EC2 instance running all services via Docker C
 # SSH into instance
 ssh -i your-key.pem ec2-user@<instance-ip>
 
-# Install Docker
-sudo yum update -y
-sudo yum install -y docker git
-sudo systemctl start docker
+```bash
+sudo dnf update -y
+sudo dnf install -y docker
 sudo systemctl enable docker
+sudo systemctl start docker
 sudo usermod -aG docker ec2-user
+exit
+```
 
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+Reconnect (important).
 
-# Re-login to apply group changes
+Install compose plugin:
+
+```bash
+docker compose version
+```
+
+If missing:
+
+```bash
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+```
+
+Re-login to apply group changes
+
+```bash
 exit
 ssh -i your-key.pem ec2-user@<instance-ip>
 ```
 
-#### 1.3 Deploy Application
+#### 1.3 Pull & start (daily workflow)
+
+First time (or after instance start)
+
 ```bash
-# Clone repository
-git clone <your-repo-url> ~/OrderProducts
-cd ~/OrderProducts/infrastructure
+docker login ghcr.io
+docker compose pull
+docker compose up -d
+```
 
-# Start all services
-docker-compose up -d
+Wait ~1–2 minutes.
 
-# Verify services
-docker-compose ps
+Verify:
+
+```bash
+docker ps
+docker stats
+```
+
+When done practicing (MOST IMPORTANT), Stop everything
+
+```bash
+docker compose down -v
 ```
 
 #### 1.4 Test & Validate
 - Access API Gateway: `http://<ec2-public-ip>:8080/api/products`
 - Access Eureka: `http://<ec2-public-ip>:8761`
 - Access Zipkin: `http://<ec2-public-ip>:9411`
-
-#### 1.5 Create Start/Stop Scripts
-```bash
-# ~/start-services.sh
-#!/bin/bash
-cd ~/OrderProducts/infrastructure
-docker-compose up -d
-
-# ~/stop-services.sh
-#!/bin/bash
-cd ~/OrderProducts/infrastructure
-docker-compose down
-```
-
-### Estimated Cost
-- EC2 t3.micro: $7.50/month (or free tier)
-- EBS 20GB gp3: $2/month (or free tier)
-- **Total: ~$0-10/month**
 
 ### Deliverables
 - [ ] EC2 instance running
