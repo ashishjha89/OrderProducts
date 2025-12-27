@@ -6,15 +6,15 @@ echo "=== Restarting Infrastructure and Testing Debezium Setup ==="
 echo "1. Stopping existing containers..."
 docker-compose down -v
 
-# Start infrastructure
+# Start infrastructure (not microservices)
 echo "2. Starting infrastructure..."
-docker-compose up -d
+docker-compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
 
-# Wait for services to be ready
+# Wait for infrastructure services to be ready
 echo "3. Waiting for services to be ready..."
 sleep 30
 
-# Check if all services are healthy
+# Check if all infrastructure services are healthy
 echo "4. Checking service health..."
 docker-compose ps
 

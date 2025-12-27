@@ -69,7 +69,7 @@ Run infrastructure components as docker containers, while run applications local
 ```bash
 # Start only infrastructure (MySQL, MongoDB, Kafka, Zipkin, etc.)
 cd infrastructure
-docker-compose up -d mysql mongodb zookeeper broker zipkin
+docker-compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
 
 # Run each application locally in separate terminals or IDE
 cd ../discovery-server && mvn spring-boot:run

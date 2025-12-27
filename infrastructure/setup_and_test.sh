@@ -34,9 +34,9 @@ wait_for_service() {
 echo -e "\n${BLUE}Step 1: Stopping existing containers...${NC}"
 docker-compose down -v
 
-# Step 2: Start infrastructure
+# Step 2: Start infrastructure (not microservices)
 echo -e "\n${BLUE}Step 2: Starting infrastructure...${NC}"
-docker-compose up -d
+docker-compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
 
 # Step 3: Wait for MySQL to be ready
 wait_for_service "MySQL" "docker exec mysql mysql -u root -prootpassword -e 'SELECT 1;'"
