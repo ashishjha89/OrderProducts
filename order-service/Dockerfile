@@ -5,23 +5,21 @@ WORKDIR /workspace/app
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
-
 RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline -B
+
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q dependency:go-offline
 
 COPY src src
-
-RUN ./mvnw clean install -DskipTests -Dmaven.test.skip=true
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q clean package -DskipTests
 
 # Stage 2: Runtime
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre
 VOLUME /tmp
 
-RUN apk add --no-cache curl
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-ARG JAR_FILE=/workspace/app/target/*.jar
-COPY --from=build ${JAR_FILE} /app/app.jar
+RUN useradd -ms /bin/bash spring
+USER spring
 
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+COPY --from=build /workspace/app/target/*.jar /app/app.jar
+ENTRYPOINT ["java","-XX:InitialRAMPercentage=25","-XX:MaxRAMPercentage=75","-jar","/app/app.jar"]

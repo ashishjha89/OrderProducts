@@ -36,3 +36,13 @@ To run the application, use:
 mvn spring-boot:run
 ```
 
+## Push the container image to DockerHub
+
+```bash
+VERSION=0.1.0
+docker build -t ashishjha/orderproducts-api-gateway:$VERSION -t ashishjha/orderproducts-api-gateway:latest .
+
+docker push ashishjha/orderproducts-api-gateway:$VERSION
+docker push ashishjha/orderproducts-api-gateway:latest
+```
+

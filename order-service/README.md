@@ -12,6 +12,16 @@ To run the application, use:
 mvn spring-boot:run
 ```
 
+## Push the container image to DockerHub
+
+```bash
+VERSION=0.1.0
+docker build -t ashishjha/orderproducts-order-service:$VERSION -t ashishjha/orderproducts-order-service:latest .
+
+docker push ashishjha/orderproducts-order-service:$VERSION
+docker push ashishjha/orderproducts-order-service:latest
+```
+
 ## Prerequisites
 
 Before running the service:
