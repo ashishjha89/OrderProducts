@@ -22,7 +22,7 @@ Phased migration plan from local Docker setup to AWS with cost optimization (tar
 
 ---
 
-## Phase 1: Single EC2 Replacement (Week 1)
+## Phase 1: Single EC2 Replacement
 
 ### Goal
 Replace local machine with single EC2 instance running all services via Docker Compose.
