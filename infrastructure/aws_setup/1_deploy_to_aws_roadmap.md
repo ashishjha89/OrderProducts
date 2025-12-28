@@ -6,7 +6,7 @@ Phased migration plan from local Docker setup to AWS with cost optimization (tar
 ## Architecture Decisions
 
 ### Cost Optimization Strategy
-- **Compute**: Pay-per-use with ECS Fargate (final state), t3.micro EC2 for infra
+- **Compute**: Pay-per-use with ECS Fargate (final state)
 - **Storage**: Minimal EBS, no data persistence initially (ephemeral)
 - **Databases**: Self-managed on EC2 with manual start/stop scripts
 - **Messaging**: Replace Kafka with AWS SQS/SNS (pay-per-message, ~$0 for low volume)
@@ -37,8 +37,6 @@ Replace local machine with single EC2 instance running all services via Docker C
   - Inbound:
     - SSH (22) from your IP
     - HTTP (8080) from your IP for API Gateway
-    - Custom TCP (8761) from your IP for Eureka dashboard
-    - Custom TCP (9411) from your IP for Zipkin
   - Outbound:
     - Allow all
 - **Network**
@@ -123,7 +121,7 @@ docker compose down -v
 
 ---
 
-## Phase 2: VPC & IAM Setup (Week 2)
+## Phase 2: VPC & IAM Setup
 
 ### Goal
 Implement production-like networking with VPC, subnets, and proper IAM roles.
@@ -235,7 +233,7 @@ Note: No private subnets/NAT gateway to save $45/month
 
 ---
 
-## Phase 3: Secrets Management (Week 3)
+## Phase 3: Secrets Management
 
 ### Goal
 Remove hardcoded secrets from codebase, use AWS Systems Manager Parameter Store.
@@ -318,7 +316,7 @@ docker-compose up -d
 
 ---
 
-## Phase 4: Separate Database & Messaging Infrastructure (Week 4-5)
+## Phase 4: Separate Database & Messaging Infrastructure
 
 ### Goal
 - Separate databases from application instance
@@ -549,7 +547,7 @@ Keep single EC2, only separate databases later when moving to ECS:
 
 ---
 
-## Phase 5: ECS Fargate Migration (Week 6-8)
+## Phase 5: ECS Fargate Migration
 
 ### Goal
 Move application services to ECS Fargate for:
@@ -774,7 +772,7 @@ To stay under budget, skip ALB and use:
 
 ---
 
-## Phase 6: Enhanced Observability (Week 9)
+## Phase 6: Enhanced Observability
 
 ### Goal
 Implement comprehensive observability with:
@@ -938,7 +936,7 @@ fields @timestamp, duration
 
 ---
 
-## Phase 7: Advanced Features (Week 10+)
+## Phase 7: Advanced Features
 
 ### Goal
 Add production-grade capabilities:
@@ -1705,11 +1703,10 @@ Each phase should have a rollback strategy:
 
 ## Progress Checklist
 
-### Phase 1: Single EC2 (Week 1)
+### Phase 1: Single EC2
 - [ ] Launch EC2 instance (t3.micro)
 - [ ] Configure security groups (SSH, HTTP ports)
 - [ ] Install Docker and Docker Compose
-- [ ] Clone repository
 - [ ] Start all services via docker-compose
 - [ ] Test API Gateway endpoint
 - [ ] Test Eureka dashboard access
@@ -1718,7 +1715,7 @@ Each phase should have a rollback strategy:
 - [ ] Document public IP and access methods
 - [ ] Verify cost (<$10/month)
 
-### Phase 2: VPC & IAM (Week 2)
+### Phase 2: VPC & IAM
 - [ ] Create VPC (10.0.0.0/16)
 - [ ] Create Internet Gateway
 - [ ] Create public subnets (2 AZs)
@@ -1734,7 +1731,7 @@ Each phase should have a rollback strategy:
 - [ ] Terminate old EC2 instance
 - [ ] Verify application still works
 
-### Phase 3: Secrets Management (Week 3)
+### Phase 3: Secrets Management
 - [ ] Create Parameter Store parameters (7 total)
 - [ ] Test parameter retrieval with AWS CLI
 - [ ] Create fetch-secrets.sh script
@@ -1745,7 +1742,7 @@ Each phase should have a rollback strategy:
 - [ ] Commit and push changes
 - [ ] Verify no secrets in git history (or clean history)
 
-### Phase 4: Messaging Migration (Week 4-5)
+### Phase 4: Messaging Migration
 - [ ] Create SQS queue: orderproducts-notification-queue
 - [ ] Create SNS topic (optional): orderproducts-order-events
 - [ ] Update IAM role with SQS permissions
@@ -1761,7 +1758,7 @@ Each phase should have a rollback strategy:
 - [ ] Verify cost savings (no Kafka containers)
 - [ ] Update documentation
 
-### Phase 5: ECS Fargate (Week 6-8) - OPTIONAL
+### Phase 5: ECS Fargate - OPTIONAL
 - [ ] Create ECR repositories (5 services)
 - [ ] Build Docker images locally
 - [ ] Push images to ECR
@@ -1786,7 +1783,7 @@ Each phase should have a rollback strategy:
 - [ ] Verify cost (~$30/month or optimized ~$17/month)
 - [ ] Keep EC2 running for databases
 
-### Phase 6: Observability (Week 9)
+### Phase 6: Observability
 - [ ] Create CloudWatch Log Groups (5 services)
 - [ ] Set retention policy (7 days)
 - [ ] Update docker-compose/task definitions with awslogs driver
@@ -1805,7 +1802,7 @@ Each phase should have a rollback strategy:
 - [ ] Test end-to-end observability
 - [ ] Document monitoring procedures
 
-### Phase 7: Advanced Features (Week 10+) - FUTURE
+### Phase 7: Advanced Features - FUTURE
 - [ ] Configure ECS auto-scaling policies
 - [ ] Implement rate limiting in API Gateway
 - [ ] Request ACM certificate
