@@ -24,8 +24,9 @@ mvn spring-boot:run
 
 ```bash
 VERSION=0.1.0
-docker build -t ashishjha/orderproducts-discovery-server:$VERSION -t ashishjha/orderproducts-discovery-server:latest .
-
-docker push ashishjha/orderproducts-discovery-server:$VERSION
-docker push ashishjha/orderproducts-discovery-server:latest
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ashishjha/orderproducts-discovery-server:$VERSION \
+  -t ashishjha/orderproducts-discovery-server:latest \
+  --push .
 ```

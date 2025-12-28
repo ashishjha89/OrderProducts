@@ -17,10 +17,11 @@ mvn spring-boot:run
 
 ```bash
 VERSION=0.1.0
-docker build -t ashishjha/orderproducts-inventory-service:$VERSION -t ashishjha/orderproducts-inventory-service:latest .
-
-docker push ashishjha/orderproducts-inventory-service:$VERSION
-docker push ashishjha/orderproducts-inventory-service:latest
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ashishjha/orderproducts-inventory-service:$VERSION \
+  -t ashishjha/orderproducts-inventory-service:latest \
+  --push .
 ```
 
 ## Prerequisites
