@@ -22,3 +22,9 @@ zipkin-server-*.jar
 
 ### Cursor ###
 .cursor/
+
+### Terraform ###
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
