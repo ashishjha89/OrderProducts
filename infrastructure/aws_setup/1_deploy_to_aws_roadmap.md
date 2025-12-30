@@ -22,104 +22,19 @@ Phased migration plan from local Docker setup to AWS with cost optimization (tar
 
 ---
 
-## Phase 1: Single EC2 Replacement
+## Phase 1: Single EC2 Replacement - DONE
 
 ### Goal
 Replace local machine with single EC2 instance running all services via Docker Compose.
 
-### Steps
-
-#### 1.1 Launch EC2 Instance
-- **Instance Type**: t3.large (8GB RAM, 2 vCPU)
-- **AMI**: Amazon Linux 2023
-- **Storage**: 20GB gp3 root volume
-- **Security Group**:
-  - Inbound:
-    - SSH (22) from your IP
-    - HTTP (8080) from your IP for API Gateway
-  - Outbound:
-    - Allow all
-- **Network**
-  - Public subnet
-  - Auto-assign public IPv4 → **Enabled**
-  - Outbound: Allow all
-- **Key Pair**: Create and download SSH key
-
-#### 1.2 Install Dependencies
-```bash
-# SSH into instance
-ssh -i your-key.pem ec2-user@<instance-ip>
-
-```bash
-sudo dnf update -y
-sudo dnf install -y docker
-sudo systemctl enable docker
-sudo systemctl start docker
-sudo usermod -aG docker ec2-user
-exit
-```
-
-Reconnect (important).
-
-Install compose plugin:
-
-```bash
-docker compose version
-```
-
-If missing:
-
-```bash
-sudo mkdir -p /usr/local/lib/docker/cli-plugins
-sudo curl -SL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
-  -o /usr/local/lib/docker/cli-plugins/docker-compose
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-```
-
-Re-login to apply group changes
-
-```bash
-exit
-ssh -i your-key.pem ec2-user@<instance-ip>
-```
-
-#### 1.3 Pull & start (daily workflow)
-
-First time (or after instance start)
-
-```bash
-docker login ghcr.io
-docker compose pull
-docker compose up -d
-```
-
-Wait ~1–2 minutes.
-
-Verify:
-
-```bash
-docker ps
-docker stats
-```
-
-When done practicing (MOST IMPORTANT), Stop everything
-
-```bash
-docker compose down -v
-```
-
-#### 1.4 Test & Validate
-- Access API Gateway: `http://<ec2-public-ip>:8080/api/products`
-- Access Eureka: `http://<ec2-public-ip>:8761`
-- Access Zipkin: `http://<ec2-public-ip>:9411`
-
 ### Deliverables
-- [ ] EC2 instance running
-- [ ] All services accessible via public IP
-- [ ] Start/stop scripts created
-- [ ] Documentation of EC2 IP and access methods
-
----
+- [X] Dockerized all services. 
+- [X] Made `Dockerfile` for each service, and `docker-compose` AWS ready.
+- [X] EC2 Instance created manually.
+- [X] EC2 setup done manually via AWS Console.
+- [X] Connect EC2 with SSH (using ec2-key).
+- [X] EC2 setup done using `user data` script.
+- [X] EC2 created and setup done via `terraform`.
 
 ## Phase 2: VPC & IAM Setup
 

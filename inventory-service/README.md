@@ -109,5 +109,6 @@ The project includes comprehensive testing using various frameworks and approach
 ## Next Steps
 - Commit to Kafka only when DB operations are successful.
 - Add pagination to get all SKUs.
-- Update `application.properties` to make it production-ready.
+- Decouple order-service and inventory-service by coordinating only via events.
+- Improve event-handling (e.g. versioning for schema evolution, DLQs, monitoring for event processing pipeline).
 - Implement authorizations according to different operations.

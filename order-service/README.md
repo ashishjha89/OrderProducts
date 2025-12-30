@@ -82,5 +82,6 @@ It should show RUNNING.
 
 ## Next Steps
 
-- Update `application.properties` to make it production-ready.
-- Implement authorizations according to different operations.
+- Decouple order-service and inventory-service by coordinating only via events.
+- Improve event-handling (e.g. versioning for schema evolution, DLQs, monitoring for event processing pipeline).
+- Authentication & authorisation.

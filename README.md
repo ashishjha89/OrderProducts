@@ -1,7 +1,7 @@
 # OrderProducts System Architecture
 
 ## System Overview
-Microservices e-commerce system with Spring Boot services, service discovery, API gateway, and event-driven architecture.
+Microservices order & inventory management system with Spring Boot services, service discovery, API gateway, and event-driven architecture.
 
 ## Services
 
@@ -64,6 +64,7 @@ Microservices e-commerce system with Spring Boot services, service discovery, AP
 ## Setup & Deployment
 
 ### CASE 1: Local Debug & Development
+
 Run infrastructure components as docker containers, while run applications locally for debugging.
 
 ```bash
@@ -79,7 +80,8 @@ cd ../inventory-service && mvn spring-boot:run
 cd ../order-service && mvn spring-boot:run
 ```
 
-### CASE 2: Running Infrastructure and Applications as Docker Containers
+### CASE 2: Running Infrastructure and Applications as Docker Containers (Locally)
+
 Complete dockerized environment.
 
 ```bash
@@ -100,29 +102,28 @@ docker-compose down
 docker-compose down -v
 ```
 
-### Service Access Points
+### CASE 3: Access application via AWS
 
-**Main Entry:**
-- API Gateway: http://localhost:8080
-  - Products: `http://localhost:8080/api/products`
-  - Orders: `http://localhost:8080/api/order`
+Setup EC2 using terraform. See [terraform-setup-readme](/infrastructure/aws_setup/terraform-ec2/README.md).
 
-**Monitoring:**
-- Eureka Dashboard: http://localhost:8761
-- Zipkin Tracing: http://localhost:9411
+Connect to AWS using SSH
 
-**Infrastructure:**
-- MySQL: `localhost:3306`
-- MongoDB: `localhost:27017`
-- Kafka: `localhost:9092`
+```bash
+ssh -i orderproducts-ec2-key.pem ec2-user@[ec2-public-ip]
+```
 
-### AWS Deployment Notes
+## Next steps
 
-When deploying to AWS, you'd only need to:
-1. Put API Gateway behind AWS ALB (Application Load Balancer)
-2. Remove Eureka/Zipkin ports (or keep in private subnet)
-3. Use AWS managed databases (RDS for MySQL, DocumentDB for MongoDB, MSK for Kafka)
-4. Deploy services to ECS (Elastic Container Service) or EKS (Elastic Kubernetes Service)
-5. Configure VPC with private subnets for internal services
-6. Use AWS Secrets Manager for credentials
-
+- Improve AWS Setup - see [aws_roadmap](/infrastructure/aws_setup/1_deploy_to_aws_roadmap.md).
+- Scalability & observability in AWS (e.g. Auto scaling, Rate limiting, ALB & WAF, ACM certificate and AWS Cloud Watch monitoring).
+- CI/CD setup for project (e.g. generate image, deploy to cloud)
+- Dev environment setup.
+- Migrate to Spring Boot 4.x
+- Become cloud-native.
+- Decouple order-service and inventory-service by coordinating only via events.
+- Improve event-handling (e.g. versioning for schema evolution, DLQs, monitoring for event processing pipeline).
+- Setup to update libraries automatically (useful for security and modernisation).
+- Enhance product-service. See [inventory-service-readme-next-steps](/inventory-service/README.md).
+- Enhance inventory-service.  See [product-service-readme-next-steps](/product-service/README.md).
+- Add frontend (e.g. to see list of products, take order if stock is available, CRUD for inventory).
+- Authentication & authorisation.

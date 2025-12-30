@@ -67,5 +67,4 @@ The service supports the following REST endpoints:
 ## Next Steps
 - Add endpoints to update product.
 - Add endpoint to get all products with pagination.
-- Update `application.properties` to make it production-ready.
 - Implement authorizations for create, update, and delete operations.
