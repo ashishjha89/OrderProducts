@@ -2,11 +2,9 @@
 
 ## Overview
 
-This is a Spring MVC project designed to manage products (store & retrieve).
+A Kotlin Spring WebFlux service for managing products (store & retrieve). Uses coroutines throughout — `CoroutineCrudRepository` for MongoDB and `suspend` functions in the service and controller layers — so no thread is ever blocked waiting for I/O.
 
 ## Running the Application
-
-To run the application, use:
 
 ```bash
 mvn spring-boot:run
@@ -28,11 +26,9 @@ docker buildx build \
 Before running the service:
 - Ensure that `discovery-server` (Eureka server) is running to enable service registration and discovery.
 - Ensure that `api-gateway` is running.
-- Ensure that `infrastructure` is setup (see parent directory of project). This service relies on: MongoDB and Zipkin.
+- Ensure that `infrastructure` is set up (see parent directory). This service relies on: MongoDB and Zipkin.
 
 ## API Documentation
-
-The API documentation is available at:
 
 ```
 http://localhost:8080/api/product/swagger-ui/index.html
@@ -40,31 +36,31 @@ http://localhost:8080/api/product/swagger-ui/index.html
 
 ## Supported Endpoints
 
-The service supports the following REST endpoints:
-
 - **POST** `/api/products`: Create a product.
 - **GET** `/api/products`: Get all products.
 
 ## Testing
 
 ### Test Frameworks Used
-- **TestContainers**: For integration tests with MongoDB.
-- **MockMvc**: For testing REST endpoints.
-- **Mockito**: For unit testing with mocks.
+- **TestContainers**: Integration tests with a real MongoDB container.
+- **WebTestClient**: Controller-layer tests (replaces MockMvc for WebFlux).
+- **Mockito-Kotlin**: Unit tests with Kotlin-friendly mock DSL.
 
 ### Types of Tests
-- **Unit Tests**: Testing individual components using Mockito.
-- **Integration Tests**: Using TestContainers for MySQL integration.
-- **Controller Tests**: Using MockMvc for API endpoint testing.
+- **Unit tests** (`*Test.kt`): Pure Mockito-Kotlin mocks, no Docker needed.
+- **Controller tests** (`*ControllerTest.kt`): `@WebFluxTest` slice with `WebTestClient`.
+- **Integration tests** (`*ApplicationTests.kt`): Testcontainers spins up a real MongoDB instance.
 
-## Technologies used
-- Integration tests with TestContainers
-- MongoDB
-- Distributed tracking (Zipkin & micrometer)
-- Swagger
-- Integration with Eureka Discovery Server and Api Gateway
+## Technologies Used
+- **Kotlin** with coroutines (`kotlinx-coroutines-core`, `kotlinx-coroutines-reactor`)
+- **Spring WebFlux** (non-blocking HTTP layer)
+- **Spring Data MongoDB Reactive** with `CoroutineCrudRepository`
+- **Testcontainers** for integration tests
+- **Zipkin & Micrometer** for distributed tracing
+- **Swagger / SpringDoc OpenAPI** (`springdoc-openapi-starter-webflux-ui`)
+- **Eureka** service discovery via API Gateway
 
 ## Next Steps
-- Add endpoints to update product.
+- Add endpoint to update a product.
 - Add endpoint to get all products with pagination.
-- Implement authorizations for create, update, and delete operations.
+- Implement authentication and authorisation for create, update, and delete operations.
