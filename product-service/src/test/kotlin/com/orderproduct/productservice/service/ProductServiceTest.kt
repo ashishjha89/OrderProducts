@@ -1,7 +1,6 @@
 package com.orderproduct.productservice.service
 
 import com.orderproduct.productservice.common.InternalServerException
-import com.orderproduct.productservice.dto.ProductRequest
 import com.orderproduct.productservice.dto.ProductResponse
 import com.orderproduct.productservice.dto.SavedProduct
 import com.orderproduct.productservice.entity.Product
@@ -24,7 +23,7 @@ class ProductServiceTest {
     private val productService = ProductService(productRepository)
 
     @Test
-    @DisplayName("createProduct() (i) transforms ProductRequest to Product (ii) saves to repo (iii) returns SavedProduct")
+    @DisplayName("createProduct() (i) transforms args to Product (ii) saves to repo (iii) returns SavedProduct")
     fun createProductHappyFlowTest() = runTest {
         val name = "Name"
         val description = "Description"
@@ -34,7 +33,7 @@ class ProductServiceTest {
 
         whenever(productRepository.save(productPassedToRepo)).thenReturn(productReturnedFromRepo)
 
-        val result = productService.createProduct(ProductRequest(name, description, price))
+        val result = productService.createProduct(name, description, price)
 
         verify(productRepository).save(productPassedToRepo)
         assertEquals(SavedProduct("id1"), result)
@@ -50,7 +49,7 @@ class ProductServiceTest {
 
         assertThrows(InternalServerException::class.java) {
             kotlinx.coroutines.runBlocking {
-                productService.createProduct(ProductRequest("Name", "Description", BigDecimal.valueOf(123)))
+                productService.createProduct("Name", "Description", BigDecimal.valueOf(123))
             }
         }
     }

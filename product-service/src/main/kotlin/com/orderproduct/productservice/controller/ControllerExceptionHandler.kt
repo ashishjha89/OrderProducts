@@ -7,14 +7,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
+@Suppress("unused")
 @RestControllerAdvice
-@Hidden
+@Hidden // To hide it from Swagger! Controllers are specifying their exact errors.
 class ControllerExceptionHandler {
 
     @ExceptionHandler(ApiException::class)
-    fun handleApiException(apiException: ApiException): ResponseEntity<ErrorBody> =
-        ResponseEntity(
-            ErrorBody(apiException.errorCode, apiException.errorMessage),
-            apiException.httpStatus
-        )
+    fun handleApiException(ex: ApiException): ResponseEntity<ErrorBody> =
+        ResponseEntity(ErrorBody(errorCode = ex.errorCode, errorMessage = ex.errorMessage), ex.httpStatus)
 }

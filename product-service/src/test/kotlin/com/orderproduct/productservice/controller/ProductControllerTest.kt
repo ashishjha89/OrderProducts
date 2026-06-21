@@ -1,7 +1,6 @@
 package com.orderproduct.productservice.controller
 
 import com.orderproduct.productservice.common.InternalServerException
-import com.orderproduct.productservice.dto.ProductRequest
 import com.orderproduct.productservice.dto.ProductResponse
 import com.orderproduct.productservice.dto.SavedProduct
 import com.orderproduct.productservice.service.ProductService
@@ -47,7 +46,7 @@ class ProductControllerTest {
     fun createProductTest() {
         val savedProduct = SavedProduct("id1")
         runBlocking {
-            whenever(productService.createProduct(ProductRequest("name", "description", BigDecimal.valueOf(1000))))
+            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000)))
                 .thenReturn(savedProduct)
         }
 
@@ -114,7 +113,7 @@ class ProductControllerTest {
     @DisplayName("should return 500 when POST /api/products and productService throws InternalServerException")
     fun createProductInternalServerError() {
         runBlocking {
-            whenever(productService.createProduct(ProductRequest("name", "description", BigDecimal.valueOf(1000))))
+            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000)))
                 .thenThrow(InternalServerException())
         }
 

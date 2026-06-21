@@ -1,7 +1,6 @@
 package com.orderproduct.productservice.service
 
 import com.orderproduct.productservice.common.InternalServerException
-import com.orderproduct.productservice.dto.ProductRequest
 import com.orderproduct.productservice.dto.ProductResponse
 import com.orderproduct.productservice.dto.SavedProduct
 import com.orderproduct.productservice.entity.Product
@@ -11,22 +10,19 @@ import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 
 @Service
 class ProductService(private val productRepository: ProductRepository) {
 
     private val log = LoggerFactory.getLogger(ProductService::class.java)
 
-    suspend fun createProduct(productRequest: ProductRequest): SavedProduct {
-        val product = Product(
-            name = productRequest.name!!,
-            description = productRequest.description!!,
-            price = productRequest.price!!
-        )
+    suspend fun createProduct(name: String, description: String, price: BigDecimal): SavedProduct {
+        val product = Product(name = name, description = description, price = price)
         return try {
             val saved = productRepository.save(product)
             log.info("Product {} is saved", saved.id)
-            SavedProduct(saved.id!!)
+            SavedProduct(requireNotNull(saved.id) { "MongoDB must assign an id after save" })
         } catch (e: DataAccessException) {
             log.error("Error when saving product: {}", e.message)
             throw InternalServerException()
@@ -43,7 +39,7 @@ class ProductService(private val productRepository: ProductRepository) {
     }
 
     private fun Product.toProductResponse() = ProductResponse(
-        id = id!!,
+        id = requireNotNull(id),
         name = name,
         description = description,
         price = price

@@ -1,9 +1,11 @@
 package com.orderproduct.productservice.controller
 
+import com.orderproduct.productservice.common.BAD_REQUEST_ERROR_CODE
+import com.orderproduct.productservice.common.BAD_REQUEST_MSG
 import com.orderproduct.productservice.common.BadRequestException
 import com.orderproduct.productservice.common.ErrorBody
-import com.orderproduct.productservice.common.ErrorComponent
-import com.orderproduct.productservice.common.InternalServerException
+import com.orderproduct.productservice.common.SOMETHING_WENT_WRONG_ERROR_CODE
+import com.orderproduct.productservice.common.SOMETHING_WENT_WRONG_MSG
 import com.orderproduct.productservice.dto.ProductRequest
 import com.orderproduct.productservice.dto.ProductResponse
 import com.orderproduct.productservice.dto.SavedProduct
@@ -38,26 +40,22 @@ class ProductController(private val productService: ProductService) {
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "errorCode:${ErrorComponent.BAD_REQUEST_ERROR_CODE} errorMessage:${ErrorComponent.badRequestMsg}",
+                description = "errorCode:$BAD_REQUEST_ERROR_CODE errorMessage:$BAD_REQUEST_MSG",
                 content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorBody::class))]
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "errorCode:${ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE} errorMessage:${ErrorComponent.somethingWentWrongMsg}",
+                description = "errorCode:$SOMETHING_WENT_WRONG_ERROR_CODE errorMessage:$SOMETHING_WENT_WRONG_MSG",
                 content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorBody::class))]
             )
         ]
     )
     suspend fun createProduct(@RequestBody productRequest: ProductRequest): SavedProduct {
         log.info("POST:/api/products")
-        if (productRequest.name.isNullOrBlank() ||
-            productRequest.description.isNullOrBlank() ||
-            productRequest.price == null
-        ) {
-            log.error("BadRequestException: POST:/api/products called with invalid body: {}", productRequest)
-            throw BadRequestException()
-        }
-        return productService.createProduct(productRequest)
+        val name = productRequest.name?.takeIf { it.isNotBlank() } ?: throw BadRequestException()
+        val description = productRequest.description?.takeIf { it.isNotBlank() } ?: throw BadRequestException()
+        val price = productRequest.price ?: throw BadRequestException()
+        return productService.createProduct(name, description, price)
     }
 
     @GetMapping
@@ -73,7 +71,7 @@ class ProductController(private val productService: ProductService) {
             ),
             ApiResponse(
                 responseCode = "500",
-                description = "errorCode:${ErrorComponent.SOMETHING_WENT_WRONG_ERROR_CODE} errorMessage:${ErrorComponent.somethingWentWrongMsg}",
+                description = "errorCode:$SOMETHING_WENT_WRONG_ERROR_CODE errorMessage:$SOMETHING_WENT_WRONG_MSG",
                 content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorBody::class))]
             )
         ]

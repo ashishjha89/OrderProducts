@@ -1,7 +1,8 @@
 package com.orderproduct.productservice
 
+import com.orderproduct.productservice.common.BAD_REQUEST_ERROR_CODE
+import com.orderproduct.productservice.common.BAD_REQUEST_MSG
 import com.orderproduct.productservice.common.ErrorBody
-import com.orderproduct.productservice.common.ErrorComponent
 import com.orderproduct.productservice.dto.ProductRequest
 import com.orderproduct.productservice.dto.ProductResponse
 import com.orderproduct.productservice.entity.Product
@@ -75,8 +76,8 @@ class ProductServiceApplicationTests {
             .expectStatus().isBadRequest
             .expectBody(ErrorBody::class.java)
             .returnResult().responseBody!!
-        assertEquals(ErrorComponent.BAD_REQUEST_ERROR_CODE, errorBody.errorCode)
-        assertEquals(ErrorComponent.badRequestMsg, errorBody.errorMessage)
+        assertEquals(BAD_REQUEST_ERROR_CODE, errorBody.errorCode)
+        assertEquals(BAD_REQUEST_MSG, errorBody.errorMessage)
 
         // Null name
         webTestClient.post().uri("/api/products")
