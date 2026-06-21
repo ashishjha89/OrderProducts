@@ -10,7 +10,7 @@ Microservices order & inventory management system with Spring Boot services, ser
 - **Discovery Server** (8761): Eureka service registry for dynamic discovery
 - **Inventory Service**: Internal service managing stock, exposes REST and gRPC
 - **Order Service**: Handles order processing, validates stock via inventory
-- **Product Service** (currently unused for core flow): Product catalog management
+- **Product Service** (currently unused for core order & inventory management flow. It is currently standalone service.): Product catalog management
 
 ### Infrastructure
 - **MySQL**: Inventory & Order data
@@ -123,7 +123,7 @@ ssh -i orderproducts-ec2-key.pem ec2-user@[ec2-public-ip]
 - Decouple order-service and inventory-service by coordinating only via events.
 - Improve event-handling (e.g. versioning for schema evolution, DLQs, monitoring for event processing pipeline).
 - Setup to update libraries automatically (useful for security and modernisation).
-- Enhance product-service. See [inventory-service-readme-next-steps](/inventory-service/README.md).
-- Enhance inventory-service.  See [product-service-readme-next-steps](/product-service/README.md).
+- Enhance inventory-service.  See [inventory-service-readme-next-steps](/inventory-service/README.md).
+- Enhance product-service. See [product-service-readme-next-steps](/product-service/README.md).
 - Add frontend (e.g. to see list of products, take order if stock is available, CRUD for inventory).
 - Authentication & authorisation.

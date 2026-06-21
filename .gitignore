@@ -23,6 +23,10 @@ zipkin-server-*.jar
 ### Cursor ###
 .cursor/
 
+### Claude ###
+CLAUDE.local.md
+.claude/settings.local.json
+
 ### Terraform ###
 .terraform/
 .terraform.lock.hcl
