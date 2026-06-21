@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.9</version>
+        <version>3.5.15</version>
         <relativePath/>
     </parent>
     <groupId>com.example</groupId>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-            <version>2.5.0</version>
+            <version>2.8.17</version>
         </dependency>
 
         <!-- Kotlin -->
@@ -94,7 +94,7 @@
         <dependency>
             <groupId>org.mockito.kotlin</groupId>
             <artifactId>mockito-kotlin</artifactId>
-            <version>5.4.0</version>
+            <version>6.3.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -119,7 +119,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.19.7</version>
+                <version>1.21.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
