@@ -40,7 +40,7 @@ Integration tests (files named `*IntegrationTests.java` or `*IntegrationTest.jav
 ```bash
 # Start infrastructure only from the infrastructure/ directory
 cd infrastructure
-docker-compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
+docker compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
 
 # Then run each service in a separate terminal (from its directory)
 cd discovery-server && ./mvnw spring-boot:run
@@ -54,10 +54,10 @@ cd order-service   && ./mvnw spring-boot:run
 
 ```bash
 cd infrastructure
-docker-compose up -d          # start all
-docker-compose ps             # check status
-docker-compose logs -f <svc>  # tail logs
-docker-compose down -v        # stop and wipe volumes
+docker compose up -d          # start all
+docker compose ps             # check status
+docker compose logs -f <svc>  # tail logs
+docker compose down -v        # stop and wipe volumes
 ```
 
 Services registered in Docker Compose use `pull_policy: always` and pull from `ashishjha/orderproducts-*:latest` on Docker Hub.

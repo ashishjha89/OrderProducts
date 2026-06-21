@@ -107,33 +107,33 @@ See `debezium_connector_config`, `connect_config` for debezium related setup.
 ### Start All Services
 ```bash
 cd infrastructure
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Check Status
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### View Logs
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f api-gateway
-docker-compose logs -f inventory-service
+docker compose logs -f api-gateway
+docker compose logs -f inventory-service
 ```
 
 ### Stop All Services
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### Clean Restart (Remove Volumes)
 ```bash
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ## Network Architecture
@@ -147,13 +147,13 @@ All services run on the `microservices-network` bridge network, enabling:
 ### Services Not Starting
 ```bash
 # Check logs
-docker-compose logs <service-name>
+docker compose logs <service-name>
 
 # Restart specific service
-docker-compose restart <service-name>
+docker compose restart <service-name>
 
 # Clean restart
-docker-compose down -v && docker-compose up -d
+docker compose down -v && docker-compose up -d
 ```
 
 ### Service Shows Unhealthy
@@ -162,19 +162,19 @@ docker-compose down -v && docker-compose up -d
 docker exec <container-name> curl http://localhost:8080/actuator/health
 
 # View detailed logs
-docker-compose logs -f <service-name>
+docker compose logs -f <service-name>
 ```
 
 ### Kafka Issues
 ```bash
 # Ensure Zookeeper is healthy first
-docker-compose ps zookeeper
+docker compose ps zookeeper
 
 # Check Kafka broker
-docker-compose logs broker
+docker compose logs broker
 
 # Restart Kafka stack
-docker-compose restart zookeeper broker connect
+docker compose restart zookeeper broker connect
 ```
 
 ## Testing Scripts

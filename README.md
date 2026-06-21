@@ -70,7 +70,7 @@ Run infrastructure components as docker containers, while run applications local
 ```bash
 # Start only infrastructure (MySQL, MongoDB, Kafka, Zipkin, etc.)
 cd infrastructure
-docker-compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
+docker compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
 
 # Run each application locally in separate terminals or IDE
 cd ../discovery-server && mvn spring-boot:run
@@ -87,19 +87,19 @@ Complete dockerized environment.
 ```bash
 # Start all services (infrastructure + applications)
 cd infrastructure
-docker-compose up -d
+docker compose up -d
 
 # Check service status
-docker-compose ps
+docker compose ps
 
 # View logs for specific service
-docker-compose logs -f api-gateway
+docker compose logs -f api-gateway
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker compose down -v
 ```
 
 ### CASE 3: Access application via AWS

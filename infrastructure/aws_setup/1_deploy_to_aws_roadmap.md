@@ -29,7 +29,7 @@ Replace local machine with single EC2 instance running all services via Docker C
 
 ### Deliverables
 - [X] Dockerized all services. 
-- [X] Made `Dockerfile` for each service, and `docker-compose` AWS ready.
+- [X] Made `Dockerfile` for each service, and `docker compose` AWS ready.
 - [X] EC2 Instance created manually.
 - [X] EC2 setup done manually via AWS Console.
 - [X] Connect EC2 with SSH (using ec2-key).
@@ -216,7 +216,7 @@ mysql:
 #!/bin/bash
 source ~/fetch-secrets.sh
 cd ~/OrderProducts/infrastructure
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Estimated Cost
