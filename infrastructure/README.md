@@ -34,8 +34,8 @@ Note that `mysql_init_scripts` contains initial scripts to initialise databases.
 ### Kafka (Port 9092)
 - **Purpose**: Event streaming and async communication
 - **Topics**:
-  - `notificationTopic`: Order events
-  - `order.events.outbox`: CDC events
+  - `notificationTopic`: Order placed notifications (order-service producer)
+  - `outbox.event.Order`: CDC outbox events (Debezium → inventory-service consumer)
 
 ### Zookeeper (Port 2181)
 - **Purpose**: Kafka coordination
