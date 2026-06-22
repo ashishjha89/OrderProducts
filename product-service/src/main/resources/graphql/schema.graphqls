@@ -1,0 +1,26 @@
+scalar BigDecimal
+
+type Query {
+    products: [Product!]!
+}
+
+type Mutation {
+    createProduct(input: CreateProductInput!): CreatedProduct!
+}
+
+type Product {
+    id: String!
+    name: String!
+    description: String!
+    price: BigDecimal!
+}
+
+type CreatedProduct {
+    productId: String!
+}
+
+input CreateProductInput {
+    name: String!
+    description: String!
+    price: BigDecimal!
+}

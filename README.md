@@ -114,6 +114,7 @@ ssh -i orderproducts-ec2-key.pem ec2-user@[ec2-public-ip]
 
 ## Next steps
 
+- Add GraphQL to inventory-service and order-service. Then adopt Apollo Federation across all three subgraphs. Then put Apollo Router or WunderGraph in front as the unified entry point (instead of or alongside the current API Gateway).
 - Improve AWS Setup - see [aws_roadmap](/infrastructure/aws_setup/1_deploy_to_aws_roadmap.md).
 - Scalability & observability in AWS (e.g. Auto scaling, Rate limiting, ALB & WAF, ACM certificate and AWS Cloud Watch monitoring).
 - CI/CD setup for project (e.g. generate image, deploy to cloud)
