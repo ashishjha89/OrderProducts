@@ -38,6 +38,15 @@ class ProductService(private val productRepository: ProductRepository) {
         }
     }
 
+    suspend fun getProductById(id: String): ProductResponse? {
+        return try {
+            productRepository.findById(id)?.toProductResponse()
+        } catch (e: DataAccessException) {
+            log.error("Error when getting product by id {}: {}", id, e.message)
+            throw InternalServerException()
+        }
+    }
+
     private fun Product.toProductResponse() = ProductResponse(
         id = requireNotNull(id),
         name = name,

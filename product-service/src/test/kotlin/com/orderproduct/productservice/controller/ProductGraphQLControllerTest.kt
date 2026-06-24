@@ -186,4 +186,135 @@ class ProductGraphQLControllerTest {
                 assertThat(errors[0].extensions["code"]).isEqualTo("INTERNAL_SERVER_ERROR")
             }
     }
+
+    // Federation: _service { sdl }
+
+    @Test
+    @DisplayName("should return SDL string containing Product type and @key directive when _service query is executed")
+    fun serviceQuery_returnsSdlWithProductKeyDirective() {
+        graphQlTester.document(
+            """
+            query {
+                _service {
+                    sdl
+                }
+            }
+        """
+        )
+            .execute()
+            .path("_service.sdl").entity(String::class.java)
+            .satisfies { sdl ->
+                assertThat(sdl).contains("Product")
+                assertThat(sdl).contains("@key")
+                assertThat(sdl).contains("""@key(fields: "id")""")
+            }
+    }
+
+    // Federation: _entities
+
+    @Test
+    @DisplayName("should return Product when _entities is called with a Product representation and product exists")
+    fun entitiesQuery_productRepresentation_returnsProduct() {
+        val product = ProductResponse("id1", "name1", "description1", BigDecimal.valueOf(1000))
+        runBlocking {
+            whenever(productService.getProductById("id1")).thenReturn(product)
+        }
+
+        graphQlTester.document(
+            """
+            query {
+                _entities(representations: [{__typename: "Product", id: "id1"}]) {
+                    ... on Product {
+                        id
+                        name
+                        description
+                        price
+                    }
+                }
+            }
+        """
+        )
+            .execute()
+            .path("_entities[0].id").entity(String::class.java).isEqualTo("id1")
+            .path("_entities[0].name").entity(String::class.java).isEqualTo("name1")
+            .path("_entities[0].description").entity(String::class.java).isEqualTo("description1")
+    }
+
+    @Test
+    @DisplayName("should return null when _entities is called with a Product representation but product does not exist")
+    fun entitiesQuery_productNotFound_returnsNull() {
+        runBlocking {
+            whenever(productService.getProductById("unknown")).thenReturn(null)
+        }
+
+        graphQlTester.document(
+            """
+            query {
+                _entities(representations: [{__typename: "Product", id: "unknown"}]) {
+                    ... on Product {
+                        id
+                    }
+                }
+            }
+        """
+        )
+            .execute()
+            .path("_entities[0]").valueIsNull()
+    }
+
+    @Test
+    @DisplayName("should resolve multiple representations in one call, returning each Product or null independently")
+    fun entitiesQuery_multipleRepresentations_resolvesEachIndependently() {
+        val product1 = ProductResponse("id1", "name1", "description1", BigDecimal.valueOf(1000))
+        runBlocking {
+            whenever(productService.getProductById("id1")).thenReturn(product1)
+            whenever(productService.getProductById("id2")).thenReturn(null)
+        }
+
+        graphQlTester.document(
+            """
+            query {
+                _entities(representations: [
+                    {__typename: "Product", id: "id1"},
+                    {__typename: "Product", id: "id2"}
+                ]) {
+                    ... on Product {
+                        id
+                        name
+                    }
+                }
+            }
+        """
+        )
+            .execute()
+            .path("_entities[0].id").entity(String::class.java).isEqualTo("id1")
+            .path("_entities[1]").valueIsNull()
+    }
+
+    @Test
+    @DisplayName("should return DataFetchingException when _entities is called and productService throws InternalServerException")
+    fun entitiesQuery_serviceThrowsInternalServerException_returnsDataFetchingException() {
+        runBlocking {
+            whenever(productService.getProductById("id1")).thenThrow(InternalServerException())
+        }
+
+        graphQlTester.document(
+            """
+            query {
+                _entities(representations: [{__typename: "Product", id: "id1"}]) {
+                    ... on Product {
+                        id
+                    }
+                }
+            }
+        """
+        )
+            .execute()
+            .errors()
+            .satisfy { errors ->
+                assertThat(errors).hasSize(1)
+                assertThat(errors[0].errorType).isEqualTo(ErrorType.DataFetchingException)
+                assertThat(errors[0].extensions["code"]).isEqualTo("INTERNAL_SERVER_ERROR")
+            }
+    }
 }

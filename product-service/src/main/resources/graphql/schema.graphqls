@@ -1,14 +1,25 @@
 scalar BigDecimal
+scalar _Any
+
+directive @key(fields: String!, resolvable: Boolean) repeatable on OBJECT | INTERFACE
+
+type _Service {
+    sdl: String!
+}
+
+union _Entity = Product
 
 type Query {
     products: [Product!]!
+    _service: _Service!
+    _entities(representations: [_Any!]!): [_Entity]!
 }
 
 type Mutation {
     createProduct(input: CreateProductInput!): CreatedProduct!
 }
 
-type Product {
+type Product @key(fields: "id") {
     id: String!
     name: String!
     description: String!

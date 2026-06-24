@@ -6,6 +6,7 @@ import com.orderproduct.productservice.dto.SavedProduct
 import com.orderproduct.productservice.entity.Product
 import com.orderproduct.productservice.repository.ProductRepository
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -48,7 +49,7 @@ class ProductServiceTest {
             .thenThrow(DataAccessResourceFailureException("Child class of DataAccessException"))
 
         assertThrows(InternalServerException::class.java) {
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 productService.createProduct("Name", "Description", BigDecimal.valueOf(123))
             }
         }
@@ -57,8 +58,10 @@ class ProductServiceTest {
     @Test
     @DisplayName("getAllProducts() fetches Flow<Product> from repo and transforms them to List<ProductResponse>")
     fun getAllProductsTest() = runTest {
-        val product1 = Product(id = "id1", name = "Name1", description = "Description1", price = BigDecimal.valueOf(123))
-        val product2 = Product(id = "id2", name = "Name2", description = "Description2", price = BigDecimal.valueOf(456))
+        val product1 =
+            Product(id = "id1", name = "Name1", description = "Description1", price = BigDecimal.valueOf(123))
+        val product2 =
+            Product(id = "id2", name = "Name2", description = "Description2", price = BigDecimal.valueOf(456))
 
         whenever(productRepository.findAll()).thenReturn(flowOf(product1, product2))
 
@@ -80,7 +83,39 @@ class ProductServiceTest {
             .thenThrow(DataAccessResourceFailureException("Child class of DataAccessException"))
 
         assertThrows(InternalServerException::class.java) {
-            kotlinx.coroutines.runBlocking { productService.getAllProducts() }
+            runBlocking { productService.getAllProducts() }
+        }
+    }
+
+    @Test
+    @DisplayName("getProductById() returns ProductResponse when product exists")
+    fun getProductByIdHappyFlow() = runTest {
+        val product = Product(id = "id1", name = "Name", description = "Description", price = BigDecimal.valueOf(123))
+        whenever(productRepository.findById("id1")).thenReturn(product)
+
+        val result = productService.getProductById("id1")
+
+        assertEquals(ProductResponse("id1", "Name", "Description", BigDecimal.valueOf(123)), result)
+    }
+
+    @Test
+    @DisplayName("getProductById() returns null when product does not exist")
+    fun getProductByIdNotFound() = runTest {
+        whenever(productRepository.findById("unknown")).thenReturn(null)
+
+        val result = productService.getProductById("unknown")
+
+        assertEquals(null, result)
+    }
+
+    @Test
+    @DisplayName("getProductById() throws InternalServerException when repo throws DataAccessException")
+    fun getProductByIdWhenDBThrowsError() = runTest {
+        whenever(productRepository.findById("id1"))
+            .thenThrow(DataAccessResourceFailureException("Child class of DataAccessException"))
+
+        assertThrows(InternalServerException::class.java) {
+            runBlocking { productService.getProductById("id1") }
         }
     }
 }
