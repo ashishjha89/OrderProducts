@@ -1,0 +1,24 @@
+scalar BigDecimal
+
+type Query {
+    _service: String
+}
+
+type Mutation {
+    placeOrder(input: PlaceOrderInput!): PlacedOrder!
+}
+
+type PlacedOrder {
+    orderId: String!
+    orderNumber: String!
+}
+
+input OrderLineItemInput {
+    skuCode: String!
+    price: BigDecimal!
+    quantity: Int!
+}
+
+input PlaceOrderInput {
+    orderLineItems: [OrderLineItemInput!]!
+}
