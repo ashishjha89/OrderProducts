@@ -1,0 +1,5 @@
+projects:
+  product-service:
+    schema: product-service/src/main/resources/graphql/schema.graphqls
+  order-service:
+    schema: order-service/src/main/resources/graphql/schema.graphqls

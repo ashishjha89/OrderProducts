@@ -184,19 +184,19 @@ curl -X POST http://localhost:<port>/graphql \
 
 If a `Product` with the given key does not exist, `null` is returned for that position in the list.
 
-### Two schema representations
+### Schema file layout
 
-There are two distinct GraphQL schema representations in this service, each serving a different audience:
+There are two GraphQL schema files in `src/main/resources/graphql/`. Spring for GraphQL merges all `.graphqls` files in that directory at startup, so together they form the full runtime schema.
 
-**`src/main/resources/graphql/schema.graphqls` — the operational schema**
+**`schema.graphqls` — user-authored schema (single source of truth)**
 
-Read by the Spring for GraphQL engine at startup to build the runtime. It must include the federation built-in types (`_Any`, `_Service`, `_Entity`) and the federation queries (`_service`, `_entities`) so the service can handle those requests at runtime.
+Contains the domain types (`Product`, `CreatedProduct`), the `products` query, the `createProduct` mutation, input types, and federation directive declarations (`@key`). This file is also what `_service { sdl }` returns to the Apollo Router — `ProductGraphQLController.kt` reads it directly from the classpath. Because this file excludes the federation runtime built-ins, the router sees exactly what it expects during supergraph composition with no duplicate definition errors.
 
-**`SUBGRAPH_SDL` constant in `ProductGraphQLController.kt` — the advertised schema**
+**`federation.graphqls` — federation runtime plumbing (Spring only)**
 
-Returned to the router via `_service { sdl }`. This is what the router uses for supergraph composition. It contains only the user-authored schema: the domain types (`Product`, `CreatedProduct`), the domain queries (`products`, `createProduct`), and the `@key` directive usage. It deliberately excludes the federation built-ins (`_entities`, `_service`, `_Entity`, `_Service`, `_Any`) because the router already knows about those and would produce duplicate definition errors if they appeared in the subgraph SDL during composition.
+These are never returned to the router — they exist solely so Spring can route those incoming requests to the controller methods.
 
-This duplication is an artifact of the **manual federation implementation** used here (no third-party federation library). In a production setup, a library such as `federation-graphql-java-support` or the Netflix DGS Framework eliminates the duplication: you author one clean schema, and the library programmatically injects the federation built-ins into the runtime schema and derives the `_service { sdl }` response from your clean schema automatically.
+Uses `extend type Query` (not `type Query`) because `schema.graphqls` already defines `type Query { products }` — this file extends it with the federation-internal fields.
 
 ## Testing
 

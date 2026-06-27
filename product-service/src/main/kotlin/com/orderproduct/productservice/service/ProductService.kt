@@ -49,7 +49,7 @@ class ProductService(private val productRepository: ProductRepository) {
 
     suspend fun getProductBySkuCode(skuCode: String): ProductResponse? {
         return try {
-            productRepository.findBySkuCode(skuCode)?.toProductResponse()
+            productRepository.findFirstBySkuCode(skuCode)?.toProductResponse()
         } catch (e: DataAccessException) {
             log.error("Error when getting product by skuCode {}: {}", skuCode, e.message)
             throw InternalServerException()

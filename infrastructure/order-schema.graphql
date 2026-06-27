@@ -1,6 +1,6 @@
 scalar BigDecimal
 
-directive @key(fields: String!, resolvable: Boolean) repeatable on OBJECT | INTERFACE
+directive @key(fields: String!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE
 directive @external on FIELD_DEFINITION | OBJECT
 
 type Mutation {

@@ -32,9 +32,15 @@ class ProductGraphQLController(private val productService: ProductService) {
         return productService.createProduct(name, description, input.price, input.skuCode)
     }
 
+    private val subgraphSdl: String by lazy {
+        javaClass.getResourceAsStream("/graphql/schema.graphqls")!!
+            .bufferedReader()
+            .readText()
+    }
+
     // Federation: the router calls _service { sdl } at startup to discover this subgraph's schema.
     @QueryMapping(name = "_service")
-    fun service(): FederationServiceSdl = FederationServiceSdl(SUBGRAPH_SDL)
+    fun service(): FederationServiceSdl = FederationServiceSdl(subgraphSdl)
 
     // Federation: the router calls _entities with a list of representations (e.g. [{__typename:"Product", id:"123"}])
     // to hydrate entity stubs referenced by other subgraphs. We resolve each by its key field.
@@ -63,41 +69,4 @@ class ProductGraphQLController(private val productService: ProductService) {
         }
     }
 
-    companion object {
-        // The SDL advertised to the router. Includes @key to mark Product as a federation entity,
-        // but excludes the federation built-ins (_entities, _service, _Entity, _Service, _Any)
-        // which the router already knows about and adds itself during supergraph composition.
-        private val SUBGRAPH_SDL = """
-            scalar BigDecimal
-
-            directive @key(fields: String!, resolvable: Boolean) repeatable on OBJECT | INTERFACE
-
-            type Query {
-                products: [Product!]!
-            }
-
-            type Mutation {
-                createProduct(input: CreateProductInput!): CreatedProduct!
-            }
-
-            type Product @key(fields: "id") @key(fields: "skuCode") {
-                id: String!
-                name: String!
-                description: String!
-                price: BigDecimal!
-                skuCode: String
-            }
-
-            type CreatedProduct {
-                productId: String!
-            }
-
-            input CreateProductInput {
-                name: String!
-                description: String!
-                price: BigDecimal!
-                skuCode: String!
-            }
-        """.trimIndent()
-    }
 }

@@ -6,11 +6,14 @@ Microservices order & inventory management system with Spring Boot services, ser
 ## Services
 
 ### Core Services
-- **API Gateway** (8080): Single entry point, routes to microservices
+- **API Gateway** (8080): Single entry point, routes to microservices via REST
 - **Discovery Server** (8761): Eureka service registry for dynamic discovery
 - **Inventory Service**: Internal service managing stock, exposes REST and gRPC
-- **Order Service**: Handles order processing, validates stock via inventory
-- **Product Service** (currently unused for core order & inventory management flow. It is currently standalone service.): Product catalog management
+- **Order Service**: Handles order processing, validates stock via inventory; GraphQL federation subgraph
+- **Product Service**: Product catalog management; GraphQL federation subgraph
+
+### GraphQL Federation
+- **Apollo Router** (4000): Supergraph gateway — composes `product-service` and `order-service` into a single GraphQL API. Clients query one endpoint; the router fans out to subgraphs and merges the result.
 
 ### Infrastructure
 - **MySQL**: Inventory & Order data
@@ -42,11 +45,12 @@ Microservices order & inventory management system with Spring Boot services, ser
 
 ## Technology Stack
 - **Framework**: Spring Boot 3.x, Spring Cloud
-- **Languages**: Java 21
+- **Languages**: Java 21, Kotlin
 - **Databases**: MySQL 8, MongoDB 7
 - **Messaging**: Apache Kafka
 - **Service Discovery**: Netflix Eureka
-- **API Gateway**: Spring Cloud Gateway
+- **API Gateway**: Spring Cloud Gateway (REST), Apollo Router (GraphQL federation)
+- **GraphQL**: Spring for GraphQL, Apollo Router, rover CLI
 - **Tracing**: Zipkin, Micrometer
 - **Testing**: TestContainers, Mockito, Spring Cloud Contract
 - **Build**: Maven
@@ -63,9 +67,9 @@ Microservices order & inventory management system with Spring Boot services, ser
 
 ## Setup & Deployment
 
-### CASE 1: Local Debug & Development
+### CASE 1: Local Debug & Development (REST only)
 
-Run infrastructure components as docker containers, while run applications locally for debugging.
+Run infrastructure in Docker, applications locally for debugging. Uses the REST API Gateway on port 8080.
 
 ```bash
 # Start only infrastructure (MySQL, MongoDB, Kafka, Zipkin, etc.)
@@ -80,12 +84,45 @@ cd ../inventory-service && mvn spring-boot:run
 cd ../order-service && mvn spring-boot:run
 ```
 
-### CASE 2: Running Infrastructure and Applications as Docker Containers (Locally)
+REST endpoints are available via `http://localhost:8080`.
 
-Complete dockerized environment.
+### CASE 2: Local Debug & Development (with GraphQL Federation)
+
+Same as Case 1 but also starts the Apollo Router so you can query the federated GraphQL supergraph. The router runs in Docker and requires product-service and order-service on fixed ports so it can reach them on the host.
 
 ```bash
-# Start all services (infrastructure + applications)
+# Start infrastructure
+cd infrastructure
+docker compose up -d mysql mongodb zookeeper broker zipkin connect register_debezium_connector
+
+# Run discovery server and other services normally
+cd ../discovery-server && mvn spring-boot:run
+cd ../api-gateway && mvn spring-boot:run
+cd ../inventory-service && mvn spring-boot:run
+
+# Run product-service and order-service on the ports the router expects
+cd ../product-service && mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dserver.port=8082"
+cd ../order-service && ./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-Dserver.port=8084"
+
+# Start only the router (--no-deps skips trying to start Dockerised service containers)
+cd ../infrastructure && docker compose up apollo-router --no-deps -d
+```
+
+The federated GraphQL endpoint is at `http://localhost:4000/`. Apollo Sandbox UI is also available there.
+
+If you change either service's `schema.graphqls`, regenerate the supergraph before restarting the router:
+```bash
+cd infrastructure
+APOLLO_ELV2_LICENSE=accept rover supergraph compose --config supergraph.yaml 2>/dev/null > supergraph.graphql
+docker compose restart apollo-router
+```
+
+### CASE 3: Running Everything as Docker Containers (Locally)
+
+Complete dockerised environment. The Apollo Router starts automatically and uses the container names to reach the services.
+
+```bash
+# Start all services (infrastructure + applications + Apollo Router)
 cd infrastructure
 docker compose up -d
 
@@ -93,7 +130,8 @@ docker compose up -d
 docker compose ps
 
 # View logs for specific service
-docker compose logs -f api-gateway
+docker compose logs -f apollo-router
+docker compose logs -f order-service
 
 # Stop all services
 docker compose down
@@ -102,7 +140,9 @@ docker compose down
 docker compose down -v
 ```
 
-### CASE 3: Access application via AWS
+REST is available via `http://localhost:8080`. GraphQL federation is available via `http://localhost:4000/`.
+
+### CASE 4: Access application via AWS
 
 Setup EC2 using terraform. See [terraform-setup-readme](/infrastructure/aws_setup/terraform-ec2/README.md).
 
@@ -114,7 +154,6 @@ ssh -i orderproducts-ec2-key.pem ec2-user@[ec2-public-ip]
 
 ## Next steps
 
-- Adopt Apollo Federation across subgraphs of product-service and order-service. Then put Apollo Router or WunderGraph in front as the unified entry point (instead of or alongside the current API Gateway).
 - Improve AWS Setup - see [aws_roadmap](/infrastructure/aws_setup/1_deploy_to_aws_roadmap.md).
 - Scalability & observability in AWS (e.g. Auto scaling, Rate limiting, ALB & WAF, ACM certificate and AWS Cloud Watch monitoring).
 - CI/CD setup for project (e.g. generate image, deploy to cloud)

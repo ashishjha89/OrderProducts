@@ -85,45 +85,16 @@ public class OrderGraphQLController {
         return results;
     }
 
-    // The SDL advertised to the router. Includes @key to mark PlacedOrder as a federation entity,
-    // and @external to declare Product as a reference to the product-service entity.
-    // Excludes the federation built-ins (_entities, _service, _Entity, _Service, _Any).
-    // Note: no Query type declared here because order-service has no user-facing queries.
-    private static final String SUBGRAPH_SDL = """
-            scalar BigDecimal
-            
-            directive @key(fields: String!, resolvable: Boolean) repeatable on OBJECT | INTERFACE
-            directive @external on FIELD_DEFINITION | OBJECT
-            
-            type Mutation {
-                placeOrder(input: PlaceOrderInput!): PlacedOrder!
-            }
-            
-            type PlacedOrder @key(fields: "orderNumber") {
-                orderId: String!
-                orderNumber: String!
-                lineItems: [OrderLineItem!]!
-            }
-            
-            type OrderLineItem {
-                skuCode: String!
-                price: BigDecimal!
-                quantity: Int!
-                product: Product
-            }
-            
-            type Product @key(fields: "skuCode") @external {
-                skuCode: String!
-            }
-            
-            input OrderLineItemInput {
-                skuCode: String!
-                price: BigDecimal!
-                quantity: Int!
-            }
-            
-            input PlaceOrderInput {
-                orderLineItems: [OrderLineItemInput!]!
-            }
-            """;
+    // The SDL advertised to the router — read from schema.graphqls (the single source of truth).
+    // Excludes federation built-ins (_entities, _service, _Entity, _Service, _Any) which live in
+    // federation.graphqls and are loaded by Spring at runtime but must not be sent to the router.
+    private static final String SUBGRAPH_SDL = readSubgraphSdl();
+
+    private static String readSubgraphSdl() {
+        try (var stream = OrderGraphQLController.class.getResourceAsStream("/graphql/schema.graphqls")) {
+            return new String(stream.readAllBytes());
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot read schema.graphqls", e);
+        }
+    }
 }

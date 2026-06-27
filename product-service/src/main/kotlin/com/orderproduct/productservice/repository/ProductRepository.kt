@@ -5,5 +5,5 @@ import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 
 interface ProductRepository : CoroutineCrudRepository<Product, String> {
 
-    suspend fun findBySkuCode(skuCode: String): Product?
+    suspend fun findFirstBySkuCode(skuCode: String): Product?
 }

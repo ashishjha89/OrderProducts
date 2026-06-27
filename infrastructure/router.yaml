@@ -1,0 +1,14 @@
+sandbox:
+  enabled: true
+
+homepage:
+  enabled: false
+
+supergraph:
+  listen: 0.0.0.0:4000
+  introspection: true
+
+# When running services locally (not in Docker), set the ports they are listening on:
+override_subgraph_url:
+  product-service: http://host.docker.internal:8082/graphql
+  order-service: http://host.docker.internal:8084/graphql

@@ -134,7 +134,7 @@ class ProductServiceTest {
             price = BigDecimal.valueOf(123),
             skuCode = "sku-1"
         )
-        whenever(productRepository.findBySkuCode("sku-1")).thenReturn(product)
+        whenever(productRepository.findFirstBySkuCode("sku-1")).thenReturn(product)
 
         val result = productService.getProductBySkuCode("sku-1")
 
@@ -144,7 +144,7 @@ class ProductServiceTest {
     @Test
     @DisplayName("getProductBySkuCode() returns null when product does not exist")
     fun getProductBySkuCodeNotFound() = runTest {
-        whenever(productRepository.findBySkuCode("unknown")).thenReturn(null)
+        whenever(productRepository.findFirstBySkuCode("unknown")).thenReturn(null)
 
         val result = productService.getProductBySkuCode("unknown")
 
@@ -154,7 +154,7 @@ class ProductServiceTest {
     @Test
     @DisplayName("getProductBySkuCode() throws InternalServerException when repo throws DataAccessException")
     fun getProductBySkuCodeWhenDBThrowsError() = runTest {
-        whenever(productRepository.findBySkuCode("sku-1"))
+        whenever(productRepository.findFirstBySkuCode("sku-1"))
             .thenThrow(DataAccessResourceFailureException("Child class of DataAccessException"))
 
         assertThrows(InternalServerException::class.java) {

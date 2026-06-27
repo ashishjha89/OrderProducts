@@ -1,0 +1,10 @@
+federation_version: =2.9.0
+subgraphs:
+  product-service:
+    routing_url: http://product-service:8080/graphql
+    schema:
+      file: ./product-schema.graphql
+  order-service:
+    routing_url: http://order-service:8080/graphql
+    schema:
+      file: ./order-schema.graphql

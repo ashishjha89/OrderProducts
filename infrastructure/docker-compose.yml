@@ -299,6 +299,31 @@ services:
     networks:
       - microservices-network
 
+  apollo-router:
+    image: ghcr.io/apollographql/router:v1.52.0
+    container_name: apollo-router
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./supergraph.graphql:/dist/config/supergraph.graphql:ro
+      - ./router.yaml:/dist/config/router.yaml:ro
+    command: >
+      --supergraph /dist/config/supergraph.graphql
+      --config /dist/config/router.yaml
+    depends_on:
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - microservices-network
+
 volumes:
   zookeeper_data:
   zookeeper_log:

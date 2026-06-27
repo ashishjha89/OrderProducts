@@ -4,15 +4,45 @@
 
 This is a Spring MVC project designed to manage orders.
 
-## Running the Application
+## Setup & Deployment
 
-To run the application, use:
+### Prerequisites
+
+This service depends on the following infrastructure (start via `cd infrastructure && docker compose up -d mysql zookeeper broker zipkin`):
+
+- **MySQL** — order storage (`order_db`)
+- **Kafka** — order event publishing
+- **Zipkin** — distributed tracing
+- **Discovery Server (Eureka)** — service registration; also needed by `api-gateway`
+- **Inventory Service** — stock availability checks (via gRPC by default)
+
+### Running standalone (REST + GraphQL, no federation)
+
+Any port works. Eureka assigns one dynamically at startup.
 
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
-## Push the container image to DockerHub
+GraphQL is available at `/graphql` on whichever port Spring selects. Check the startup log for the port.
+
+### Running with Apollo Router (federated GraphQL)
+
+The Apollo Router runs in Docker and needs to reach this service on the host. Its `override_subgraph_url` in `infrastructure/router.yaml` is hardcoded to port **8084** for order-service. Use that port:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-Dserver.port=8084"
+```
+
+Then start the router (from the `infrastructure` directory):
+
+```bash
+docker compose up apollo-router --no-deps -d
+```
+
+The supergraph endpoint is at `http://localhost:4000/`.
+
+### Push the container image to DockerHub
 
 ```bash
 VERSION=0.1.0
@@ -22,16 +52,6 @@ docker buildx build \
   -t ashishjha/orderproducts-order-service:latest \
   --push .
 ```
-
-## Prerequisites
-
-Before running the service:
-
-- Ensure the `discovery-server` (Eureka server) is running to enable service registration and discovery.
-- Ensure the `api-gateway` is running so that this service is available via port 8080.
-- Ensure the `inventory-service` is running to check stock availability.
-- Ensure that `infrastructure` is setup (see parent directory of project). This service relies on: MySQL, Kafka and
-  Zipkin.
 
 ## API Documentation
 
@@ -110,11 +130,11 @@ mutation PlaceOrder($input: PlaceOrderInput!) {
 }
 # Variables:
 {
-"input": {
-"orderLineItems": [
-{ "skuCode": "samsung-s10", "price": 100, "quantity": 1 }
-]
-}
+    "input": {
+        "orderLineItems": [
+            { "skuCode": "samsung-s10", "price": 100, "quantity": 1 }
+        ]
+    }
 }
 ```
 
@@ -208,21 +228,21 @@ curl -X POST http://localhost:<port>/graphql \
 
 If a `PlacedOrder` with the given `orderNumber` does not exist, `null` is returned for that position in the list.
 
-### Two schema representations
+### Schema file layout
 
-**`src/main/resources/graphql/schema.graphqls` — the operational schema**
+There are two GraphQL schema files in `src/main/resources/graphql/`. Spring for GraphQL merges all `.graphqls` files in that directory at startup, so together they form the full runtime schema.
 
-Read by the Spring for GraphQL engine at startup. It includes the federation built-in types (`_Any`, `_Service`, `_Entity`) and the federation queries (`_service`, `_entities`) so the service can handle those requests at runtime.
+**`schema.graphqls` — user-authored schema (single source of truth)**
 
-**`SUBGRAPH_SDL` constant in `OrderGraphQLController.java` — the advertised schema**
+Contains the domain types (`PlacedOrder`, `OrderLineItem`), the `placeOrder` mutation, input types, and federation directive/type declarations (`@key`, `@external`, `Product @external`). This file is also what `_service { sdl }` returns to the Apollo Router — `OrderGraphQLController.java` reads it directly from the classpath. Because this file excludes the federation runtime built-ins, the router sees exactly what it expects during supergraph composition with no duplicate definition errors.
 
-Returned to the router via `_service { sdl }`. Contains only the user-authored schema — `PlacedOrder @key(fields: "orderNumber")`, the `placeOrder` mutation, and the input types. Deliberately excludes the federation built-ins, because the router already knows about those and would produce duplicate definition errors during supergraph composition.
+Note that order-service has **no user-facing Query fields**, so no `type Query` appears here. The router handles this correctly.
 
-Note that order-service has **no user-facing Query fields**, so no `type Query` appears in the advertised SDL. The router handles this correctly — it only requires subgraphs to declare the queries they own, and `_entities`/`_service` are added by the router itself.
+**`federation.graphqls` — federation runtime plumbing (Spring only)**
 
-The `@external` directive and `Product @key(fields: "skuCode") @external` appear in the advertised SDL so the router knows order-service references a product entity owned by product-service. The router uses this during supergraph composition to build the query plan that routes `lineItems { product { ... } }` to product-service.
+These are never returned to the router — they exist solely so Spring can route those incoming requests to the controller methods.
 
-This duplication is an artifact of the **manual federation implementation** used here (no third-party federation library). A library such as `federation-graphql-java-support` or Netflix DGS would eliminate it by deriving the advertised SDL automatically from the authored schema.
+Uses `type Query` (not `extend type Query`) because order-service has no user-facing queries in `schema.graphqls` to extend.
 
 ## Testing
 

@@ -37,7 +37,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-@AutoConfigureStubRunner(stubsMode = LOCAL, ids = "com.orderproduct:inventory-service:0.0.1-SNAPSHOT:stubs:8082")
+@AutoConfigureStubRunner(stubsMode = LOCAL, ids = "com.orderproduct:inventory-service:0.0.1-SNAPSHOT:stubs:9091")
 @EmbeddedKafka(topics = { "notification.topic" })
 class OrderServiceApplicationTests {
 

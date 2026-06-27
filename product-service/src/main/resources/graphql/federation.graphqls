@@ -1,0 +1,12 @@
+scalar _Any
+
+union _Entity = Product
+
+type _Service {
+    sdl: String!
+}
+
+extend type Query {
+    _service: _Service!
+    _entities(representations: [_Any!]!): [_Entity]!
+}
