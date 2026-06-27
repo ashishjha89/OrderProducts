@@ -63,7 +63,7 @@ curl -X POST http://localhost:<port>/graphql \
 ```bash
 curl -X POST http://localhost:<port>/graphql \
   -H "Content-Type: application/json" \
-  -d '{"query":"mutation { createProduct(input: { name: \"iPhone\", description: \"Apple phone\", price: 999 }) { productId } }"}'
+  -d '{"query":"mutation { createProduct(input: { name: \"iPhone\", description: \"Apple phone\", price: 999, skuCode: \"iphone\" }) { productId } }"}'
 ```
 ```json
 {
@@ -117,7 +117,8 @@ mutation CreateProduct($input: CreateProductInput!) {
     "input": {
         "name": "MacBook Pro",
         "description": "Apple laptop",
-        "price": 2500
+        "price": 2500,
+        "skuCode": "macbook-pro"
     }
 }
 ```
@@ -130,18 +131,21 @@ This service is a **federation-compliant subgraph**. In addition to the domain q
 
 In a federated architecture, a **subgraph** is an individual GraphQL service that owns a slice of the total schema. An Apollo Router (or similar gateway) sits in front of all subgraphs, composes their schemas into a single unified **supergraph**, and routes client queries to the right services transparently.
 
-This service declares `Product` as a **federation entity** by annotating it with `@key(fields: "id")` in the schema:
+This service declares `Product` as a **federation entity** with two `@key` directives:
 
 ```graphql
-type Product @key(fields: "id") {
+type Product @key(fields: "id") @key(fields: "skuCode") {
     id: String!
     name: String!
     description: String!
     price: BigDecimal!
+    skuCode: String
 }
 ```
 
-`@key` means: "A `Product` can be uniquely identified by its `id`. If another subgraph (e.g. `order-service`) holds a `Product` stub containing only an `id`, the router knows to call this service to hydrate the remaining fields."
+**Why two keys?** The `@key` directive is `repeatable` — a type can have multiple keys. The router picks whichever key it has available:
+- `id` is the MongoDB document identifier. Used when product-service resolves its own entities.
+- `skuCode` is the business identifier shared with other services. `order-service` stores `skuCode` on each order line item, so when the router resolves `product` from an order line item, it uses this key to hydrate from product-service.
 
 ### Federation endpoints
 
@@ -152,34 +156,33 @@ curl -X POST http://localhost:<port>/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ _service { sdl } }"}'
 ```
-```json
-{
-  "data": {
-    "_service": {
-      "sdl": "scalar BigDecimal\n\ndirective @key(...) ...\n\ntype Product @key(fields: \"id\") { ... }"
-    }
-  }
-}
-```
 
-**`_entities`** — called by the router at query execution time to hydrate `Product` stubs referenced by other subgraphs. Accepts a list of **representations** (objects containing `__typename` and key fields) and returns the fully resolved entities.
+**`_entities` by `id`** — router calls this when it has a product's internal id.
 
 ```bash
 curl -X POST http://localhost:<port>/graphql \
   -H "Content-Type: application/json" \
-  -d '{"query":"{ _entities(representations: [{__typename: \"Product\", id: \"abc123\"}]) { ... on Product { id name description price } } }"}'
+  -d '{"query":"{ _entities(representations: [{__typename: \"Product\", id: \"abc123\"}]) { ... on Product { id name skuCode } } }"}'
+```
+
+**`_entities` by `skuCode`** — router calls this when order-service returns a `product: { skuCode: "iphone" }` stub.
+
+```bash
+curl -X POST http://localhost:<port>/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ _entities(representations: [{__typename: \"Product\", skuCode: \"iphone\"}]) { ... on Product { id name skuCode } } }"}'
 ```
 ```json
 {
   "data": {
     "_entities": [
-      { "id": "abc123", "name": "iPhone", "description": "Apple phone", "price": 999 }
+      { "id": "abc123", "name": "iPhone", "skuCode": "iphone" }
     ]
   }
 }
 ```
 
-If a `Product` with the given `id` does not exist, `null` is returned for that position in the list (the federation spec allows nullable elements in the `_entities` response).
+If a `Product` with the given key does not exist, `null` is returned for that position in the list.
 
 ### Two schema representations
 

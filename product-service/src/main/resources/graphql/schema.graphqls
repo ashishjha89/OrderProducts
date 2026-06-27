@@ -19,11 +19,12 @@ type Mutation {
     createProduct(input: CreateProductInput!): CreatedProduct!
 }
 
-type Product @key(fields: "id") {
+type Product @key(fields: "id") @key(fields: "skuCode") {
     id: String!
     name: String!
     description: String!
     price: BigDecimal!
+    skuCode: String
 }
 
 type CreatedProduct {
@@ -34,4 +35,5 @@ input CreateProductInput {
     name: String!
     description: String!
     price: BigDecimal!
+    skuCode: String!
 }

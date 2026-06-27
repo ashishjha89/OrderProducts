@@ -46,13 +46,13 @@ class ProductControllerTest {
     fun createProductTest() {
         val savedProduct = SavedProduct("id1")
         runBlocking {
-            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000)))
+            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000), "sku-1"))
                 .thenReturn(savedProduct)
         }
 
         webTestClient.post().uri("/api/products")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"name":"name","description":"description","price":1000}""")
+            .bodyValue("""{"name":"name","description":"description","price":1000,"skuCode":"sku-1"}""")
             .exchange()
             .expectStatus().isCreated
             .expectBody()
@@ -110,16 +110,26 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("should return 400 when POST /api/products is called with null skuCode")
+    fun createProductBadRequestNullSkuCode() {
+        webTestClient.post().uri("/api/products")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"name":"name","description":"description","price":1000,"skuCode":null}""")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
     @DisplayName("should return 500 when POST /api/products and productService throws InternalServerException")
     fun createProductInternalServerError() {
         runBlocking {
-            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000)))
+            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000), "sku-1"))
                 .thenThrow(InternalServerException())
         }
 
         webTestClient.post().uri("/api/products")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"name":"name","description":"description","price":1000}""")
+            .bodyValue("""{"name":"name","description":"description","price":1000,"skuCode":"sku-1"}""")
             .exchange()
             .expectStatus().is5xxServerError
     }

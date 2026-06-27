@@ -55,7 +55,8 @@ class ProductController(private val productService: ProductService) {
         val name = productRequest.name?.takeIf { it.isNotBlank() } ?: throw BadRequestException()
         val description = productRequest.description?.takeIf { it.isNotBlank() } ?: throw BadRequestException()
         val price = productRequest.price ?: throw BadRequestException()
-        return productService.createProduct(name, description, price)
+        val skuCode = productRequest.skuCode?.takeIf { it.isNotBlank() } ?: throw BadRequestException()
+        return productService.createProduct(name, description, price, skuCode)
     }
 
     @GetMapping

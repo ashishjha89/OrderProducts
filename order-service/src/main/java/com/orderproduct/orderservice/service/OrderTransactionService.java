@@ -45,7 +45,7 @@ class OrderTransactionService {
 
     @Transactional
     public void saveOrderCancelledEvent(@NonNull String orderNumber, @NonNull OrderRequest orderRequest,
-            @NonNull Throwable cause)
+                                        @NonNull Throwable cause)
             throws InternalServerException {
         OrderStatusChangedEvent event = new OrderStatusChangedEvent(orderNumber, ReservationState.CANCELLED.name());
         saveEventToOutbox(event, "OrderStatusChangedEvent", orderNumber);

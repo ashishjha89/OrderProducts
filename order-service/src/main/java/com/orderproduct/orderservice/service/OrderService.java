@@ -1,8 +1,10 @@
 package com.orderproduct.orderservice.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +16,10 @@ import com.orderproduct.orderservice.dto.InventoryAvailabilityStatus;
 import com.orderproduct.orderservice.dto.ItemReservationRequest;
 import com.orderproduct.orderservice.dto.OrderRequest;
 import com.orderproduct.orderservice.dto.OrderReservationRequest;
+import com.orderproduct.orderservice.dto.ProductStub;
 import com.orderproduct.orderservice.dto.SavedOrder;
+import com.orderproduct.orderservice.dto.SavedOrderLineItem;
+import com.orderproduct.orderservice.repository.OrderRepository;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
@@ -31,6 +36,7 @@ public class OrderService {
     private final InventoryReservationService inventoryReservationService;
     private final ObservationRegistry observationRegistry;
     private final OrderDataGenerator orderDataGenerator;
+    private final OrderRepository orderRepository;
 
     @NonNull
     public CompletableFuture<SavedOrder> placeOrder(
@@ -111,11 +117,38 @@ public class OrderService {
 
     @Nullable
     private InventoryAvailabilityStatus getFirstMatchingStock(String skuCode,
-            List<InventoryAvailabilityStatus> availableStocks) {
+                                                              List<InventoryAvailabilityStatus> availableStocks) {
         return availableStocks.stream()
                 .filter(stockStatus -> stockStatus.skuCode().equals(skuCode))
                 .findFirst()
                 .orElse(null);
+    }
+
+    @Nullable
+    public Optional<SavedOrder> getOrderByOrderNumber(@NonNull String orderNumber) {
+        try {
+            return orderRepository.findByOrderNumber(orderNumber)
+                    .map(order -> new SavedOrder(order.getId() + "", order.getOrderNumber()));
+        } catch (DataAccessException e) {
+            log.error("Error when getting order by orderNumber {}: {}", orderNumber, e.getMessage());
+            throw new InternalServerException();
+        }
+    }
+
+    @NonNull
+    public List<SavedOrderLineItem> getLineItemsByOrderNumber(@NonNull String orderNumber) {
+        try {
+            return orderRepository.findByOrderNumberWithLineItems(orderNumber)
+                    .map(order -> order.getOrderLineItemsList().stream()
+                            .map(item -> new SavedOrderLineItem(
+                                    item.getSkuCode(), item.getPrice(), item.getQuantity(),
+                                    new ProductStub(item.getSkuCode())))
+                            .toList())
+                    .orElse(List.of());
+        } catch (DataAccessException e) {
+            log.error("Error when getting line items for orderNumber {}: {}", orderNumber, e.getMessage());
+            throw new InternalServerException();
+        }
     }
 
     private Observation inventoryServiceObservation() {

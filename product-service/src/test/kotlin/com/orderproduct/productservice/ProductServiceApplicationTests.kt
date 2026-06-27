@@ -58,7 +58,7 @@ class ProductServiceApplicationTests {
     fun postApiCall_ShouldInsertProductToDatabase() = runBlocking<Unit> {
         webTestClient.post().uri("/api/products")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(ProductRequest("iPhone 13", "iPhone 13", BigDecimal.valueOf(1200)))
+            .bodyValue(ProductRequest("iPhone 13", "iPhone 13", BigDecimal.valueOf(1200), "iphone-13"))
             .exchange()
             .expectStatus().isCreated
 

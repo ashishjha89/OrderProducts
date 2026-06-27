@@ -76,14 +76,14 @@ class ProductGraphQLControllerTest {
     fun createProductMutation_returnsProductId() {
         val savedProduct = SavedProduct("id1")
         runBlocking {
-            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000)))
+            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000), "sku-1"))
                 .thenReturn(savedProduct)
         }
 
         graphQlTester.document(
             """
             mutation {
-                createProduct(input: {name: "name", description: "description", price: 1000}) {
+                createProduct(input: {name: "name", description: "description", price: 1000, skuCode: "sku-1"}) {
                     productId
                 }
             }
@@ -99,7 +99,7 @@ class ProductGraphQLControllerTest {
         graphQlTester.document(
             """
             mutation {
-                createProduct(input: {name: "", description: "description", price: 1000}) {
+                createProduct(input: {name: "", description: "description", price: 1000, skuCode: "sku-1"}) {
                     productId
                 }
             }
@@ -120,7 +120,7 @@ class ProductGraphQLControllerTest {
         graphQlTester.document(
             """
             mutation {
-                createProduct(input: {name: "name", description: "", price: 1000}) {
+                createProduct(input: {name: "name", description: "", price: 1000, skuCode: "sku-1"}) {
                     productId
                 }
             }
@@ -165,14 +165,14 @@ class ProductGraphQLControllerTest {
     @DisplayName("should return DataFetchingException with INTERNAL_SERVER_ERROR code when createProduct mutation and productService throws InternalServerException")
     fun createProductMutation_serviceThrowsInternalServerException_returnsDataFetchingException() {
         runBlocking {
-            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000)))
+            whenever(productService.createProduct("name", "description", BigDecimal.valueOf(1000), "sku-1"))
                 .thenThrow(InternalServerException())
         }
 
         graphQlTester.document(
             """
             mutation {
-                createProduct(input: {name: "name", description: "description", price: 1000}) {
+                createProduct(input: {name: "name", description: "description", price: 1000, skuCode: "sku-1"}) {
                     productId
                 }
             }
@@ -190,7 +190,7 @@ class ProductGraphQLControllerTest {
     // Federation: _service { sdl }
 
     @Test
-    @DisplayName("should return SDL string containing Product type and @key directive when _service query is executed")
+    @DisplayName("should return SDL string containing Product type with both @key directives when _service query is executed")
     fun serviceQuery_returnsSdlWithProductKeyDirective() {
         graphQlTester.document(
             """
@@ -207,6 +207,7 @@ class ProductGraphQLControllerTest {
                 assertThat(sdl).contains("Product")
                 assertThat(sdl).contains("@key")
                 assertThat(sdl).contains("""@key(fields: "id")""")
+                assertThat(sdl).contains("""@key(fields: "skuCode")""")
             }
     }
 
@@ -316,5 +317,56 @@ class ProductGraphQLControllerTest {
                 assertThat(errors[0].errorType).isEqualTo(ErrorType.DataFetchingException)
                 assertThat(errors[0].extensions["code"]).isEqualTo("INTERNAL_SERVER_ERROR")
             }
+    }
+
+    // Federation _entities — skuCode key (used by order-service to hydrate product stubs)
+
+    @Test
+    @DisplayName("should return Product when _entities is called with a skuCode representation and product exists")
+    fun entitiesQuery_skuCodeRepresentation_returnsProduct() {
+        val product = ProductResponse("id1", "name1", "description1", BigDecimal.valueOf(1000), "sku-1")
+        runBlocking {
+            whenever(productService.getProductBySkuCode("sku-1")).thenReturn(product)
+        }
+
+        graphQlTester.document(
+            """
+            query {
+                _entities(representations: [{__typename: "Product", skuCode: "sku-1"}]) {
+                    ... on Product {
+                        id
+                        name
+                        skuCode
+                    }
+                }
+            }
+        """
+        )
+            .execute()
+            .path("_entities[0].id").entity(String::class.java).isEqualTo("id1")
+            .path("_entities[0].name").entity(String::class.java).isEqualTo("name1")
+            .path("_entities[0].skuCode").entity(String::class.java).isEqualTo("sku-1")
+    }
+
+    @Test
+    @DisplayName("should return null when _entities is called with a skuCode representation but product does not exist")
+    fun entitiesQuery_skuCodeNotFound_returnsNull() {
+        runBlocking {
+            whenever(productService.getProductBySkuCode("unknown")).thenReturn(null)
+        }
+
+        graphQlTester.document(
+            """
+            query {
+                _entities(representations: [{__typename: "Product", skuCode: "unknown"}]) {
+                    ... on Product {
+                        id
+                    }
+                }
+            }
+        """
+        )
+            .execute()
+            .path("_entities[0]").valueIsNull()
     }
 }

@@ -17,8 +17,8 @@ class ProductService(private val productRepository: ProductRepository) {
 
     private val log = LoggerFactory.getLogger(ProductService::class.java)
 
-    suspend fun createProduct(name: String, description: String, price: BigDecimal): SavedProduct {
-        val product = Product(name = name, description = description, price = price)
+    suspend fun createProduct(name: String, description: String, price: BigDecimal, skuCode: String): SavedProduct {
+        val product = Product(name = name, description = description, price = price, skuCode = skuCode)
         return try {
             val saved = productRepository.save(product)
             log.info("Product {} is saved", saved.id)
@@ -47,10 +47,20 @@ class ProductService(private val productRepository: ProductRepository) {
         }
     }
 
+    suspend fun getProductBySkuCode(skuCode: String): ProductResponse? {
+        return try {
+            productRepository.findBySkuCode(skuCode)?.toProductResponse()
+        } catch (e: DataAccessException) {
+            log.error("Error when getting product by skuCode {}: {}", skuCode, e.message)
+            throw InternalServerException()
+        }
+    }
+
     private fun Product.toProductResponse() = ProductResponse(
         id = requireNotNull(id),
         name = name,
         description = description,
-        price = price
+        price = price,
+        skuCode = skuCode
     )
 }

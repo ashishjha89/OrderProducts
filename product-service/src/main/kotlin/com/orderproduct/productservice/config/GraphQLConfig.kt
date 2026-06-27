@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class GraphQLConfig : RuntimeWiringConfigurer {
+
     override fun configure(builder: RuntimeWiring.Builder) {
         builder.scalar(ExtendedScalars.GraphQLBigDecimal)
         builder.scalar(buildAnyScalar())

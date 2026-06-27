@@ -1,16 +1,39 @@
 scalar BigDecimal
+scalar _Any
+
+directive @key(fields: String!, resolvable: Boolean) repeatable on OBJECT | INTERFACE
+directive @external on FIELD_DEFINITION | OBJECT
+
+type _Service {
+    sdl: String!
+}
+
+union _Entity = PlacedOrder
 
 type Query {
-    _service: String
+    _service: _Service!
+    _entities(representations: [_Any!]!): [_Entity]!
 }
 
 type Mutation {
     placeOrder(input: PlaceOrderInput!): PlacedOrder!
 }
 
-type PlacedOrder {
+type PlacedOrder @key(fields: "orderNumber") {
     orderId: String!
     orderNumber: String!
+    lineItems: [OrderLineItem!]!
+}
+
+type OrderLineItem {
+    skuCode: String!
+    price: BigDecimal!
+    quantity: Int!
+    product: Product
+}
+
+type Product @key(fields: "skuCode") @external {
+    skuCode: String!
 }
 
 input OrderLineItemInput {

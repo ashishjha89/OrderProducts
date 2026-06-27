@@ -29,12 +29,14 @@ class ProductServiceTest {
         val name = "Name"
         val description = "Description"
         val price = BigDecimal.valueOf(123)
-        val productPassedToRepo = Product(name = name, description = description, price = price)
-        val productReturnedFromRepo = Product(id = "id1", name = name, description = description, price = price)
+        val skuCode = "sku-1"
+        val productPassedToRepo = Product(name = name, description = description, price = price, skuCode = skuCode)
+        val productReturnedFromRepo =
+            Product(id = "id1", name = name, description = description, price = price, skuCode = skuCode)
 
         whenever(productRepository.save(productPassedToRepo)).thenReturn(productReturnedFromRepo)
 
-        val result = productService.createProduct(name, description, price)
+        val result = productService.createProduct(name, description, price, skuCode)
 
         verify(productRepository).save(productPassedToRepo)
         assertEquals(SavedProduct("id1"), result)
@@ -43,14 +45,15 @@ class ProductServiceTest {
     @Test
     @DisplayName("createProduct throws InternalServerException when repo throws DataAccessException")
     fun createProductWhenDBThrowsError() = runTest {
-        val productPassedToRepo = Product(name = "Name", description = "Description", price = BigDecimal.valueOf(123))
+        val productPassedToRepo =
+            Product(name = "Name", description = "Description", price = BigDecimal.valueOf(123), skuCode = "sku-1")
 
         whenever(productRepository.save(productPassedToRepo))
             .thenThrow(DataAccessResourceFailureException("Child class of DataAccessException"))
 
         assertThrows(InternalServerException::class.java) {
             runBlocking {
-                productService.createProduct("Name", "Description", BigDecimal.valueOf(123))
+                productService.createProduct("Name", "Description", BigDecimal.valueOf(123), "sku-1")
             }
         }
     }
@@ -116,6 +119,46 @@ class ProductServiceTest {
 
         assertThrows(InternalServerException::class.java) {
             runBlocking { productService.getProductById("id1") }
+        }
+    }
+
+    // getProductBySkuCode tests
+
+    @Test
+    @DisplayName("getProductBySkuCode() returns ProductResponse when product exists")
+    fun getProductBySkuCodeHappyFlow() = runTest {
+        val product = Product(
+            id = "id1",
+            name = "Name",
+            description = "Description",
+            price = BigDecimal.valueOf(123),
+            skuCode = "sku-1"
+        )
+        whenever(productRepository.findBySkuCode("sku-1")).thenReturn(product)
+
+        val result = productService.getProductBySkuCode("sku-1")
+
+        assertEquals(ProductResponse("id1", "Name", "Description", BigDecimal.valueOf(123), "sku-1"), result)
+    }
+
+    @Test
+    @DisplayName("getProductBySkuCode() returns null when product does not exist")
+    fun getProductBySkuCodeNotFound() = runTest {
+        whenever(productRepository.findBySkuCode("unknown")).thenReturn(null)
+
+        val result = productService.getProductBySkuCode("unknown")
+
+        assertEquals(null, result)
+    }
+
+    @Test
+    @DisplayName("getProductBySkuCode() throws InternalServerException when repo throws DataAccessException")
+    fun getProductBySkuCodeWhenDBThrowsError() = runTest {
+        whenever(productRepository.findBySkuCode("sku-1"))
+            .thenThrow(DataAccessResourceFailureException("Child class of DataAccessException"))
+
+        assertThrows(InternalServerException::class.java) {
+            runBlocking { productService.getProductBySkuCode("sku-1") }
         }
     }
 }

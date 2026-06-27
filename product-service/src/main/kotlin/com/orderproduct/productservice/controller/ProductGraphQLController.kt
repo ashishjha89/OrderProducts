@@ -29,7 +29,7 @@ class ProductGraphQLController(private val productService: ProductService) {
         log.info("GraphQL mutation: createProduct")
         val name = input.name.takeIf { it.isNotBlank() } ?: throw BadRequestException()
         val description = input.description.takeIf { it.isNotBlank() } ?: throw BadRequestException()
-        return productService.createProduct(name, description, input.price)
+        return productService.createProduct(name, description, input.price, input.skuCode)
     }
 
     // Federation: the router calls _service { sdl } at startup to discover this subgraph's schema.
@@ -44,9 +44,18 @@ class ProductGraphQLController(private val productService: ProductService) {
         log.info("GraphQL query: _entities — resolving {} representations", representations.size)
         return representations.map { representation ->
             when (representation["__typename"]) {
-                "Product" -> {
-                    val id = representation["id"] as? String ?: return@map null
-                    productService.getProductById(id)
+                "Product" -> when {
+                    representation.containsKey("id") -> {
+                        val id = representation["id"] as? String ?: return@map null
+                        productService.getProductById(id)
+                    }
+
+                    representation.containsKey("skuCode") -> {
+                        val skuCode = representation["skuCode"] as? String ?: return@map null
+                        productService.getProductBySkuCode(skuCode)
+                    }
+
+                    else -> null
                 }
 
                 else -> null
@@ -71,11 +80,12 @@ class ProductGraphQLController(private val productService: ProductService) {
                 createProduct(input: CreateProductInput!): CreatedProduct!
             }
 
-            type Product @key(fields: "id") {
+            type Product @key(fields: "id") @key(fields: "skuCode") {
                 id: String!
                 name: String!
                 description: String!
                 price: BigDecimal!
+                skuCode: String
             }
 
             type CreatedProduct {
@@ -86,6 +96,7 @@ class ProductGraphQLController(private val productService: ProductService) {
                 name: String!
                 description: String!
                 price: BigDecimal!
+                skuCode: String!
             }
         """.trimIndent()
     }

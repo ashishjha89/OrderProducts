@@ -3,6 +3,7 @@ package com.orderproduct.orderservice.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -13,8 +14,11 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +34,10 @@ import com.orderproduct.orderservice.dto.OrderLineItemsDto;
 import com.orderproduct.orderservice.dto.OrderRequest;
 import com.orderproduct.orderservice.dto.OrderReservationRequest;
 import com.orderproduct.orderservice.dto.SavedOrder;
+import com.orderproduct.orderservice.dto.SavedOrderLineItem;
+import com.orderproduct.orderservice.entity.Order;
+import com.orderproduct.orderservice.entity.OrderLineItems;
+import com.orderproduct.orderservice.repository.OrderRepository;
 
 import io.micrometer.observation.ObservationRegistry;
 
@@ -43,11 +51,14 @@ public class OrderServiceTest {
 
         private final OrderDataGenerator orderDataGenerator = mock(OrderDataGenerator.class);
 
+        private final OrderRepository orderRepository = mock(OrderRepository.class);
+
         private final OrderService orderService = new OrderService(
                         orderTransactionService,
                         inventoryReservationService,
                         observationRegistry,
-                        orderDataGenerator);
+                        orderDataGenerator,
+                        orderRepository);
 
         private final String orderNumber = "ThisIsUniqueOrderNumber";
 
@@ -291,5 +302,79 @@ public class OrderServiceTest {
                 Throwable cause = executionException.getCause();
                 assertNotNull(cause);
                 assertEquals(InvalidInputException.class, cause.getClass());
+        }
+
+        // getOrderByOrderNumber tests
+
+        @Test
+        @DisplayName("`getOrderByOrderNumber()` returns SavedOrder when order exists")
+        public void getOrderByOrderNumber_ReturnsSavedOrder_WhenOrderExists() {
+                Order order = new Order(1L, "ORD-001", List.of());
+                when(orderRepository.findByOrderNumber("ORD-001")).thenReturn(Optional.of(order));
+
+                Optional<SavedOrder> result = orderService.getOrderByOrderNumber("ORD-001");
+
+                assertTrue(result.isPresent());
+                assertEquals("1", result.get().orderId());
+                assertEquals("ORD-001", result.get().orderNumber());
+        }
+
+        @Test
+        @DisplayName("`getOrderByOrderNumber()` returns empty Optional when order does not exist")
+        public void getOrderByOrderNumber_ReturnsEmpty_WhenOrderNotFound() {
+                when(orderRepository.findByOrderNumber("UNKNOWN")).thenReturn(Optional.empty());
+
+                Optional<SavedOrder> result = orderService.getOrderByOrderNumber("UNKNOWN");
+
+                assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("`getOrderByOrderNumber()` throws InternalServerException when repository throws DataAccessException")
+        public void getOrderByOrderNumber_ThrowsInternalServerException_WhenRepositoryThrows() {
+                when(orderRepository.findByOrderNumber("ORD-001"))
+                                .thenThrow(new org.springframework.dao.DataAccessResourceFailureException("DB error"));
+
+                assertThrows(InternalServerException.class,
+                                () -> orderService.getOrderByOrderNumber("ORD-001"));
+        }
+
+        // getLineItemsByOrderNumber tests
+
+        @Test
+        @DisplayName("`getLineItemsByOrderNumber()` returns SavedOrderLineItems with ProductStubs when order exists")
+        public void getLineItemsByOrderNumber_ReturnsLineItems_WhenOrderExists() {
+                OrderLineItems lineItem = new OrderLineItems(1L, "samsung-s10", BigDecimal.valueOf(100), 2, null);
+                Order order = new Order(1L, "ORD-001", List.of(lineItem));
+                when(orderRepository.findByOrderNumberWithLineItems("ORD-001")).thenReturn(Optional.of(order));
+
+                List<SavedOrderLineItem> result = orderService.getLineItemsByOrderNumber("ORD-001");
+
+                assertFalse(result.isEmpty());
+                assertEquals(1, result.size());
+                assertEquals("samsung-s10", result.get(0).skuCode());
+                assertEquals(BigDecimal.valueOf(100), result.get(0).price());
+                assertEquals(2, result.get(0).quantity());
+                assertEquals("samsung-s10", result.get(0).product().skuCode());
+        }
+
+        @Test
+        @DisplayName("`getLineItemsByOrderNumber()` returns empty list when order does not exist")
+        public void getLineItemsByOrderNumber_ReturnsEmptyList_WhenOrderNotFound() {
+                when(orderRepository.findByOrderNumberWithLineItems("UNKNOWN")).thenReturn(Optional.empty());
+
+                List<SavedOrderLineItem> result = orderService.getLineItemsByOrderNumber("UNKNOWN");
+
+                assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("`getLineItemsByOrderNumber()` throws InternalServerException when repository throws DataAccessException")
+        public void getLineItemsByOrderNumber_ThrowsInternalServerException_WhenRepositoryThrows() {
+                when(orderRepository.findByOrderNumberWithLineItems("ORD-001"))
+                                .thenThrow(new org.springframework.dao.DataAccessResourceFailureException("DB error"));
+
+                assertThrows(InternalServerException.class,
+                                () -> orderService.getLineItemsByOrderNumber("ORD-001"));
         }
 }

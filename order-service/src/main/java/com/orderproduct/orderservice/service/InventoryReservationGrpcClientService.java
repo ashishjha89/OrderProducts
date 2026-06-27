@@ -134,11 +134,11 @@ public class InventoryReservationGrpcClientService implements InventoryReservati
 
             List<com.orderproduct.orderservice.dto.InventoryServiceErrorBody.UnavailableProduct> unavailableProducts = unavailableProductsStr
                     .isEmpty()
-                            ? List.of()
-                            : Arrays.stream(unavailableProductsStr.split(","))
-                                    .map(skuCode -> new com.orderproduct.orderservice.dto.InventoryServiceErrorBody.UnavailableProduct(
-                                            skuCode.trim(), 0, 0))
-                                    .collect(Collectors.toList());
+                    ? List.of()
+                    : Arrays.stream(unavailableProductsStr.split(","))
+                    .map(skuCode -> new com.orderproduct.orderservice.dto.InventoryServiceErrorBody.UnavailableProduct(
+                            skuCode.trim(), 0, 0))
+                    .collect(Collectors.toList());
 
             return new InventoryNotInStockException(
                     e.getStatus().getDescription() != null
